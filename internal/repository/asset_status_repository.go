@@ -11,7 +11,7 @@ type AssetStatusRepository struct {
 
 func (r AssetStatusRepository) GetAssetStatusByName(name string) error {
 	var assetStatus models.AssetStatus
-	err := r.DB.Table("asset-service.asset_status").Where("status_name LIKE ?", name).First(&assetStatus).Error
+	err := r.DB.Table("my-home.asset_status").Where("status_name LIKE ?", name).First(&assetStatus).Error
 	if err != nil {
 		return err
 	}
@@ -19,7 +19,7 @@ func (r AssetStatusRepository) GetAssetStatusByName(name string) error {
 }
 
 func (r AssetStatusRepository) AddAssetStatus(assetStatus **models.AssetStatus) error {
-	err := r.DB.Table("asset-service.asset_status").Create(assetStatus).Error
+	err := r.DB.Table("my-home.asset_status").Create(assetStatus).Error
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (r AssetStatusRepository) AddAssetStatus(assetStatus **models.AssetStatus) 
 
 func (r AssetStatusRepository) GetAssetStatus() ([]models.AssetStatus, error) {
 	var assetStatus []models.AssetStatus
-	err := r.DB.Table("asset-service.asset_status").Find(&assetStatus).Where("deleted_at IS NULL").Error
+	err := r.DB.Table("my-home.asset_status").Find(&assetStatus).Where("deleted_at IS NULL").Error
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (r AssetStatusRepository) GetAssetStatus() ([]models.AssetStatus, error) {
 
 func (r AssetStatusRepository) GetAssetStatusByID(assetStatusID uint) (*models.AssetStatus, error) {
 	var assetStatus models.AssetStatus
-	err := r.DB.Table("asset-service.asset_status").Where("asset_status_id = ?", assetStatusID).First(&assetStatus).Error
+	err := r.DB.Table("my-home.asset_status").Where("asset_status_id = ?", assetStatusID).First(&assetStatus).Error
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (r AssetStatusRepository) GetAssetStatusByID(assetStatusID uint) (*models.A
 }
 
 func (r AssetStatusRepository) UpdateAssetStatus(status *models.AssetStatus) error {
-	err := r.DB.Table("asset-service.asset_status").Save(status).Error
+	err := r.DB.Table("my-home.asset_status").Save(status).Error
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (r AssetStatusRepository) UpdateAssetStatus(status *models.AssetStatus) err
 }
 
 func (r AssetStatusRepository) DeleteAssetStatus(status *models.AssetStatus) error {
-	err := r.DB.Table("asset-service.asset_status").Model(status).
+	err := r.DB.Table("my-home.asset_status").Model(status).
 		Update("deleted_by", status.DeletedBy).
 		Delete(status).Error
 	if err != nil {

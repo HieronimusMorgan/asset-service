@@ -17,7 +17,7 @@ func AssetStatusRoutes(r *gin.Engine, db *gorm.DB) {
 		protected.GET("/:id", assetStatusHandler.GetAssetStatusByID)
 	}
 
-	admin := r.Group("/home/v1/asset/status")
+	admin := r.Group("/asset-service/v1/asset/status")
 	admin.Use(middleware.AuthMiddleware())
 	{
 		admin.POST("/add", assetStatusHandler.AddAssetStatus)

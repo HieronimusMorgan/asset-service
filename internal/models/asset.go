@@ -13,6 +13,7 @@ type Asset struct {
 	CategoryID   int            `gorm:"not null" json:"category_id"`
 	StatusID     int            `gorm:"not null" json:"status_id"`
 	PurchaseDate *time.Time     `gorm:"type:date" json:"purchase_date"`
+	ExpiryDate   *time.Time     `gorm:"type:date" json:"expiry_date"`
 	Value        float64        `gorm:"type:decimal(15,2)" json:"value"`
 	CreatedAt    time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	CreatedBy    string         `gorm:"type:varchar(50)" json:"created_by"`

@@ -49,10 +49,20 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 	if err == nil {
 		return nil, errors.New("asset already exists")
 	}
+
 	layout := "2006-01-02" // Date-only format
-	parsedDate, err := time.Parse(layout, assetRequest.PurchaseDate)
+	purchaseDate, err := time.Parse(layout, assetRequest.PurchaseDate)
 	if err != nil {
 		return nil, fmt.Errorf("invalid purchase date format: %v", err)
+	}
+
+	var expiryDate *time.Time = nil
+	if assetRequest.ExpiryDate != "" {
+		parsedExpiryDate, err := time.Parse(layout, assetRequest.ExpiryDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expiry date format: %v", err)
+		}
+		expiryDate = &parsedExpiryDate
 	}
 
 	var asset = &models.Asset{
@@ -61,14 +71,36 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		Description:  assetRequest.Description,
 		CategoryID:   assetRequest.CategoryID,
 		StatusID:     assetRequest.StatusID,
-		PurchaseDate: &parsedDate,
+		PurchaseDate: &purchaseDate,
+		ExpiryDate:   expiryDate,
 		Value:        assetRequest.Value,
 		CreatedBy:    user.FullName,
 		UpdatedBy:    user.FullName,
 	}
 
+	var maintenanceDate *time.Time = nil
+	if assetRequest.MaintenanceDate != "" {
+		parsedMaintenanceDate, err := time.Parse(layout, assetRequest.MaintenanceDate)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expiry date format: %v", err)
+		}
+		maintenanceDate = &parsedMaintenanceDate
+	}
+
+	var assetMaintenance = &models.AssetMaintenance{
+		MaintenanceDate:    *maintenanceDate,
+		MaintenanceCost:    assetRequest.MaintenanceCost,
+		MaintenanceDetails: nil,
+		CreatedBy:          user.FullName,
+		UpdatedBy:          user.FullName,
+	}
+
+	if assetRequest.MaintenanceDetail != "" {
+		assetMaintenance.MaintenanceDetails = &assetRequest.MaintenanceDetail
+	}
+
 	var result *out.AssetResponse
-	result, err = s.AssetRepository.AddAsset(asset)
+	result, err = s.AssetRepository.AddAsset(asset, assetMaintenance)
 	if err != nil && result == nil {
 		return nil, err
 	}
@@ -88,35 +120,5 @@ func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
 		return nil, err
 	}
 
-	var assetResponse []struct {
-		ID           uint
-		Name         string
-		Description  string
-		CategoryName string
-		StatusName   string
-		PurchaseDate string
-		Value        float64
-	}
-	for _, asset := range assets {
-
-		assetResponse = append(assetResponse, struct {
-			ID           uint
-			Name         string
-			Description  string
-			CategoryName string
-			StatusName   string
-			PurchaseDate string
-			Value        float64
-		}{
-			ID:           asset.ID,
-			Name:         asset.Name,
-			Description:  asset.Description,
-			CategoryName: asset.CategoryName,
-			StatusName:   asset.StatusName,
-			PurchaseDate: asset.PurchaseDate.Format("2006-01-02"),
-			Value:        asset.Value,
-		})
-	}
-
-	return assetResponse, nil
+	return assets, nil
 }

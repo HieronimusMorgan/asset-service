@@ -46,10 +46,10 @@ func (h AssetHandler) GetListAsset(context *gin.Context) {
 
 	asset, err := h.AssetService.GetListAsset(token.ClientID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to add asset", nil, err.Error())
+		response.SendResponse(context, 500, "Failed to get list asset", nil, err.Error())
 		return
 	}
-	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
+	response.SendResponse(context, 200, "Get list asset successfully", asset, nil)
 }
 
 func (h AssetHandler) UpdateAsset(context *gin.Context) {
