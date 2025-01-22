@@ -9,7 +9,7 @@ import (
 func AssetRoutes(r *gin.Engine, db *gorm.DB) {
 	assetHandler := handler.NewAssetHandler(db)
 
-	public := r.Group("/home/v1/asset")
+	public := r.Group("/asset-service/v1/asset")
 	{
 		public.POST("/add", assetHandler.AddAsset)
 		public.POST("/update", assetHandler.UpdateAsset)
