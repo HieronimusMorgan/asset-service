@@ -1,4 +1,4 @@
-package models
+package user
 
 type User struct {
 	UserID         uint   `json:"user_id,omitempty"`

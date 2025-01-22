@@ -3,7 +3,8 @@ package services
 import (
 	"asset-service/internal/dto/in"
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models"
+	"asset-service/internal/models/asset"
+	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
 	"errors"
@@ -26,7 +27,7 @@ func (s AssetService) RegisterAsset(s2 *struct {
 	Description string `json:"description" binding:"optional"`
 	CategoryID  uint   `json:"category_id" binding:"required"`
 }, userID uint) (interface{}, error) {
-	var asset = &models.Asset{
+	var asset = &asset.Asset{
 		Name:        s2.Name,
 		Description: s2.Description,
 	}
@@ -38,7 +39,7 @@ func (s AssetService) RegisterAsset(s2 *struct {
 }
 
 func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 
 	if err != nil {
@@ -65,7 +66,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		expiryDate = &parsedExpiryDate
 	}
 
-	var asset = &models.Asset{
+	var asset = &asset.Asset{
 		Name:         assetRequest.Name,
 		UserClientID: clientID,
 		Description:  assetRequest.Description,
@@ -87,7 +88,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		maintenanceDate = &parsedMaintenanceDate
 	}
 
-	var assetMaintenance = &models.AssetMaintenance{
+	var assetMaintenance = &asset.AssetMaintenance{
 		MaintenanceDate:    *maintenanceDate,
 		MaintenanceCost:    assetRequest.MaintenanceCost,
 		MaintenanceDetails: nil,
@@ -109,7 +110,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 }
 
 func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
 		return nil, err

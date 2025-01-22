@@ -1,4 +1,4 @@
-package models
+package asset
 
 import (
 	"gorm.io/gorm"

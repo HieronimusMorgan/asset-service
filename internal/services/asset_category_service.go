@@ -3,7 +3,8 @@ package services
 import (
 	"asset-service/internal/dto/in"
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models"
+	"asset-service/internal/models/asset"
+	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
 	"errors"
@@ -20,13 +21,13 @@ func NewAssetCategoryService(db *gorm.DB) *AssetCategoryService {
 }
 
 func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryRequest, clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
 		return nil, err
 	}
-	var assetCategory = &models.AssetCategory{
+	var assetCategory = &asset.AssetCategory{
 		CategoryName: assetRequest.CategoryName,
 		Description:  assetRequest.Description,
 		CreatedBy:    user.FullName,
@@ -51,8 +52,8 @@ func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryReq
 }
 
 func (s AssetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *in.AssetCategoryRequest, clientID string) (interface{}, error) {
-	var user = &models.User{}
-	var assetCategory = &models.AssetCategory{}
+	var user = &user.User{}
+	var assetCategory = &asset.AssetCategory{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
@@ -75,7 +76,7 @@ func (s AssetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCat
 }
 
 func (s AssetCategoryService) GetListAssetCategory(clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
@@ -100,7 +101,7 @@ func (s AssetCategoryService) GetListAssetCategory(clientID string) (interface{}
 }
 
 func (s AssetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}, error) {
-	var assetCategory *models.AssetCategory
+	var assetCategory *asset.AssetCategory
 	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
 	if err != nil {
 		return nil, errors.New("asset category not found")
@@ -116,8 +117,8 @@ func (s AssetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}
 }
 
 func (s AssetCategoryService) DeleteAssetCategory(categoryID uint, clientID string) error {
-	var user = &models.User{}
-	var assetCategory = &models.AssetCategory{}
+	var user = &user.User{}
+	var assetCategory = &asset.AssetCategory{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {

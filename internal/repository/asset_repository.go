@@ -2,7 +2,7 @@ package repository
 
 import (
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models"
+	"asset-service/internal/models/asset"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
@@ -18,7 +18,7 @@ func NewAssetRepository(db *gorm.DB) *AssetRepository {
 	return &AssetRepository{DB: db}
 }
 
-func (r AssetRepository) RegisterAsset(asset **models.Asset) error {
+func (r AssetRepository) RegisterAsset(asset **asset.Asset) error {
 	err := r.DB.Table(tableAssetName).Create(&asset).Error
 	if err != nil {
 		return err
@@ -26,7 +26,7 @@ func (r AssetRepository) RegisterAsset(asset **models.Asset) error {
 	return nil
 }
 
-func (r AssetRepository) AddAsset(asset *models.Asset, maintenance *models.AssetMaintenance) (*out.AssetResponse, error) {
+func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMaintenance) (*out.AssetResponse, error) {
 	if asset == nil {
 		return nil, errors.New("asset cannot be nil")
 	}
@@ -104,8 +104,8 @@ func (r AssetRepository) AddAsset(asset *models.Asset, maintenance *models.Asset
 	return &result, nil
 }
 
-func (r AssetRepository) GetAssetByName(name string) (*models.Asset, error) {
-	var asset models.Asset
+func (r AssetRepository) GetAssetByName(name string) (*asset.Asset, error) {
+	var asset asset.Asset
 	err := r.DB.Table(tableAssetName).Where("name LIKE ?", name).First(&asset).Error
 	if err != nil {
 		return nil, err

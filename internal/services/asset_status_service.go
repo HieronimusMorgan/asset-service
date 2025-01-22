@@ -3,7 +3,8 @@ package services
 import (
 	"asset-service/internal/dto/in"
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models"
+	"asset-service/internal/models/asset"
+	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
 	"errors"
@@ -15,14 +16,14 @@ type AssetStatusService struct {
 }
 
 func (s AssetStatusService) AddAssetStatus(assetStatusRequest *in.AssetStatusRequest, clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
 		return nil, err
 	}
 
-	var assetStatus = &models.AssetStatus{
+	var assetStatus = &asset.AssetStatus{
 		StatusName:  assetStatusRequest.StatusName,
 		Description: assetStatusRequest.Description,
 		CreatedBy:   user.FullName,
@@ -76,7 +77,7 @@ func (s AssetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{},
 }
 
 func (s AssetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusRequest *in.AssetStatusRequest, clientID string) (interface{}, error) {
-	var user = &models.User{}
+	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
@@ -107,7 +108,7 @@ func (s AssetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 }
 
 func (s AssetStatusService) DeleteAssetStatus(assetStatusID uint, clientID string) error {
-	var user = &models.User{}
+	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"asset-service/internal/models"
+	"asset-service/internal/models/user"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
@@ -25,7 +25,7 @@ func Middleware() gin.HandlerFunc {
 			return
 		}
 
-		var session *models.UserSession
+		var session *user.UserSession
 		if err := utils.GetDataFromRedis(utils.UserSession, claims.ClientID, &session); err != nil {
 			response.SendResponse(c, http.StatusUnauthorized, "Invalid or inactive token", nil, err.Error())
 			c.Abort()
