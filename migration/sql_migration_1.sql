@@ -25,12 +25,12 @@ CREATE TABLE asset_status
     deleted_by      VARCHAR(255)
 );
 
--- Insert default asset statuses
+-- Insert default assets statuses
 INSERT INTO asset_status (status_name, description, created_by, updated_by)
-VALUES ('Available', 'The asset is available for use', 'system', 'system'),
-       ('In Use', 'The asset is currently being used', 'system', 'system'),
-       ('Under Maintenance', 'The asset is undergoing maintenance', 'system', 'system'),
-       ('Retired', 'The asset is no longer in use', 'system', 'system');
+VALUES ('Available', 'The assets is available for use', 'system', 'system'),
+       ('In Use', 'The assets is currently being used', 'system', 'system'),
+       ('Under Maintenance', 'The assets is undergoing maintenance', 'system', 'system'),
+       ('Retired', 'The assets is no longer in use', 'system', 'system');
 
 -- Table for Asset Category
 CREATE TABLE asset_category

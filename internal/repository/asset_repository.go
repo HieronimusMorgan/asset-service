@@ -2,7 +2,7 @@ package repository
 
 import (
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models/asset"
+	"asset-service/internal/models/assets"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
@@ -12,13 +12,13 @@ type AssetRepository struct {
 	DB *gorm.DB
 }
 
-const tableAssetName = "my-home.asset"
+const tableAssetName = "my-home.assets"
 
 func NewAssetRepository(db *gorm.DB) *AssetRepository {
 	return &AssetRepository{DB: db}
 }
 
-func (r AssetRepository) RegisterAsset(asset **asset.Asset) error {
+func (r AssetRepository) RegisterAsset(asset **assets.Asset) error {
 	err := r.DB.Table(tableAssetName).Create(&asset).Error
 	if err != nil {
 		return err
@@ -26,9 +26,9 @@ func (r AssetRepository) RegisterAsset(asset **asset.Asset) error {
 	return nil
 }
 
-func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMaintenance) (*out.AssetResponse, error) {
+func (r AssetRepository) AddAsset(asset *assets.Asset, maintenance *assets.AssetMaintenance) (*out.AssetResponse, error) {
 	if asset == nil {
-		return nil, errors.New("asset cannot be nil")
+		return nil, errors.New("assets cannot be nil")
 	}
 
 	// Validate CategoryID and StatusID
@@ -58,10 +58,10 @@ func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMa
 		}
 	}()
 
-	// Insert the asset
-	if err := tx.Table("my-home.asset").Create(asset).Error; err != nil {
+	// Insert the assets
+	if err := tx.Table("my-home.assets").Create(asset).Error; err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to create asset: %w", err)
+		return nil, fmt.Errorf("failed to create assets: %w", err)
 	}
 
 	// Set asset_id for maintenance and insert the maintenance record
@@ -71,7 +71,7 @@ func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMa
 		return nil, fmt.Errorf("failed to create maintenance record: %w", err)
 	}
 
-	// Retrieve the asset with maintenance information
+	// Retrieve the assets with maintenance information
 	var result out.AssetResponse
 	selectAssetQuery := `
 		SELECT 
@@ -85,7 +85,7 @@ func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMa
 			a.value,
 			m.maintenance_date,
 			m.maintenance_cost
-		FROM "my-home"."asset" a
+		FROM "my-home"."assets" a
 		INNER JOIN "my-home"."asset_category" c ON a.category_id = c.asset_category_id
 		INNER JOIN "my-home"."asset_status" s ON a.status_id = s.asset_status_id
 		LEFT JOIN "my-home"."asset_maintenance" m ON a.asset_id = m.asset_id
@@ -93,7 +93,7 @@ func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMa
 	`
 	if err := tx.Raw(selectAssetQuery, asset.AssetID).Scan(&result).Error; err != nil {
 		tx.Rollback()
-		return nil, fmt.Errorf("failed to retrieve asset after creation: %w", err)
+		return nil, fmt.Errorf("failed to retrieve assets after creation: %w", err)
 	}
 
 	// Commit the transaction
@@ -104,8 +104,8 @@ func (r AssetRepository) AddAsset(asset *asset.Asset, maintenance *asset.AssetMa
 	return &result, nil
 }
 
-func (r AssetRepository) GetAssetByName(name string) (*asset.Asset, error) {
-	var asset asset.Asset
+func (r AssetRepository) GetAssetByName(name string) (*assets.Asset, error) {
+	var asset assets.Asset
 	err := r.DB.Table(tableAssetName).Where("name LIKE ?", name).First(&asset).Error
 	if err != nil {
 		return nil, err
@@ -116,21 +116,21 @@ func (r AssetRepository) GetAssetByName(name string) (*asset.Asset, error) {
 func (r AssetRepository) GetListAsset(clientID string) ([]out.AssetResponse, error) {
 	selectQuery := `
 		SELECT 
-			asset.asset_id,
-			asset.name,
-			asset.description,
+			assets.asset_id,
+			assets.name,
+			assets.description,
 			category.category_name,
 			status.status_name,
-			asset.purchase_date,
-			asset.value,
+			assets.purchase_date,
+			assets.value,
 			maintenance.maintenance_date,
 			maintenance.maintenance_cost
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-		LEFT JOIN "my-home"."asset_maintenance" maintenance ON asset.asset_id = maintenance.asset_id
-		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
-		ORDER BY asset.name DESC
+		FROM "my-home"."assets" assets
+		INNER JOIN "my-home"."asset_category" category ON assets.category_id = category.asset_category_id
+		INNER JOIN "my-home"."asset_status" status ON assets.status_id = status.asset_status_id
+		LEFT JOIN "my-home"."asset_maintenance" maintenance ON assets.asset_id = maintenance.asset_id
+		WHERE assets.user_client_id = ? AND assets.deleted_at IS NULL
+		ORDER BY assets.name DESC
 	`
 	var result []out.AssetResponse
 	err := r.DB.Raw(selectQuery, clientID).Scan(&result).Error

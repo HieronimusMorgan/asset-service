@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"asset-service/internal/models/asset"
+	"asset-service/internal/models/assets"
 	"errors"
 	"gorm.io/gorm"
 )
@@ -14,7 +14,7 @@ func NewAssetCategoryRepository(db *gorm.DB) *AssetCategoryRepository {
 	return &AssetCategoryRepository{DB: db}
 }
 
-func (r AssetCategoryRepository) AddAssetCategory(assetCategory **asset.AssetCategory) error {
+func (r AssetCategoryRepository) AddAssetCategory(assetCategory **assets.AssetCategory) error {
 	err := r.DB.Table("my-home.asset_category").Create(assetCategory).Error
 	if err != nil {
 		return err
@@ -22,7 +22,7 @@ func (r AssetCategoryRepository) AddAssetCategory(assetCategory **asset.AssetCat
 	return nil
 }
 
-func (r AssetCategoryRepository) UpdateAssetCategory(assetCategory **asset.AssetCategory) error {
+func (r AssetCategoryRepository) UpdateAssetCategory(assetCategory **assets.AssetCategory) error {
 	err := r.DB.Table("my-home.asset_category").Save(assetCategory).Error
 	if err != nil {
 		return err
@@ -31,34 +31,34 @@ func (r AssetCategoryRepository) UpdateAssetCategory(assetCategory **asset.Asset
 }
 
 func (r AssetCategoryRepository) GetAssetCategoryByName(name string) error {
-	var assetCategory asset.AssetCategory
+	var assetCategory assets.AssetCategory
 	r.DB.Table("my-home.asset_category").Where("category_name = ?", name).First(&assetCategory)
 	if assetCategory.AssetCategoryID != 0 {
 		return nil
 	}
-	return errors.New("asset category not found")
+	return errors.New("assets category not found")
 }
 
-func (r AssetCategoryRepository) GetAssetCategoryById(assetCategoryID uint) (*asset.AssetCategory, error) {
-	var assetCategory asset.AssetCategory
+func (r AssetCategoryRepository) GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error) {
+	var assetCategory assets.AssetCategory
 	r.DB.Table("my-home.asset_category").Where("asset_category_id = ?", assetCategoryID).First(&assetCategory)
 	if assetCategory.AssetCategoryID != 0 {
 		return &assetCategory, nil
 	}
-	return nil, errors.New("asset category not found")
+	return nil, errors.New("assets category not found")
 }
 
-func (r AssetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*asset.AssetCategory, error) {
-	var assetCategory asset.AssetCategory
+func (r AssetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error) {
+	var assetCategory assets.AssetCategory
 	r.DB.Table("my-home.asset_category").Where("asset_category_id = ? AND category_name NOT LIKE ?", assetCategoryID, categoryName).First(&assetCategory)
 	if assetCategory.AssetCategoryID != 0 {
 		return &assetCategory, nil
 	}
-	return nil, errors.New("asset category not found")
+	return nil, errors.New("assets category not found")
 }
 
-func (r AssetCategoryRepository) GetListAssetCategory() ([]asset.AssetCategory, error) {
-	var assetCategories []asset.AssetCategory
+func (r AssetCategoryRepository) GetListAssetCategory() ([]assets.AssetCategory, error) {
+	var assetCategories []assets.AssetCategory
 	err := r.DB.Table("my-home.asset_category").Find(&assetCategories).Error
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (r AssetCategoryRepository) GetListAssetCategory() ([]asset.AssetCategory, 
 	return assetCategories, nil
 }
 
-func (r AssetCategoryRepository) DeleteAssetCategory(assetCategory *asset.AssetCategory) error {
+func (r AssetCategoryRepository) DeleteAssetCategory(assetCategory *assets.AssetCategory) error {
 	err := r.DB.Table("my-home.asset_category").Model(&assetCategory).
 		Where("asset_category_id = ?", assetCategory.AssetCategoryID).
 		Update("deleted_by", assetCategory.DeletedBy).

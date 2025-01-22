@@ -10,14 +10,14 @@ import (
 func AssetStatusRoutes(r *gin.Engine, db *gorm.DB) {
 	assetStatusHandler := handler.NewAssetStatusHandler(db)
 
-	protected := r.Group("/asset-service/v1/asset/status")
+	protected := r.Group("/assets-service/v1/assets/status")
 	protected.Use(middleware.Middleware())
 	{
 		protected.GET("", assetStatusHandler.GetListAssetStatus)
 		protected.GET("/:id", assetStatusHandler.GetAssetStatusByID)
 	}
 
-	admin := r.Group("/asset-service/v1/asset/status")
+	admin := r.Group("/assets-service/v1/assets/status")
 	admin.Use(middleware.AuthMiddleware())
 	{
 		admin.POST("/add", assetStatusHandler.AddAssetStatus)

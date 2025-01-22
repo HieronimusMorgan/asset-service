@@ -10,7 +10,7 @@ import (
 func AssetCategoryRoutes(r *gin.Engine, db *gorm.DB) {
 	assetHandler := handler.NewAssetCategoryHandler(db)
 
-	protected := r.Group("/asset-service/v1/asset/category")
+	protected := r.Group("/assets-service/v1/assets/category")
 	protected.Use(middleware.Middleware())
 	{
 		protected.POST("/add", assetHandler.AddAssetCategory)

@@ -36,7 +36,7 @@ func (h AssetStatusHandler) AddAssetStatus(context *gin.Context) {
 	}
 	assetStatus, err := h.AssetStatusService.AddAssetStatus(&req, token.ClientID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to add asset status", nil, err)
+		response.SendResponse(context, 500, "Failed to add assets status", nil, err)
 		return
 	}
 	response.SendResponse(context, 201, "Asset status added successfully", assetStatus, nil)
@@ -45,7 +45,7 @@ func (h AssetStatusHandler) AddAssetStatus(context *gin.Context) {
 func (h AssetStatusHandler) GetListAssetStatus(context *gin.Context) {
 	assetStatus, err := h.AssetStatusService.GetAssetStatus()
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to get asset status", nil, err)
+		response.SendResponse(context, 500, "Failed to get assets status", nil, err)
 		return
 	}
 	response.SendResponse(context, 200, "Success", assetStatus, nil)
@@ -60,7 +60,7 @@ func (h AssetStatusHandler) GetAssetStatusByID(context *gin.Context) {
 
 	assetStatus, err := h.AssetStatusService.GetAssetStatusByID(assetStatusID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to get asset status", nil, err)
+		response.SendResponse(context, 500, "Failed to get assets status", nil, err)
 		return
 	}
 	response.SendResponse(context, 200, "Success", assetStatus, nil)
@@ -86,7 +86,7 @@ func (h AssetStatusHandler) UpdateAssetStatus(context *gin.Context) {
 
 	assetStatus, err := h.AssetStatusService.UpdateAssetStatus(assetStatusID, &req, token.ClientID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to update asset status", nil, err)
+		response.SendResponse(context, 500, "Failed to update assets status", nil, err)
 		return
 	}
 	response.SendResponse(context, 200, "Asset status updated successfully", assetStatus, nil)
@@ -106,7 +106,7 @@ func (h AssetStatusHandler) DeleteAssetStatus(context *gin.Context) {
 
 	err = h.AssetStatusService.DeleteAssetStatus(assetStatusID, token.ClientID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to delete asset status", nil, err)
+		response.SendResponse(context, 500, "Failed to delete assets status", nil, err)
 		return
 	}
 	response.SendResponse(context, 200, "Asset status deleted successfully", nil, nil)

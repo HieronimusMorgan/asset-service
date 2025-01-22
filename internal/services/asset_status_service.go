@@ -3,7 +3,7 @@ package services
 import (
 	"asset-service/internal/dto/in"
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models/asset"
+	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
@@ -23,7 +23,7 @@ func (s AssetStatusService) AddAssetStatus(assetStatusRequest *in.AssetStatusReq
 		return nil, err
 	}
 
-	var assetStatus = &asset.AssetStatus{
+	var assetStatus = &assets.AssetStatus{
 		StatusName:  assetStatusRequest.StatusName,
 		Description: assetStatusRequest.Description,
 		CreatedBy:   user.FullName,
@@ -31,7 +31,7 @@ func (s AssetStatusService) AddAssetStatus(assetStatusRequest *in.AssetStatusReq
 
 	err = s.AssetStatusRepository.GetAssetStatusByName(assetStatusRequest.StatusName)
 	if err == nil {
-		return nil, errors.New("asset status already exists")
+		return nil, errors.New("assets status already exists")
 	}
 
 	err = s.AssetStatusRepository.AddAssetStatus(&assetStatus)

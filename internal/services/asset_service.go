@@ -3,7 +3,7 @@ package services
 import (
 	"asset-service/internal/dto/in"
 	"asset-service/internal/dto/out"
-	"asset-service/internal/models/asset"
+	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
@@ -27,7 +27,7 @@ func (s AssetService) RegisterAsset(s2 *struct {
 	Description string `json:"description" binding:"optional"`
 	CategoryID  uint   `json:"category_id" binding:"required"`
 }, userID uint) (interface{}, error) {
-	var asset = &asset.Asset{
+	var asset = &assets.Asset{
 		Name:        s2.Name,
 		Description: s2.Description,
 	}
@@ -48,7 +48,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 
 	_, err = s.AssetRepository.GetAssetByName(assetRequest.Name)
 	if err == nil {
-		return nil, errors.New("asset already exists")
+		return nil, errors.New("assets already exists")
 	}
 
 	layout := "2006-01-02" // Date-only format
@@ -66,7 +66,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		expiryDate = &parsedExpiryDate
 	}
 
-	var asset = &asset.Asset{
+	var asset = &assets.Asset{
 		Name:         assetRequest.Name,
 		UserClientID: clientID,
 		Description:  assetRequest.Description,
@@ -88,7 +88,7 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		maintenanceDate = &parsedMaintenanceDate
 	}
 
-	var assetMaintenance = &asset.AssetMaintenance{
+	var assetMaintenance = &assets.AssetMaintenance{
 		MaintenanceDate:    *maintenanceDate,
 		MaintenanceCost:    assetRequest.MaintenanceCost,
 		MaintenanceDetails: nil,
