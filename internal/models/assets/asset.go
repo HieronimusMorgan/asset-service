@@ -16,9 +16,9 @@ type Asset struct {
 	ExpiryDate   *time.Time     `gorm:"type:date" json:"expiry_date"`
 	Value        float64        `gorm:"type:decimal(15,2)" json:"value"`
 	CreatedAt    time.Time      `gorm:"autoCreateTime" json:"created_at"`
-	CreatedBy    string         `gorm:"type:varchar(50)" json:"created_by"`
+	CreatedBy    string         `gorm:"type:varchar(255)" json:"created_by"`
 	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
-	UpdatedBy    string         `gorm:"type:varchar(50)" json:"updated_by"`
+	UpdatedBy    string         `gorm:"type:varchar(255)" json:"updated_by"`
 	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitempty"`
-	DeletedBy    *string        `gorm:"type:varchar(50)" json:"deleted_by,omitempty"`
+	DeletedBy    *string        `gorm:"type:varchar(255)" json:"deleted_by,omitempty"`
 }

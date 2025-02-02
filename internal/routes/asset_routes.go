@@ -9,10 +9,12 @@ import (
 func AssetRoutes(r *gin.Engine, db *gorm.DB) {
 	assetHandler := handler.NewAssetHandler(db)
 
-	public := r.Group("/assets-service/v1/assets")
+	public := r.Group("/asset-service/v1/asset")
 	{
 		public.POST("/add", assetHandler.AddAsset)
-		public.POST("/update", assetHandler.UpdateAsset)
+		public.POST("/update/:id", assetHandler.UpdateAsset)
+		public.POST("/update-status/:id", assetHandler.UpdateAssetStatus)
+		public.POST("/update-category/:id", assetHandler.UpdateAssetCategory)
 		public.GET("", assetHandler.GetListAsset)
 		public.GET("/:id", assetHandler.GetAssetById)
 		public.DELETE("/delete/:id", assetHandler.DeleteAsset)

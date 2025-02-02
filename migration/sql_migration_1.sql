@@ -107,6 +107,55 @@ CREATE TABLE asset_maintenance
     FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
 );
 
+CREATE TABLE asset_maintenance_record
+(
+    maintenance_record_id SERIAL PRIMARY KEY,
+    asset_id              INT          NOT NULL, -- Reference to the asset
+    maintenance_date      DATE         NOT NULL, -- Date of maintenance
+    maintenance_type      VARCHAR(255) NOT NULL, -- Type of maintenance (e.g., Repair, Inspection)
+    maintenance_details   TEXT,                  -- Details of the maintenance work
+    maintenance_cost      DECIMAL(15, 2),        -- Cost of maintenance
+    performed_by          VARCHAR(255),          -- Who performed the maintenance
+    next_due_date         DATE,                  -- Date of the next maintenance (if applicable)
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by            VARCHAR(255),
+    updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by            VARCHAR(255),
+    deleted_at            TIMESTAMP,
+    deleted_by            VARCHAR(255),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+);
+
+CREATE TABLE asset_tags
+(
+    tag_id      SERIAL PRIMARY KEY,
+    tag_name    VARCHAR(255) NOT NULL UNIQUE, -- Name of the tag
+    description TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by  VARCHAR(255)
+);
+
+CREATE TABLE asset_tag_map
+(
+    asset_id INT NOT NULL,
+    tag_id   INT NOT NULL,
+    PRIMARY KEY (asset_id, tag_id),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
+    FOREIGN KEY (tag_id) REFERENCES asset_tags (tag_id)
+);
+
+CREATE TABLE asset_audit_log
+(
+    log_id       SERIAL PRIMARY KEY,
+    asset_id     INT NOT NULL,                 -- Reference to the asset
+    action       VARCHAR(255) NOT NULL,        -- Action performed (e.g., Created, Updated, Deleted)
+    old_data     TEXT,                         -- Snapshot of old data
+    new_data     TEXT,                         -- Snapshot of new data
+    performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    performed_by VARCHAR(255),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+);
+
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_asset_status
     BEFORE UPDATE
