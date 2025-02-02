@@ -155,6 +155,21 @@ CREATE TABLE asset_audit_log
     performed_by VARCHAR(255)
 );
 
+CREATE TABLE cron_jobs
+(
+    id               SERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL UNIQUE,
+    schedule         VARCHAR(255) NOT NULL, -- Cron expression
+    is_active        BOOLEAN   DEFAULT TRUE,
+    description      TEXT,
+    last_executed_at TIMESTAMP,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO cron_jobs (name, schedule, is_active, description)
+VALUES ('asset_maintenance', '* * * * *', true, 'Check Maintenance Asset');
+
 
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_asset_status

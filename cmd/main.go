@@ -4,6 +4,7 @@ import (
 	"asset-service/internal/database"
 	"asset-service/internal/routes"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/cron/service"
 	"github.com/gin-gonic/gin"
 	"log"
 )
@@ -15,6 +16,10 @@ func main() {
 	// Initialize database
 	db := database.InitDB()
 	defer database.CloseDB(db)
+
+	cronService := service.NewCronService(db)
+	cronService.Start()
+	defer cronService.Stop()
 
 	// Setup Gin router
 	r := gin.Default()

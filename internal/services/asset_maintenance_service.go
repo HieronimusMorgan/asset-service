@@ -7,6 +7,7 @@ import (
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
 	"gorm.io/gorm"
+	"log"
 )
 
 type AssetMaintenanceService struct {
@@ -67,4 +68,11 @@ func (s *AssetMaintenanceService) DeleteMaintenance(maintenanceID uint) error {
 
 func (s *AssetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientID string) (*assets.AssetMaintenance, error) {
 	return s.Repo.GetByAssetID(assetID, clientID)
+}
+
+func (s *AssetMaintenanceService) PerformMaintenanceCheck() error {
+
+	// Implement your maintenance check logic here
+	log.Println("Performing maintenance check...")
+	return nil
 }
