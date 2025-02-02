@@ -11,24 +11,43 @@ type AssetCategoryRepository struct {
 	logAudit *AssetAuditLogRepository
 }
 
+const tableAssetCategoryName = "my-home.asset_category"
+
 func NewAssetCategoryRepository(db *gorm.DB) *AssetCategoryRepository {
-	const tableAssetCategoryName = "my-home.asset_category"
 	return &AssetCategoryRepository{DB: db.Table(tableAssetCategoryName), logAudit: NewAssetAuditLogRepository(db)}
 }
 
-func (r AssetCategoryRepository) AddAssetCategory(assetCategory **assets.AssetCategory) error {
+func (r AssetCategoryRepository) AddAssetCategory(assetCategory *assets.AssetCategory) error {
 	err := r.DB.Create(&assetCategory).Error
 	if err != nil {
 		return err
 	}
-	return nil
-}
 
-func (r AssetCategoryRepository) UpdateAssetCategory(assetCategory **assets.AssetCategory) error {
-	err := r.DB.Save(assetCategory).Error
+	// Log audit
+	err = r.logAudit.AfterCreateAssetCategory(assetCategory)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (r AssetCategoryRepository) UpdateAssetCategory(assetCategory *assets.AssetCategory) error {
+	oldAssetCategory, err := r.GetAssetCategoryById(assetCategory.AssetCategoryID)
+	if err != nil {
+		return err
+	}
+
+	err = r.DB.Save(assetCategory).Error
+	if err != nil {
+		return err
+	}
+
+	err = r.logAudit.AfterUpdateAssetCategory(oldAssetCategory, assetCategory)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

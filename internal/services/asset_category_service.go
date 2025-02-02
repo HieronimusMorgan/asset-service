@@ -39,7 +39,7 @@ func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryReq
 		return nil, errors.New("assets category already exists")
 	}
 
-	err = s.AssetCategoryRepository.AddAssetCategory(&assetCategory)
+	err = s.AssetCategoryRepository.AddAssetCategory(assetCategory)
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (s AssetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCat
 	assetCategory.CategoryName = assetCategoryRequest.CategoryName
 	assetCategory.Description = assetCategoryRequest.Description
 	assetCategory.UpdatedBy = user.FullName
-	err = s.AssetCategoryRepository.UpdateAssetCategory(&assetCategory)
+	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory)
 	if err != nil {
 		return nil, err
 	}

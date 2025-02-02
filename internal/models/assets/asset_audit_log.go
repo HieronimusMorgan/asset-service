@@ -4,7 +4,7 @@ import "time"
 
 type AssetAuditLog struct {
 	LogID       uint      `gorm:"primaryKey" json:"log_id"`
-	AssetID     uint      `gorm:"not null" json:"asset_id"`
+	TableName   string    `gorm:"not null" json:"table_name"`
 	Action      string    `gorm:"type:varchar(255);not null" json:"action"`
 	OldData     *string   `gorm:"type:text" json:"old_data,omitempty"`
 	NewData     *string   `gorm:"type:text" json:"new_data,omitempty"`

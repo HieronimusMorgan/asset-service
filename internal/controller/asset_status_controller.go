@@ -1,4 +1,4 @@
-package handler
+package controller
 
 import (
 	"asset-service/internal/dto/in"
@@ -9,16 +9,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type AssetStatusHandler struct {
+type AssetStatusController struct {
 	AssetStatusService *services.AssetStatusService
 }
 
-func NewAssetStatusHandler(db *gorm.DB) *AssetStatusHandler {
+func NewAssetStatusController(db *gorm.DB) *AssetStatusController {
 	s := services.AddAssetStatus(db)
-	return &AssetStatusHandler{AssetStatusService: s}
+	return &AssetStatusController{AssetStatusService: s}
 }
 
-func (h AssetStatusHandler) AddAssetStatus(context *gin.Context) {
+func (h AssetStatusController) AddAssetStatus(context *gin.Context) {
 	var req in.AssetStatusRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
@@ -42,7 +42,7 @@ func (h AssetStatusHandler) AddAssetStatus(context *gin.Context) {
 	response.SendResponse(context, 201, "Asset status added successfully", assetStatus, nil)
 }
 
-func (h AssetStatusHandler) GetListAssetStatus(context *gin.Context) {
+func (h AssetStatusController) GetListAssetStatus(context *gin.Context) {
 	assetStatus, err := h.AssetStatusService.GetAssetStatus()
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to get assets status", nil, err)
@@ -51,7 +51,7 @@ func (h AssetStatusHandler) GetListAssetStatus(context *gin.Context) {
 	response.SendResponse(context, 200, "Success", assetStatus, nil)
 }
 
-func (h AssetStatusHandler) GetAssetStatusByID(context *gin.Context) {
+func (h AssetStatusController) GetAssetStatusByID(context *gin.Context) {
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
@@ -66,7 +66,7 @@ func (h AssetStatusHandler) GetAssetStatusByID(context *gin.Context) {
 	response.SendResponse(context, 200, "Success", assetStatus, nil)
 }
 
-func (h AssetStatusHandler) UpdateAssetStatus(context *gin.Context) {
+func (h AssetStatusController) UpdateAssetStatus(context *gin.Context) {
 	var req in.AssetStatusRequest
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
@@ -92,7 +92,7 @@ func (h AssetStatusHandler) UpdateAssetStatus(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset status updated successfully", assetStatus, nil)
 }
 
-func (h AssetStatusHandler) DeleteAssetStatus(context *gin.Context) {
+func (h AssetStatusController) DeleteAssetStatus(context *gin.Context) {
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)

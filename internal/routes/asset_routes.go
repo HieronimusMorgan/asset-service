@@ -1,13 +1,13 @@
 package routes
 
 import (
-	"asset-service/internal/handler"
+	"asset-service/internal/controller"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func AssetRoutes(r *gin.Engine, db *gorm.DB) {
-	assetHandler := handler.NewAssetHandler(db)
+	assetHandler := controller.NewAssetController(db)
 
 	public := r.Group("/asset-service/v1/asset")
 	{

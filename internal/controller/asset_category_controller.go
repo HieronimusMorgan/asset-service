@@ -1,4 +1,4 @@
-package handler
+package controller
 
 import (
 	"asset-service/internal/dto/in"
@@ -10,16 +10,16 @@ import (
 	"net/http"
 )
 
-type AssetCategoryHandler struct {
+type AssetCategoryController struct {
 	AssetCategoryService *services.AssetCategoryService
 }
 
-func NewAssetCategoryHandler(db *gorm.DB) *AssetCategoryHandler {
+func NewAssetCategoryController(db *gorm.DB) *AssetCategoryController {
 	s := services.NewAssetCategoryService(db)
-	return &AssetCategoryHandler{AssetCategoryService: s}
+	return &AssetCategoryController{AssetCategoryService: s}
 }
 
-func (h AssetCategoryHandler) AddAssetCategory(context *gin.Context) {
+func (h AssetCategoryController) AddAssetCategory(context *gin.Context) {
 	var req in.AssetCategoryRequest
 	token, err := utils.ExtractClaimsResponse(context)
 	if err != nil {
@@ -39,7 +39,7 @@ func (h AssetCategoryHandler) AddAssetCategory(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset category added successfully", assetCategory, nil)
 }
 
-func (h AssetCategoryHandler) UpdateAssetCategory(context *gin.Context) {
+func (h AssetCategoryController) UpdateAssetCategory(context *gin.Context) {
 	var req in.AssetCategoryRequest
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
@@ -66,11 +66,11 @@ func (h AssetCategoryHandler) UpdateAssetCategory(context *gin.Context) {
 
 }
 
-func (h AssetCategoryHandler) GetAssetCategories(context *gin.Context) {
+func (h AssetCategoryController) GetAssetCategories(context *gin.Context) {
 
 }
 
-func (h AssetCategoryHandler) GetListAssetCategory(context *gin.Context) {
+func (h AssetCategoryController) GetListAssetCategory(context *gin.Context) {
 	token, err := utils.ExtractClaimsResponse(context)
 	if err != nil {
 		return
@@ -84,7 +84,7 @@ func (h AssetCategoryHandler) GetListAssetCategory(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset categories retrieved successfully", assetCategories, nil)
 }
 
-func (h AssetCategoryHandler) GetAssetCategoryById(context *gin.Context) {
+func (h AssetCategoryController) GetAssetCategoryById(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
@@ -99,7 +99,7 @@ func (h AssetCategoryHandler) GetAssetCategoryById(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset category retrieved successfully", assetCategory, nil)
 }
 
-func (h AssetCategoryHandler) DeleteAssetCategory(context *gin.Context) {
+func (h AssetCategoryController) DeleteAssetCategory(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())

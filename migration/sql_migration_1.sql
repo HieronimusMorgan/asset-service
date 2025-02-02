@@ -147,14 +147,14 @@ CREATE TABLE asset_tag_map
 CREATE TABLE asset_audit_log
 (
     log_id       SERIAL PRIMARY KEY,
-    asset_id     INT NOT NULL,                 -- Reference to the asset
-    action       VARCHAR(255) NOT NULL,        -- Action performed (e.g., Created, Updated, Deleted)
-    old_data     TEXT,                         -- Snapshot of old data
-    new_data     TEXT,                         -- Snapshot of new data
+    table_name   VARCHAR(255) NOT NULL,
+    action       VARCHAR(255) NOT NULL,
+    old_data     TEXT,
+    new_data     TEXT,
     performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    performed_by VARCHAR(255),
-    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    performed_by VARCHAR(255)
 );
+
 
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_asset_status

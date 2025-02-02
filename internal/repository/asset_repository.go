@@ -95,7 +95,7 @@ func (r AssetRepository) AddAsset(asset *assets.Asset, maintenance *assets.Asset
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	err = r.logAudit.AfterCreate(asset)
+	err = r.logAudit.AfterCreateAsset(asset)
 	if err != nil {
 		return nil, err
 	}
@@ -170,12 +170,12 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*out.AssetRespo
 	return result, nil
 }
 
-func (r AssetRepository) UpdateAsset(asset *assets.Asset, maintenance *assets.AssetMaintenance) (*out.AssetResponse, error) {
+func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*out.AssetResponse, error) {
 	if asset == nil {
 		return nil, errors.New("assets cannot be nil")
 	}
 
-	check, err := r.GetAssetByID(asset.UserClientID, asset.AssetID)
+	check, err := r.GetAssetByID(clientID, asset.AssetID)
 	if err != nil {
 		return nil, err
 	}
@@ -184,72 +184,25 @@ func (r AssetRepository) UpdateAsset(asset *assets.Asset, maintenance *assets.As
 		return nil, errors.New("asset not found")
 	}
 
-	// Validate CategoryID and StatusID
-	if asset.CategoryID == 0 || asset.StatusID == 0 {
-		return nil, errors.New("category_id and status_id cannot be null or zero")
-	}
-
+	// Retrieve the old asset
 	var assetOld assets.Asset
 	err = r.DB.Table(tableAssetName).Where("asset_id = ?", asset.AssetID).First(&assetOld).Error
-
-	// Verify category and status existence
-
-	// Define a struct to hold the query result
-	type CategoryStatusCount struct {
-		CategoryCount int `json:"category_count"`
-		StatusCount   int `json:"status_count"`
-	}
-
-	// Create a variable to hold the result
-	var countResult CategoryStatusCount
-
-	// Run the query and scan into the struct
-	err = r.DB.Raw(`
-	SELECT 
-		(SELECT COUNT(*) FROM "my-home"."asset_category" WHERE asset_category_id = ?) AS category_count,
-		(SELECT COUNT(*) FROM "my-home"."asset_status" WHERE asset_status_id = ?) AS status_count
-	`, asset.CategoryID, asset.StatusID).Scan(&countResult).Error
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to verify category_id or status_id: %w", err)
-	}
-
-	// Check if the category or status does not exist
-	if countResult.CategoryCount == 0 {
-		return nil, fmt.Errorf("category_id %d not found", asset.CategoryID)
-	}
-	if countResult.StatusCount == 0 {
-		return nil, fmt.Errorf("status_id %d not found", asset.StatusID)
-	}
 
 	// Start a transaction
 	tx := r.DB.Begin()
 	defer tx.Rollback()
 
 	// Update asset fields (only changed fields)
-	if err := tx.Table(tableAssetName).Model(&asset).Where("asset_id = ?", asset.AssetID).Updates(asset).Error; err != nil {
-		return nil, fmt.Errorf("failed to update asset: %w", err)
-	}
-
-	log.Printf("Asset updated: %v", asset)
-	log.Printf("Asset Maintenance: %v", maintenance)
-	// Attempt to find the maintenance record; if not found, create it
-	// Define the maintenance record struct
-	maintenanceRecord := assets.AssetMaintenance{
-		AssetID: int(asset.AssetID),
-	}
-
-	// Attempt to find the maintenance record; if not found, create it
-	if err := tx.Table("my-home.asset_maintenance").
+	if err := tx.Table(tableAssetName).
 		Where("asset_id = ?", asset.AssetID).
-		FirstOrCreate(&maintenanceRecord).Error; err != nil {
-		return nil, fmt.Errorf("failed to find or create maintenance record: %w", err)
-	}
-
-	// Update the maintenance record with new details
-	if err := tx.Table("my-home.asset_maintenance").Model(&maintenanceRecord).
-		Updates(maintenance).Error; err != nil {
-		return nil, fmt.Errorf("failed to update maintenance record: %w", err)
+		Updates(map[string]interface{}{
+			"description":   asset.Description,
+			"purchase_date": asset.PurchaseDate,
+			"value":         asset.Value,
+			"expiry_date":   asset.ExpiryDate,
+			"updated_by":    asset.UpdatedBy,
+		}).Error; err != nil {
+		return nil, fmt.Errorf("failed to update asset: %w", err)
 	}
 
 	// Retrieve the assets with maintenance information
@@ -282,10 +235,9 @@ func (r AssetRepository) UpdateAsset(asset *assets.Asset, maintenance *assets.As
 	if err := tx.Commit().Error; err != nil {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
-	//
-	//
+
 	// Log audit
-	err = r.logAudit.AfterUpdate(assetOld, asset)
+	err = r.logAudit.AfterUpdateAsset(assetOld, asset)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +286,7 @@ func (r AssetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID
 	}
 
 	// Log audit
-	err = r.logAudit.AfterUpdate(assetOld, &asset)
+	err = r.logAudit.AfterUpdateAsset(assetOld, &asset)
 	if err != nil {
 		return err
 	}
@@ -383,7 +335,7 @@ func (r AssetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 	}
 
 	// Log audit
-	err = r.logAudit.AfterUpdate(assetOld, &asset)
+	err = r.logAudit.AfterUpdateAsset(assetOld, &asset)
 	if err != nil {
 		return err
 	}

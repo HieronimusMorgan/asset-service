@@ -93,7 +93,12 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 	return result, nil
 }
 
-func (s AssetService) UpdateAsset(assetID uint, assetRequest *in.AssetRequest, clientID string) (interface{}, error) {
+func (s AssetService) UpdateAsset(assetID uint, assetRequest struct {
+	Description  string  `json:"description"`
+	PurchaseDate string  `json:"purchase_date" binding:"required"`
+	ExpiryDate   string  `json:"expiry_date"`
+	Value        float64 `json:"value" binding:"required"`
+}, clientID string) (interface{}, error) {
 	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 
@@ -118,40 +123,15 @@ func (s AssetService) UpdateAsset(assetID uint, assetRequest *in.AssetRequest, c
 
 	var asset = &assets.Asset{
 		AssetID:      assetID,
-		Name:         assetRequest.Name,
-		UserClientID: clientID,
 		Description:  assetRequest.Description,
-		CategoryID:   assetRequest.CategoryID,
-		StatusID:     assetRequest.StatusID,
 		PurchaseDate: &purchaseDate,
 		ExpiryDate:   expiryDate,
 		Value:        assetRequest.Value,
 		UpdatedBy:    user.FullName,
 	}
 
-	var maintenanceDate *time.Time = nil
-	if assetRequest.MaintenanceDate != "" {
-		parsedMaintenanceDate, err := time.Parse(layout, assetRequest.MaintenanceDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid expiry date format: %v", err)
-		}
-		maintenanceDate = &parsedMaintenanceDate
-	}
-
-	var assetMaintenance = &assets.AssetMaintenance{
-		AssetID:            int(assetID),
-		MaintenanceDate:    *maintenanceDate,
-		MaintenanceCost:    assetRequest.MaintenanceCost,
-		MaintenanceDetails: nil,
-		UpdatedBy:          user.FullName,
-	}
-
-	if assetRequest.MaintenanceDetail != "" {
-		assetMaintenance.MaintenanceDetails = &assetRequest.MaintenanceDetail
-	}
-
 	var result *out.AssetResponse
-	result, err = s.AssetRepository.UpdateAsset(asset, assetMaintenance)
+	result, err = s.AssetRepository.UpdateAsset(asset, clientID)
 	if err != nil && result == nil {
 		return nil, err
 	}

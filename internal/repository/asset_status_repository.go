@@ -9,8 +9,10 @@ type AssetStatusRepository struct {
 	DB *gorm.DB
 }
 
+const tableAssetStatus = "my-home.asset_status"
+
 func NewAssetStatusRepository(db *gorm.DB) *AssetStatusRepository {
-	return &AssetStatusRepository{DB: db.Table("my-home.asset_status")}
+	return &AssetStatusRepository{DB: db.Table(tableAssetStatus)}
 }
 
 func (r AssetStatusRepository) GetAssetStatusByName(name string) error {

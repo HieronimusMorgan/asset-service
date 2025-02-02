@@ -23,6 +23,7 @@ func main() {
 	routes.AssetCategoryRoutes(r, db)
 	routes.AssetStatusRoutes(r, db)
 	routes.AssetRoutes(r, db)
+	routes.AssetMaintenanceRoutes(r, db)
 
 	// Run server
 	log.Println("Starting server on :8081")

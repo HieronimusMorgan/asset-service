@@ -1,4 +1,4 @@
-package handler
+package controller
 
 import (
 	"asset-service/internal/dto/in"
@@ -10,16 +10,16 @@ import (
 	"strconv"
 )
 
-type AssetHandler struct {
+type AssetController struct {
 	AssetService *services.AssetService
 }
 
-func NewAssetHandler(db *gorm.DB) *AssetHandler {
+func NewAssetController(db *gorm.DB) *AssetController {
 	s := services.NewAssetService(db)
-	return &AssetHandler{AssetService: s}
+	return &AssetController{AssetService: s}
 }
 
-func (h AssetHandler) AddAsset(context *gin.Context) {
+func (h AssetController) AddAsset(context *gin.Context) {
 	var req *in.AssetRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
@@ -38,8 +38,13 @@ func (h AssetHandler) AddAsset(context *gin.Context) {
 	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
 }
 
-func (h AssetHandler) UpdateAsset(context *gin.Context) {
-	var req *in.AssetRequest
+func (h AssetController) UpdateAsset(context *gin.Context) {
+	var req struct {
+		Description  string  `json:"description"`
+		PurchaseDate string  `json:"purchase_date" binding:"required"`
+		ExpiryDate   string  `json:"expiry_date"`
+		Value        float64 `json:"value" binding:"required"`
+	}
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
@@ -64,7 +69,7 @@ func (h AssetHandler) UpdateAsset(context *gin.Context) {
 
 }
 
-func (h AssetHandler) UpdateAssetStatus(context *gin.Context) {
+func (h AssetController) UpdateAssetStatus(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
@@ -92,7 +97,7 @@ func (h AssetHandler) UpdateAssetStatus(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset status updated successfully", nil, nil)
 }
 
-func (h AssetHandler) UpdateAssetCategory(context *gin.Context) {
+func (h AssetController) UpdateAssetCategory(context *gin.Context) {
 	var req struct {
 		CategoryID uint `json:"category_id" binding:"required"`
 	}
@@ -120,7 +125,7 @@ func (h AssetHandler) UpdateAssetCategory(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset category updated successfully", nil, nil)
 }
 
-func (h AssetHandler) GetListAsset(context *gin.Context) {
+func (h AssetController) GetListAsset(context *gin.Context) {
 
 	token, err := utils.ExtractClaimsResponse(context)
 	if err != nil {
@@ -135,7 +140,7 @@ func (h AssetHandler) GetListAsset(context *gin.Context) {
 	response.SendResponse(context, 200, "Get list assets successfully", asset, nil)
 }
 
-func (h AssetHandler) GetAssetById(context *gin.Context) {
+func (h AssetController) GetAssetById(context *gin.Context) {
 
 	assetID, err := utils.ConvertToUint(context.Param("id"))
 	token, err := utils.ExtractClaimsResponse(context)
@@ -152,6 +157,6 @@ func (h AssetHandler) GetAssetById(context *gin.Context) {
 
 }
 
-func (h AssetHandler) DeleteAsset(context *gin.Context) {
+func (h AssetController) DeleteAsset(context *gin.Context) {
 
 }
