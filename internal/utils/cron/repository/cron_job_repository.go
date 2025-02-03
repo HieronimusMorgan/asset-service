@@ -71,3 +71,11 @@ func (r *CronRepository) deleteCronJobByID(id uint) error {
 	}
 	return nil
 }
+
+func (r *CronRepository) Create(m *model.CronJob) interface{} {
+	err := r.db.Create(m).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}

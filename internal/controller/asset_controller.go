@@ -150,13 +150,25 @@ func (h AssetController) GetAssetById(context *gin.Context) {
 
 	asset, err := h.AssetService.GetAssetByID(token.ClientID, assetID)
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to get list assets", nil, err.Error())
+		response.SendResponse(context, 500, "Failed to get detail assets", nil, err.Error())
 		return
 	}
-	response.SendResponse(context, 200, "Get list assets successfully", asset, nil)
+	response.SendResponse(context, 200, "Get detail assets successfully", asset, nil)
 
 }
 
 func (h AssetController) DeleteAsset(context *gin.Context) {
+	assetID, err := utils.ConvertToUint(context.Param("id"))
+	token, err := utils.ExtractClaimsResponse(context)
+	if err != nil {
+		return
+	}
 
+	err = h.AssetService.DeleteAsset(assetID, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to delete asset", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Asset deleted successfully", nil, nil)
 }

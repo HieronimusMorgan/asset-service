@@ -6,6 +6,7 @@ import (
 	"asset-service/internal/models/user"
 	"asset-service/internal/repository"
 	"asset-service/internal/utils"
+	"encoding/json"
 	"gorm.io/gorm"
 	"log"
 )
@@ -71,8 +72,21 @@ func (s *AssetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientI
 }
 
 func (s *AssetMaintenanceService) PerformMaintenanceCheck() error {
+	maintenance, err := s.Repo.GetList()
+	if err != nil {
+		return err
+	}
 
-	// Implement your maintenance check logic here
-	log.Println("Performing maintenance check...")
+	for _, m := range maintenance {
+		if m.MaintenanceDate == "" {
+			continue
+		}
+
+		jsonPretty, err := json.MarshalIndent(m, "", "  ")
+		if err != nil {
+			return err
+		}
+		log.Printf("Asset JSON (pretty):\n%s", jsonPretty)
+	}
 	return nil
 }

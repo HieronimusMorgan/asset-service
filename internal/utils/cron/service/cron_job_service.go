@@ -1,6 +1,7 @@
 package service
 
 import (
+	"asset-service/internal/services"
 	"asset-service/internal/utils/cron/model"
 	"asset-service/internal/utils/cron/repository"
 	"log"
@@ -12,11 +13,12 @@ import (
 )
 
 type CronService struct {
-	db             *gorm.DB
-	scheduler      *cron.Cron
-	jobs           map[uint]cron.EntryID
-	mu             sync.Mutex
-	cronRepository *repository.CronRepository
+	db                      *gorm.DB
+	scheduler               *cron.Cron
+	jobs                    map[uint]cron.EntryID
+	mu                      sync.Mutex
+	cronRepository          *repository.CronRepository
+	assetMaintenanceService *services.AssetMaintenanceService
 }
 
 func NewCronService(db *gorm.DB) *CronService {
@@ -24,10 +26,11 @@ func NewCronService(db *gorm.DB) *CronService {
 	scheduler := cron.New()
 
 	return &CronService{
-		db:             db,
-		scheduler:      scheduler,
-		jobs:           make(map[uint]cron.EntryID),
-		cronRepository: repository.NewCronRepository(db),
+		db:                      db,
+		scheduler:               scheduler,
+		jobs:                    make(map[uint]cron.EntryID),
+		cronRepository:          repository.NewCronRepository(db),
+		assetMaintenanceService: services.NewAssetMaintenanceService(db),
 	}
 }
 
@@ -42,7 +45,9 @@ func (cs *CronService) Stop() {
 
 func (cs *CronService) loadJobsFromDB() {
 	var cronJobs []model.CronJob
-	if err := cs.db.Where("is_active = ?", true).Find(&cronJobs).Error; err != nil {
+
+	cronJobs, err := cs.cronRepository.GetCronJobs()
+	if err != nil {
 		log.Println("Error loading cron jobs from DB:", err)
 		return
 	}
@@ -90,12 +95,25 @@ func (cs *CronService) executeJob(job model.CronJob) {
 	}
 
 	// Perform the actual job task
-	log.Printf("Executing job: %s\n", job.Name)
-	// Add your job logic here
+	switch job.Name {
+	case "asset_maintenance":
+		err := cs.assetMaintenanceService.PerformMaintenanceCheck()
+		if err != nil {
+			log.Println("Error performing asset maintenance check:", err)
+		}
+
+	}
 }
 
 func (cs *CronService) getJobInterval(schedule string) time.Duration {
 	// Parse the cron schedule to determine the interval
 	// This is a simplified example; you'll need to implement parsing based on your cron library
 	return time.Minute // Assuming a default interval of 1 minute
+}
+
+func (cs *CronService) AddCronJob(job model.CronJob) {
+	if err := cs.cronRepository.Create(&job); err != nil {
+		log.Println("Error creating cron job:", err)
+		return
+	}
 }

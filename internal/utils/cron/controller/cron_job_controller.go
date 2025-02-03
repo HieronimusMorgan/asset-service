@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"asset-service/internal/utils/cron/model"
 	"asset-service/internal/utils/cron/service"
 	"gorm.io/gorm"
 )
@@ -14,6 +15,7 @@ func NewCronJobController(db *gorm.DB) *CronJobController {
 	return &CronJobController{cronJobService: s}
 }
 
-func (h CronJobController) AddCronJob() {
-	//h.cronJobService.AddCronJob()
+func (h CronJobController) AddCronJob(cronJob model.CronJob) {
+
+	h.cronJobService.AddCronJob(cronJob)
 }

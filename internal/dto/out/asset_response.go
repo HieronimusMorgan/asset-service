@@ -1,6 +1,8 @@
 package out
 
-import "time"
+import (
+	"time"
+)
 
 type DateOnly time.Time
 
@@ -37,4 +39,16 @@ type AssetResponse struct {
 	MaintenanceDate    DateOnly `json:"maintenance_date,omitempty"`
 	MaintenanceDetails string   `json:"maintenance_details,omitempty"`
 	MaintenanceCost    float64  `json:"maintenance_cost,omitempty"`
+}
+
+type AssetResponseList struct {
+	ID           uint                     `json:"asset_id,omitempty"`
+	ClientID     string                   `json:"user_client_id,omitempty"`
+	Name         string                   `json:"name,omitempty"`
+	Description  string                   `json:"description,omitempty"`
+	PurchaseDate DateOnly                 `json:"purchase_date,omitempty"`
+	Value        float64                  `json:"value,omitempty"`
+	Status       AssetStatusResponse      `json:"status,omitempty"`
+	Category     AssetCategoryResponse    `json:"category,omitempty"`
+	Maintenance  AssetMaintenanceResponse `json:"maintenance,omitempty"`
 }

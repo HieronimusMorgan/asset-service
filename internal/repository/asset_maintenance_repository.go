@@ -64,6 +64,21 @@ func (r *AssetMaintenanceRepository) GetByAssetID(assetID uint, clientID string)
 	return &maintenance, nil
 }
 
+func (r *AssetMaintenanceRepository) GetList() ([]out.AssetMaintenanceResponse, error) {
+	var maintenances []out.AssetMaintenanceResponse
+
+	assetMaintenance := `
+		SELECT am.id, am.asset_id, am.maintenance_details, am.maintenance_date, am.maintenance_cost FROM "my-home"."asset_maintenance" am
+`
+
+	err := r.DB.Raw(assetMaintenance).Scan(&maintenances).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return maintenances, nil
+}
+
 func (r *AssetMaintenanceRepository) Update(maintenance *assets.AssetMaintenance) error {
 	return r.DB.Table(tableAssetMaintenanceName).Save(maintenance).Error
 }

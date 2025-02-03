@@ -299,3 +299,76 @@ func (a AssetAuditLogRepository) AfterDeleteAssetStatus(assetStatus *assets.Asse
 
 	return nil
 }
+
+func (a AssetAuditLogRepository) AfterCreateAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+	newDataBytes, err := json.Marshal(assetMaintenanceRecord)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_maintenance_record",
+		Action:      "CREATE",
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &assetMaintenanceRecord.CreatedBy,
+	}
+
+	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a AssetAuditLogRepository) AfterUpdateAssetMaintenanceRecord(old assets.AssetMaintenanceRecord, assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+	oldDataBytes, err := json.Marshal(old)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	newDataBytes, err := json.Marshal(assetMaintenanceRecord)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_maintenance_record",
+		Action:      "UPDATE",
+		OldData:     &oldData,
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &assetMaintenanceRecord.UpdatedBy,
+	}
+
+	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a AssetAuditLogRepository) AfterDeleteAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+	oldDataBytes, err := json.Marshal(assetMaintenanceRecord)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_maintenance_record",
+		Action:      "DELETE",
+		OldData:     &oldData,
+		PerformedAt: time.Now(),
+		PerformedBy: assetMaintenanceRecord.DeletedBy,
+	}
+
+	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

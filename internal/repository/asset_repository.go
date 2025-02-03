@@ -112,62 +112,139 @@ func (r AssetRepository) GetAssetByNameAndClientID(name string, clientID string)
 	return &asset, nil
 }
 
-func (r AssetRepository) GetListAsset(clientID string) ([]out.AssetResponse, error) {
+func (r AssetRepository) GetListAsset(clientID string) ([]out.AssetResponseList, error) {
 	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.name,
-			asset.description,
-			category.category_name,
-			status.status_name,
-			asset.purchase_date,
-			asset.value,
-			maintenance.maintenance_date,
-			maintenance.maintenance_cost
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-		LEFT JOIN "my-home"."asset_maintenance" maintenance ON asset.asset_id = maintenance.asset_id
-		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
-		ORDER BY asset.name DESC
-	`
-	var result []out.AssetResponse
-	err := r.DB.Raw(selectQuery, clientID).Scan(&result).Error
-
+        SELECT 
+            asset.asset_id,
+            asset.user_client_id,
+            asset.name,
+            asset.description,
+            category.asset_category_id,
+            category.category_name,
+            category.description AS category_description,
+            status.asset_status_id,
+            status.status_name,
+            status.description AS status_description,
+            asset.purchase_date,
+            asset.value,
+            maintenance.id AS maintenance_id,
+            maintenance.maintenance_date,
+            maintenance.maintenance_details,
+            maintenance.maintenance_cost
+        FROM "my-home"."asset" asset
+        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
+        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+        LEFT JOIN "my-home"."asset_maintenance" maintenance ON asset.asset_id = maintenance.asset_id
+        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
+        ORDER BY asset.name DESC;
+    `
+	rows, err := r.DB.Raw(selectQuery, clientID).Rows()
 	if err != nil {
 		return nil, err
+	}
+
+	var result []out.AssetResponseList
+	for rows.Next() {
+		var asset out.AssetResponseList
+		var category out.AssetCategoryResponse
+		var status out.AssetStatusResponse
+		var maintenance out.AssetMaintenanceResponse
+
+		err := rows.Scan(
+			&asset.ID,
+			&asset.ClientID,
+			&asset.Name,
+			&asset.Description,
+			&category.AssetCategoryID,
+			&category.CategoryName,
+			&category.Description,
+			&status.AssetStatusID,
+			&status.StatusName,
+			&status.Description,
+			&asset.PurchaseDate,
+			&asset.Value,
+			&maintenance.ID,
+			&maintenance.MaintenanceDate,
+			&maintenance.MaintenanceDetails,
+			&maintenance.MaintenanceCost,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		asset.Category = category
+		if maintenance.ID != 0 {
+			asset.Maintenance = maintenance
+		}
+		asset.Status = status
+
+		result = append(result, asset)
 	}
 
 	return result, nil
 }
 
-func (r AssetRepository) GetAssetByID(clientID string, id uint) (*out.AssetResponse, error) {
+func (r AssetRepository) GetAssetByID(clientID string, id uint) (*out.AssetResponseList, error) {
 	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.name,
-			asset.description,
-			category.category_name,
-			status.status_name,
-			asset.purchase_date,
-			asset.value,
-			maintenance.maintenance_date,
-			maintenance.maintenance_cost
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-		LEFT JOIN "my-home"."asset_maintenance" maintenance ON asset.asset_id = maintenance.asset_id
-		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL AND asset.asset_id = ?
-		ORDER BY asset.name DESC
-	`
-	var result *out.AssetResponse
-	err := r.DB.Raw(selectQuery, clientID, int(id)).Scan(&result).Error
+        SELECT 
+            asset.asset_id,
+            asset.user_client_id,
+            asset.name,
+            asset.description,
+            category.asset_category_id,
+            category.category_name,
+            category.description AS category_description,
+            status.asset_status_id,
+            status.status_name,
+            status.description AS status_description,
+            asset.purchase_date,
+            asset.value,
+            maintenance.id AS maintenance_id,
+            maintenance.maintenance_date,
+            maintenance.maintenance_details,
+            maintenance.maintenance_cost
+        FROM "my-home"."asset" asset
+        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
+        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+        LEFT JOIN "my-home"."asset_maintenance" maintenance ON asset.asset_id = maintenance.asset_id
+        WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL
+        ORDER BY asset.name DESC;
+    `
 
+	row := r.DB.Raw(selectQuery, clientID, id).Row()
+
+	var asset out.AssetResponseList
+	var category out.AssetCategoryResponse
+	var status out.AssetStatusResponse
+	var maintenance out.AssetMaintenanceResponse
+
+	err := row.Scan(
+		&asset.ID,
+		&asset.ClientID,
+		&asset.Name,
+		&asset.Description,
+		&category.AssetCategoryID,
+		&category.CategoryName,
+		&category.Description,
+		&status.AssetStatusID,
+		&status.StatusName,
+		&status.Description,
+		&asset.PurchaseDate,
+		&asset.Value,
+		&maintenance.ID,
+		&maintenance.MaintenanceDate,
+		&maintenance.MaintenanceDetails,
+		&maintenance.MaintenanceCost,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	return result, nil
+	asset.Category = category
+	asset.Status = status
+	asset.Maintenance = maintenance
+
+	return &asset, nil
 }
 
 func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*out.AssetResponse, error) {
@@ -336,6 +413,86 @@ func (r AssetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 
 	// Log audit
 	err = r.logAudit.AfterUpdateAsset(assetOld, &asset)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) error {
+	// Start a transaction
+	tx := r.DB.Begin()
+	defer tx.Rollback()
+
+	// Verify the existence of the asset
+	var asset assets.Asset
+	var assetMaintenance assets.AssetMaintenance
+	var assetMaintenanceRecord assets.AssetMaintenanceRecord
+
+	if err := tx.Table(tableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).
+		First(&asset).Error; err != nil {
+		return fmt.Errorf("failed to find asset: %w", err)
+	}
+
+	// Verify the existence of the asset_maintenance
+	if err := tx.Table("my-home.asset_maintenance").Where("asset_id = ?", id).
+		First(&assetMaintenance).Error; err != nil {
+		return fmt.Errorf("failed to find asset maintenance: %w", err)
+	}
+
+	// Verify the existence of the asset_maintenance_record
+	if err := tx.Table("my-home.asset_maintenance_record").Where("asset_id = ?", id).
+		First(&assetMaintenanceRecord).Error; err != nil {
+		return fmt.Errorf("failed to find asset maintenance record: %w", err)
+	}
+
+	// Soft delete the asset
+	if err := tx.Table(tableAssetName).Model(&asset).
+		Where("asset_id = ? AND user_client_id = ?", id, clientID).
+		Updates(map[string]interface{}{
+			"deleted_by": fullName,
+		}).
+		Delete(&assets.Asset{}).Error; err != nil {
+		return fmt.Errorf("failed to delete asset: %w", err)
+	}
+
+	// soft delete the asset_maintenance
+	if err := tx.Table("my-home.asset_maintenance").Model(&assetMaintenance).
+		Where("asset_id = ?", id).
+		Updates(map[string]interface{}{
+			"deleted_by": fullName,
+		}).
+		Delete(&assets.AssetMaintenance{}).Error; err != nil {
+		return fmt.Errorf("failed to delete asset maintenance: %w", err)
+	}
+
+	// soft delete the asset_maintenance_record
+	if err := tx.Table("my-home.asset_maintenance_record").Model(&assetMaintenanceRecord).
+		Where("asset_id = ?", id).
+		Updates(map[string]interface{}{
+			"deleted_by": fullName,
+		}).
+		Delete(&assets.AssetMaintenance{}).Error; err != nil {
+		return fmt.Errorf("failed to delete asset maintenance: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	err := r.logAudit.AfterDeleteAsset(&asset)
+	if err != nil {
+		return err
+	}
+
+	err = r.logAudit.AfterDeleteAssetMaintenance(&assetMaintenance)
+	if err != nil {
+		return err
+	}
+
+	err = r.logAudit.AfterDeleteAssetMaintenanceRecord(&assetMaintenanceRecord)
 	if err != nil {
 		return err
 	}

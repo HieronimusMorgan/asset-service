@@ -146,24 +146,24 @@ func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
 		return nil, err
 	}
 
-	assets, err := s.AssetRepository.GetListAsset(clientID)
+	result, err := s.AssetRepository.GetListAsset(clientID)
 	if err != nil {
 		return nil, err
 	}
 
-	return assets, nil
+	return result, nil
 }
 
-func (s AssetService) GetAssetByID(clientID string, assetID uint) (out.AssetResponse, error) {
+func (s AssetService) GetAssetByID(clientID string, assetID uint) (out.AssetResponseList, error) {
 	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
-		return out.AssetResponse{}, err
+		return out.AssetResponseList{}, err
 	}
 
 	asset, err := s.AssetRepository.GetAssetByID(clientID, assetID)
 	if err != nil {
-		return out.AssetResponse{}, err
+		return out.AssetResponseList{}, err
 	}
 
 	return *asset, nil
@@ -198,4 +198,19 @@ func (s AssetService) UpdateAssetCategory(assetID uint, categoryID uint, clientI
 
 	return nil
 
+}
+
+func (s AssetService) DeleteAsset(assetID uint, clientID string) error {
+	var user = &user.User{}
+	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	if err != nil {
+		return err
+	}
+
+	err = s.AssetRepository.DeleteAsset(assetID, user.ClientID, user.FullName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

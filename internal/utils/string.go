@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func ValidationTrimSpace(s string) string {
@@ -32,4 +33,19 @@ func ConvertToUint(input string) (uint, error) {
 		return 0, fmt.Errorf("invalid uint value: %w", err)
 	}
 	return uint(parsed), nil
+}
+
+func ParseDate(dateStr string) (time.Time, error) {
+	parsedDate, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return time.Time{}, errors.New("error parsing date: " + err.Error())
+	}
+	return parsedDate, nil
+}
+
+func GetToday() time.Time {
+	now := time.Now()
+	year, month, day := now.Date()
+	location := now.Location()
+	return time.Date(year, month, day, 0, 0, 0, 0, location)
 }
