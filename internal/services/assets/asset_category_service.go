@@ -1,26 +1,26 @@
-package services
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/dto/out"
+	assets3 "asset-service/internal/dto/in/assets"
+	assets4 "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
-	"asset-service/internal/repository"
+	assets2 "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"errors"
 	"gorm.io/gorm"
 )
 
 type AssetCategoryService struct {
-	AssetCategoryRepository *repository.AssetCategoryRepository
+	AssetCategoryRepository *assets2.AssetCategoryRepository
 }
 
 func NewAssetCategoryService(db *gorm.DB) *AssetCategoryService {
-	r := repository.NewAssetCategoryRepository(db)
+	r := assets2.NewAssetCategoryRepository(db)
 	return &AssetCategoryService{AssetCategoryRepository: r}
 }
 
-func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryRequest, clientID string) (interface{}, error) {
+func (s AssetCategoryService) AddAssetCategory(assetRequest *assets3.AssetCategoryRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
 
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
@@ -43,7 +43,7 @@ func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryReq
 	if err != nil {
 		return nil, err
 	}
-	var assetCategoryResponse = out.AssetCategoryResponse{
+	var assetCategoryResponse = assets4.AssetCategoryResponse{
 		AssetCategoryID: assetCategory.AssetCategoryID,
 		CategoryName:    assetCategory.CategoryName,
 		Description:     assetCategory.Description,
@@ -51,7 +51,7 @@ func (s AssetCategoryService) AddAssetCategory(assetRequest *in.AssetCategoryReq
 	return assetCategoryResponse, nil
 }
 
-func (s AssetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *in.AssetCategoryRequest, clientID string) (interface{}, error) {
+func (s AssetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *assets3.AssetCategoryRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
 	var assetCategory = &assets.AssetCategory{}
 
@@ -87,10 +87,10 @@ func (s AssetCategoryService) GetListAssetCategory(clientID string) (interface{}
 	if err != nil {
 		return nil, err
 	}
-	var assetCategoriesResponse []out.AssetCategoryResponse
+	var assetCategoriesResponse []assets4.AssetCategoryResponse
 
 	for _, assetCategory := range assetCategories {
-		assetCategoriesResponse = append(assetCategoriesResponse, out.AssetCategoryResponse{
+		assetCategoriesResponse = append(assetCategoriesResponse, assets4.AssetCategoryResponse{
 			AssetCategoryID: assetCategory.AssetCategoryID,
 			CategoryName:    assetCategory.CategoryName,
 			Description:     assetCategory.Description,
@@ -107,7 +107,7 @@ func (s AssetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}
 		return nil, errors.New("assets category not found")
 	}
 
-	var assetCategoryResponse = out.AssetCategoryResponse{
+	var assetCategoryResponse = assets4.AssetCategoryResponse{
 		AssetCategoryID: assetCategory.AssetCategoryID,
 		CategoryName:    assetCategory.CategoryName,
 		Description:     assetCategory.Description,

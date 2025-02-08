@@ -1,4 +1,4 @@
-package out
+package assets
 
 // AssetMaintenanceResponse is a struct that represents the response of asset maintenance
 type AssetMaintenanceResponse struct {

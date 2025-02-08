@@ -1,8 +1,8 @@
-package controller
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/services"
+	assets2 "asset-service/internal/dto/in/assets"
+	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
@@ -10,16 +10,16 @@ import (
 )
 
 type AssetStatusController struct {
-	AssetStatusService *services.AssetStatusService
+	AssetStatusService *assets.AssetStatusService
 }
 
 func NewAssetStatusController(db *gorm.DB) *AssetStatusController {
-	s := services.AddAssetStatus(db)
+	s := assets.AddAssetStatus(db)
 	return &AssetStatusController{AssetStatusService: s}
 }
 
 func (h AssetStatusController) AddAssetStatus(context *gin.Context) {
-	var req in.AssetStatusRequest
+	var req assets2.AssetStatusRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
@@ -67,7 +67,7 @@ func (h AssetStatusController) GetAssetStatusByID(context *gin.Context) {
 }
 
 func (h AssetStatusController) UpdateAssetStatus(context *gin.Context) {
-	var req in.AssetStatusRequest
+	var req assets2.AssetStatusRequest
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)

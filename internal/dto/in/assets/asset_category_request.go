@@ -1,4 +1,4 @@
-package in
+package assets
 
 type AssetCategoryRequest struct {
 	CategoryName string `json:"category_name" validate:"required"`

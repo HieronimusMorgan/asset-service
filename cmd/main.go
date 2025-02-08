@@ -2,7 +2,7 @@ package main
 
 import (
 	"asset-service/internal/database"
-	"asset-service/internal/routes"
+	"asset-service/internal/routes/assets"
 	"asset-service/internal/utils"
 	"asset-service/internal/utils/cron/service"
 	"github.com/gin-gonic/gin"
@@ -25,10 +25,10 @@ func main() {
 	r := gin.Default()
 
 	// Register routes
-	routes.AssetCategoryRoutes(r, db)
-	routes.AssetStatusRoutes(r, db)
-	routes.AssetRoutes(r, db)
-	routes.AssetMaintenanceRoutes(r, db)
+	assets.AssetCategoryRoutes(r, db)
+	assets.AssetStatusRoutes(r, db)
+	assets.AssetRoutes(r, db)
+	assets.AssetMaintenanceRoutes(r, db)
 
 	// Run server
 	log.Println("Starting server on :8081")

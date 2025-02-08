@@ -1,4 +1,4 @@
-package repository
+package assets
 
 import (
 	"asset-service/internal/models/assets"

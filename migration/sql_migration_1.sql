@@ -47,57 +47,100 @@ CREATE TABLE asset_category
 );
 
 INSERT INTO asset_category (category_name, description, created_by, updated_by)
-VALUES ('Electronics', 'Electronic devices and gadgets', 'admin', 'admin'),
-       ('Furniture', 'Office and home furniture', 'admin', 'admin'),
-       ('Vehicles', 'Company vehicles', 'admin', 'admin'),
-       ('Machinery', 'Industrial machinery and tools', 'admin', 'admin'),
-       ('Software', 'Licensed software assets', 'admin', 'admin'),
-       ('Hardware', 'Computer hardware components', 'admin', 'admin'),
-       ('Stationery', 'Office stationery and supplies', 'admin', 'admin'),
-       ('Appliances', 'Home and office appliances', 'admin', 'admin'),
-       ('Real Estate', 'Buildings and land owned by the company', 'admin', 'admin'),
-       ('Tools', 'Hand and power tools', 'admin', 'admin'),
-       ('Medical Equipment', 'Healthcare devices and machines', 'admin', 'admin'),
-       ('Security Equipment', 'Cameras, alarms, and other security devices', 'admin', 'admin'),
-       ('Laboratory Equipment', 'Scientific and testing tools', 'admin', 'admin'),
-       ('Books', 'Books and reference materials', 'admin', 'admin'),
-       ('IT Equipment', 'Computers, servers, and network devices', 'admin', 'admin'),
-       ('Art', 'Paintings and decorative items', 'admin', 'admin'),
-       ('Audio Equipment', 'Sound systems and related items', 'admin', 'admin'),
-       ('Video Equipment', 'Cameras and video recording devices', 'admin', 'admin'),
-       ('Clothing', 'Uniforms and protective clothing', 'admin', 'admin'),
-       ('Miscellaneous', 'Other uncategorized assets', 'admin', 'admin');
+VALUES ('Electronics', 'Electronic devices and gadgets', 'system', 'system'),
+       ('Furniture', 'Office and home furniture', 'system', 'system'),
+       ('Vehicles', 'Company vehicles', 'system', 'system'),
+       ('Machinery', 'Industrial machinery and tools', 'system', 'system'),
+       ('Software', 'Licensed software assets', 'system', 'system'),
+       ('Hardware', 'Computer hardware components', 'system', 'system'),
+       ('Stationery', 'Office stationery and supplies', 'system', 'system'),
+       ('Appliances', 'Home and office appliances', 'system', 'system'),
+       ('Real Estate', 'Buildings and land owned by the company', 'system', 'system'),
+       ('Tools', 'Hand and power tools', 'system', 'system'),
+       ('Medical Equipment', 'Healthcare devices and machines', 'system', 'system'),
+       ('Security Equipment', 'Cameras, alarms, and other security devices', 'system', 'system'),
+       ('Laboratory Equipment', 'Scientific and testing tools', 'system', 'system'),
+       ('Books', 'Books and reference materials', 'system', 'system'),
+       ('IT Equipment', 'Computers, servers, and network devices', 'system', 'system'),
+       ('Art', 'Paintings and decorative items', 'system', 'system'),
+       ('Audio Equipment', 'Sound systems and related items', 'system', 'system'),
+       ('Video Equipment', 'Cameras and video recording devices', 'system', 'system'),
+       ('Clothing', 'Uniforms and protective clothing', 'system', 'system'),
+       ('Miscellaneous', 'Other uncategorized assets', 'system', 'system');
 
 -- Table for Asset
 CREATE TABLE asset
 (
-    asset_id       SERIAL PRIMARY KEY,
-    user_client_id VARCHAR(255) NOT NULL,
-    name           VARCHAR(255) NOT NULL,
-    description    TEXT,
-    category_id    INT          NOT NULL,
-    status_id      INT          NOT NULL,
-    purchase_date  DATE,
-    expiry_date    DATE,
-    value          DECIMAL(40, 2),
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by     VARCHAR(255),
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by     VARCHAR(255),
-    deleted_at     TIMESTAMP,
-    deleted_by     VARCHAR(255),
+    asset_id             SERIAL PRIMARY KEY,
+    user_client_id       VARCHAR(50)  NOT NULL,
+    asset_code           VARCHAR(100)   DEFAULT NULL,
+    name                 VARCHAR(100) NOT NULL,
+    description          TEXT,
+    barcode              VARCHAR(100)   DEFAULT NULL,
+    category_id          INT          NOT NULL,
+    status_id            INT          NOT NULL,
+    purchase_date        DATE,
+    expiry_date          DATE           DEFAULT NULL,
+    warranty_expiry_date DATE           DEFAULT NULL, -- Warranty expiration date
+    insurance_policy     JSONB          DEFAULT '{}'::JSONB,
+    price                DECIMAL(40, 2) DEFAULT 0,
+    stock                INT            DEFAULT 0,
+    general              JSONB          DEFAULT '{}'::JSONB,
+    is_wishlist          BOOLEAN        DEFAULT FALSE,
+    created_at           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    created_by           VARCHAR(255),
+    updated_at           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    updated_by           VARCHAR(255),
+    deleted_at           TIMESTAMP,
+    deleted_by           VARCHAR(255),
     FOREIGN KEY (category_id) REFERENCES asset_category (asset_category_id),
     FOREIGN KEY (status_id) REFERENCES asset_status (asset_status_id)
 );
+
+-- Table for Maintenance Type
+CREATE TABLE asset_maintenance_type
+(
+    type_id     SERIAL PRIMARY KEY,           -- Unique ID for each type
+    type_name   VARCHAR(100) UNIQUE NOT NULL, -- Name of maintenance type
+    description TEXT,                         -- Description of what this maintenance involves
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by  VARCHAR(255),
+    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by  VARCHAR(255),
+    deleted_at  TIMESTAMP,
+    deleted_by  VARCHAR(255)
+);
+
+INSERT INTO asset_maintenance_type (type_name, description, created_by, updated_by)
+VALUES ('Battery Replacement', 'Replace worn-out battery with a new one', 'system', 'system'),
+       ('Software Update', 'Update firmware and OS for better performance', 'system', 'system'),
+       ('Cleaning Service', 'Perform deep cleaning to remove dust and debris', 'system', 'system'),
+       ('Hardware Repair', 'Fix or replace damaged hardware components', 'system', 'system'),
+       ('Annual Inspection', 'General check-up and inspection of the asset', 'system', 'system'),
+       ('Firmware Upgrade', 'Upgrade device firmware to latest version', 'system', 'system'),
+       ('Cooling System Check', 'Inspect and clean cooling fans and heat sinks', 'system', 'system'),
+       ('Electrical Testing', 'Ensure safe electrical operation', 'system', 'system'),
+       ('Oil & Lubrication', 'Apply lubrication to mechanical parts', 'system', 'system'),
+       ('Parts Replacement', 'Replace any broken or worn-out components', 'system', 'system'),
+       ('Sensor Calibration', 'Calibrate sensors for accurate readings', 'system', 'system'),
+       ('Security Patch Update', 'Apply latest security updates and fixes', 'system', 'system'),
+       ('Networking Maintenance', 'Check and repair network connections', 'system', 'system'),
+       ('Cloud Backup Check', 'Ensure cloud backups are up to date', 'system', 'system'),
+       ('General Diagnostics', 'Perform full diagnostics to detect issues', 'system', 'system'),
+       ('Performance Optimization', 'Improve asset performance and efficiency', 'system', 'system'),
+       ('Other', 'Any other maintenance not covered in predefined types', 'system', 'system');
 
 -- Table for Asset Maintenance
 CREATE TABLE asset_maintenance
 (
     id                  SERIAL PRIMARY KEY,
-    asset_id            INT  NOT NULL,
+    asset_id         INT NOT NULL,      -- Reference to asset
+    type_id          INT NOT NULL,
     maintenance_date    DATE NOT NULL,
     maintenance_details TEXT,
-    maintenance_cost    DECIMAL(15, 2),
+    maintenance_cost DECIMAL(15, 2),    -- Cost of maintenance
+    performed_by     VARCHAR(255),      -- Who performed the maintenance
+    next_due_date    DATE DEFAULT NULL, -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -119,7 +162,7 @@ CREATE TABLE asset_maintenance_record
     next_due_date         DATE,                  -- Date of the next maintenance (if applicable)
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by            VARCHAR(255),
-    updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by            VARCHAR(255),
     deleted_at            TIMESTAMP,
     deleted_by            VARCHAR(255),
@@ -164,12 +207,23 @@ CREATE TABLE cron_jobs
     description      TEXT,
     last_executed_at TIMESTAMP,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_by VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(255),
+    deleted_at TIMESTAMP,
+    deleted_by VARCHAR(255)
 );
 
-INSERT INTO cron_jobs (name, schedule, is_active, description)
-VALUES ('asset_maintenance', '* * * * *', true, 'Check Maintenance Asset');
+INSERT INTO cron_jobs (name, schedule, is_active, description, created_by)
+VALUES ('asset_maintenance', '* * * * *', true, 'Check Maintenance Asset', 'system');
 
+
+-- Triggers to update `update_at`
+CREATE TRIGGER trigger_update_cron_jobs
+    BEFORE UPDATE
+    ON cron_jobs
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
 
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_asset_status

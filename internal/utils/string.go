@@ -30,7 +30,7 @@ func ValidateUsername(username string) error {
 func ConvertToUint(input string) (uint, error) {
 	parsed, err := strconv.ParseUint(input, 10, 32)
 	if err != nil {
-		return 0, fmt.Errorf("invalid uint value: %w", err)
+		return 0, fmt.Errorf("invalid uint price: %w", err)
 	}
 	return uint(parsed), nil
 }

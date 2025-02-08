@@ -1,14 +1,14 @@
-package routes
+package assets
 
 import (
-	"asset-service/internal/controller"
+	"asset-service/internal/controller/assets"
 	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 func AssetCategoryRoutes(r *gin.Engine, db *gorm.DB) {
-	assetHandler := controller.NewAssetCategoryController(db)
+	assetHandler := assets.NewAssetCategoryController(db)
 
 	protected := r.Group("/asset-service/v1/asset/category")
 	protected.Use(middleware.Middleware())

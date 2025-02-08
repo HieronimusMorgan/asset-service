@@ -1,4 +1,4 @@
-package in
+package assets
 
 import "time"
 

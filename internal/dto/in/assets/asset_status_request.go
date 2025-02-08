@@ -1,4 +1,4 @@
-package in
+package assets
 
 type AssetStatusRequest struct {
 	StatusName  string `json:"status_name" binding:"required"`

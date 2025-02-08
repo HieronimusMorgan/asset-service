@@ -1,8 +1,8 @@
-package controller
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/services"
+	assets2 "asset-service/internal/dto/in/assets"
+	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
@@ -11,16 +11,16 @@ import (
 )
 
 type AssetController struct {
-	AssetService *services.AssetService
+	AssetService *assets.AssetService
 }
 
 func NewAssetController(db *gorm.DB) *AssetController {
-	s := services.NewAssetService(db)
+	s := assets.NewAssetService(db)
 	return &AssetController{AssetService: s}
 }
 
 func (h AssetController) AddAsset(context *gin.Context) {
-	var req *in.AssetRequest
+	var req *assets2.AssetRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
@@ -38,12 +38,31 @@ func (h AssetController) AddAsset(context *gin.Context) {
 	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
 }
 
+func (h AssetController) AddWishlistAsset(context *gin.Context) {
+	var req *assets2.AssetWishlistRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		response.SendResponse(context, 400, "Error", nil, err.Error())
+		return
+	}
+	token, err := utils.ExtractClaimsResponse(context)
+	if err != nil {
+		return
+	}
+
+	asset, err := h.AssetService.AddAssetWishlist(req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to add assets", nil, err.Error())
+		return
+	}
+	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
+}
+
 func (h AssetController) UpdateAsset(context *gin.Context) {
 	var req struct {
 		Description  string  `json:"description"`
 		PurchaseDate string  `json:"purchase_date" binding:"required"`
 		ExpiryDate   string  `json:"expiry_date"`
-		Value        float64 `json:"value" binding:"required"`
+		Price        float64 `json:"price" binding:"required"`
 	}
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"asset-service/internal/services"
+	"asset-service/internal/services/assets"
 	"asset-service/internal/utils/cron/model"
 	"asset-service/internal/utils/cron/repository"
 	"log"
@@ -18,7 +18,7 @@ type CronService struct {
 	jobs                    map[uint]cron.EntryID
 	mu                      sync.Mutex
 	cronRepository          *repository.CronRepository
-	assetMaintenanceService *services.AssetMaintenanceService
+	assetMaintenanceService *assets.AssetMaintenanceService
 }
 
 func NewCronService(db *gorm.DB) *CronService {
@@ -30,7 +30,7 @@ func NewCronService(db *gorm.DB) *CronService {
 		scheduler:               scheduler,
 		jobs:                    make(map[uint]cron.EntryID),
 		cronRepository:          repository.NewCronRepository(db),
-		assetMaintenanceService: services.NewAssetMaintenanceService(db),
+		assetMaintenanceService: assets.NewAssetMaintenanceService(db),
 	}
 }
 

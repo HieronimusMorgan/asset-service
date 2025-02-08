@@ -1,4 +1,4 @@
-package out
+package assets
 
 import (
 	"time"
@@ -35,20 +35,26 @@ type AssetResponse struct {
 	CategoryName       string   `json:"category_name,omitempty"`
 	StatusName         string   `json:"status_name,omitempty"`
 	PurchaseDate       DateOnly `json:"purchase_date,omitempty"`
-	Value              float64  `json:"value,omitempty"`
+	Price              float64  `json:"price,omitempty"`
 	MaintenanceDate    DateOnly `json:"maintenance_date,omitempty"`
 	MaintenanceDetails string   `json:"maintenance_details,omitempty"`
 	MaintenanceCost    float64  `json:"maintenance_cost,omitempty"`
 }
 
 type AssetResponseList struct {
-	ID           uint                     `json:"asset_id,omitempty"`
-	ClientID     string                   `json:"user_client_id,omitempty"`
-	Name         string                   `json:"name,omitempty"`
-	Description  string                   `json:"description,omitempty"`
-	PurchaseDate DateOnly                 `json:"purchase_date,omitempty"`
-	Value        float64                  `json:"value,omitempty"`
-	Status       AssetStatusResponse      `json:"status,omitempty"`
-	Category     AssetCategoryResponse    `json:"category,omitempty"`
-	Maintenance  AssetMaintenanceResponse `json:"maintenance,omitempty"`
+	ID              uint                   `json:"asset_id,omitempty"`
+	ClientID        string                 `json:"user_client_id,omitempty"`
+	AssetCode       string                 `json:"asset_code,omitempty"`
+	Name            string                 `json:"name,omitempty"`
+	Description     string                 `json:"description,omitempty"`
+	Barcode         string                 `json:"barcode,omitempty"`
+	Status          AssetStatusResponse    `json:"status,omitempty"`
+	Category        AssetCategoryResponse  `json:"category,omitempty"`
+	PurchaseDate    string                 `json:"purchase_date,omitempty"`
+	ExpiryDate      string                 `json:"expiry_date,omitempty"`
+	WarrantyExpiry  string                 `json:"warranty_expiry_date,omitempty"`
+	InsurancePolicy map[string]interface{} `json:"insurance_policy,omitempty"`
+	Price           float64                `json:"price,omitempty"`
+	Stock           int                    `json:"stock,omitempty"`
+	General         map[string]interface{} `json:"general,omitempty"`
 }

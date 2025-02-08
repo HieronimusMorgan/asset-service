@@ -1,4 +1,4 @@
-package out
+package assets
 
 type AssetStatusResponse struct {
 	AssetStatusID uint   `json:"asset_status_id,omitempty"`

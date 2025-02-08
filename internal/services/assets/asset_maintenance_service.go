@@ -1,10 +1,10 @@
-package services
+package assets
 
 import (
-	"asset-service/internal/dto/in"
+	assets3 "asset-service/internal/dto/in/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
-	"asset-service/internal/repository"
+	assets2 "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"encoding/json"
 	"gorm.io/gorm"
@@ -12,14 +12,14 @@ import (
 )
 
 type AssetMaintenanceService struct {
-	Repo *repository.AssetMaintenanceRepository
+	Repo *assets2.AssetMaintenanceRepository
 }
 
 func NewAssetMaintenanceService(db *gorm.DB) *AssetMaintenanceService {
-	return &AssetMaintenanceService{Repo: repository.NewAssetMaintenanceRepository(db)}
+	return &AssetMaintenanceService{Repo: assets2.NewAssetMaintenanceRepository(db)}
 }
 
-func (s *AssetMaintenanceService) CreateMaintenance(maintenance in.AssetMaintenanceRequest, clientID string) (assets.AssetMaintenance, error) {
+func (s *AssetMaintenanceService) CreateMaintenance(maintenance assets3.AssetMaintenanceRequest, clientID string) (assets.AssetMaintenance, error) {
 	user := &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *AssetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientI
 	return maintenance, nil
 }
 
-func (s *AssetMaintenanceService) UpdateMaintenance(maintenance *in.AssetMaintenanceRequest) error {
+func (s *AssetMaintenanceService) UpdateMaintenance(maintenance *assets3.AssetMaintenanceRequest) error {
 	return nil
 }
 

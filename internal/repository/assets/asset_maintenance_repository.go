@@ -1,7 +1,7 @@
-package repository
+package assets
 
 import (
-	"asset-service/internal/dto/out"
+	assets2 "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"gorm.io/gorm"
 )
@@ -30,8 +30,8 @@ func (r *AssetMaintenanceRepository) Create(clientID string, maintenance *assets
 	return r.DB.Table(tableAssetMaintenanceName).Create(maintenance).Error
 }
 
-func (r *AssetMaintenanceRepository) GetByID(maintenanceID uint, clientID string) (*out.AssetMaintenanceResponse, error) {
-	var maintenance out.AssetMaintenanceResponse
+func (r *AssetMaintenanceRepository) GetByID(maintenanceID uint, clientID string) (*assets2.AssetMaintenanceResponse, error) {
+	var maintenance assets2.AssetMaintenanceResponse
 
 	assetMaintenance := `
 		SELECT am.id, am.asset_id, am.maintenance_details, am.maintenance_date, am.maintenance_cost FROM "my-home"."asset_maintenance" am
@@ -64,8 +64,8 @@ func (r *AssetMaintenanceRepository) GetByAssetID(assetID uint, clientID string)
 	return &maintenance, nil
 }
 
-func (r *AssetMaintenanceRepository) GetList() ([]out.AssetMaintenanceResponse, error) {
-	var maintenances []out.AssetMaintenanceResponse
+func (r *AssetMaintenanceRepository) GetList() ([]assets2.AssetMaintenanceResponse, error) {
+	var maintenances []assets2.AssetMaintenanceResponse
 
 	assetMaintenance := `
 		SELECT am.id, am.asset_id, am.maintenance_details, am.maintenance_date, am.maintenance_cost FROM "my-home"."asset_maintenance" am

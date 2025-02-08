@@ -1,8 +1,8 @@
-package controller
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/services"
+	assets2 "asset-service/internal/dto/in/assets"
+	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
@@ -11,16 +11,16 @@ import (
 )
 
 type AssetCategoryController struct {
-	AssetCategoryService *services.AssetCategoryService
+	AssetCategoryService *assets.AssetCategoryService
 }
 
 func NewAssetCategoryController(db *gorm.DB) *AssetCategoryController {
-	s := services.NewAssetCategoryService(db)
+	s := assets.NewAssetCategoryService(db)
 	return &AssetCategoryController{AssetCategoryService: s}
 }
 
 func (h AssetCategoryController) AddAssetCategory(context *gin.Context) {
-	var req in.AssetCategoryRequest
+	var req assets2.AssetCategoryRequest
 	token, err := utils.ExtractClaimsResponse(context)
 	if err != nil {
 		return
@@ -40,7 +40,7 @@ func (h AssetCategoryController) AddAssetCategory(context *gin.Context) {
 }
 
 func (h AssetCategoryController) UpdateAssetCategory(context *gin.Context) {
-	var req in.AssetCategoryRequest
+	var req assets2.AssetCategoryRequest
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())

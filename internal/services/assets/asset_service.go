@@ -1,11 +1,11 @@
-package services
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/dto/out"
+	request "asset-service/internal/dto/in/assets"
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
-	"asset-service/internal/repository"
+	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"errors"
 	"fmt"
@@ -14,15 +14,17 @@ import (
 )
 
 type AssetService struct {
-	AssetRepository *repository.AssetRepository
+	AssetRepository            *repo.AssetRepository
+	AssetMaintenanceRepository *repo.AssetMaintenanceRepository
 }
 
 func NewAssetService(db *gorm.DB) *AssetService {
-	r := repository.NewAssetRepository(db)
-	return &AssetService{AssetRepository: r}
+	assetRepository := repo.NewAssetRepository(db)
+	assetMaintenanceRepository := repo.NewAssetMaintenanceRepository(db)
+	return &AssetService{AssetRepository: assetRepository, AssetMaintenanceRepository: assetMaintenanceRepository}
 }
 
-func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (interface{}, error) {
+func (s AssetService) AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 
@@ -30,8 +32,11 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		return nil, err
 	}
 
-	_, err = s.AssetRepository.GetAssetByNameAndClientID(assetRequest.Name, clientID)
-	if err == nil {
+	check, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if check {
 		return nil, errors.New("assets already exists")
 	}
 
@@ -49,6 +54,68 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		}
 		expiryDate = &parsedExpiryDate
 	}
+	var warrantyExpiry *time.Time = nil
+	if assetRequest.WarrantyExpiry != "" {
+		parsedExpiryDate, err := time.Parse(layout, assetRequest.WarrantyExpiry)
+		if err != nil {
+			return nil, fmt.Errorf("invalid expiry date format: %v", err)
+		}
+		warrantyExpiry = &parsedExpiryDate
+	}
+
+	var asset = &assets.Asset{
+		UserClientID:       clientID,
+		AssetCode:          assetRequest.AssetCode,
+		Name:               assetRequest.Name,
+		Description:        assetRequest.Description,
+		Barcode:            assetRequest.Barcode,
+		CategoryID:         assetRequest.CategoryID,
+		StatusID:           assetRequest.StatusID,
+		PurchaseDate:       &purchaseDate,
+		ExpiryDate:         expiryDate,
+		WarrantyExpiryDate: warrantyExpiry,
+		InsurancePolicy:    assetRequest.InsurancePolicy,
+		Price:              assetRequest.Price,
+		Stock:              assetRequest.Stock,
+		General:            assetRequest.General,
+		CreatedBy:          user.FullName,
+		UpdatedBy:          user.FullName,
+	}
+
+	var result *response.AssetResponseList
+	result, err = s.AssetRepository.AddAsset(asset)
+	if err != nil && result == nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (s AssetService) AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error) {
+	var user = &user.User{}
+	err := utils.GetDataFromRedis(utils.User, clientID, user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	check, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID)
+	if err != nil {
+		return nil, err
+	}
+	if check {
+		return nil, errors.New("assets already exists")
+	}
+
+	layout := "2006-01-02" // Date-only format
+	if assetRequest.PurchaseDate == "" {
+		assetRequest.PurchaseDate = time.Now().Format("2006-01-02")
+	}
+
+	purchaseDate, err := time.Parse(layout, assetRequest.PurchaseDate)
+	if err != nil {
+		return nil, fmt.Errorf("invalid purchase date format: %v", err)
+	}
 
 	var asset = &assets.Asset{
 		Name:         assetRequest.Name,
@@ -57,35 +124,14 @@ func (s AssetService) AddAsset(assetRequest *in.AssetRequest, clientID string) (
 		CategoryID:   assetRequest.CategoryID,
 		StatusID:     assetRequest.StatusID,
 		PurchaseDate: &purchaseDate,
-		ExpiryDate:   expiryDate,
-		Value:        assetRequest.Value,
+		Price:        assetRequest.Price,
+		IsWishlist:   assetRequest.IsWishlist,
 		CreatedBy:    user.FullName,
 		UpdatedBy:    user.FullName,
 	}
 
-	var maintenanceDate *time.Time = nil
-	if assetRequest.MaintenanceDate != "" {
-		parsedMaintenanceDate, err := time.Parse(layout, assetRequest.MaintenanceDate)
-		if err != nil {
-			return nil, fmt.Errorf("invalid expiry date format: %v", err)
-		}
-		maintenanceDate = &parsedMaintenanceDate
-	}
-
-	var assetMaintenance = &assets.AssetMaintenance{
-		MaintenanceDate:    *maintenanceDate,
-		MaintenanceCost:    assetRequest.MaintenanceCost,
-		MaintenanceDetails: nil,
-		CreatedBy:          user.FullName,
-		UpdatedBy:          user.FullName,
-	}
-
-	if assetRequest.MaintenanceDetail != "" {
-		assetMaintenance.MaintenanceDetails = &assetRequest.MaintenanceDetail
-	}
-
-	var result *out.AssetResponse
-	result, err = s.AssetRepository.AddAsset(asset, assetMaintenance)
+	var result *response.AssetResponseList
+	result, err = s.AssetRepository.AddAsset(asset)
 	if err != nil && result == nil {
 		return nil, err
 	}
@@ -97,7 +143,7 @@ func (s AssetService) UpdateAsset(assetID uint, assetRequest struct {
 	Description  string  `json:"description"`
 	PurchaseDate string  `json:"purchase_date" binding:"required"`
 	ExpiryDate   string  `json:"expiry_date"`
-	Value        float64 `json:"value" binding:"required"`
+	Price        float64 `json:"price" binding:"required"`
 }, clientID string) (interface{}, error) {
 	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
@@ -126,11 +172,11 @@ func (s AssetService) UpdateAsset(assetID uint, assetRequest struct {
 		Description:  assetRequest.Description,
 		PurchaseDate: &purchaseDate,
 		ExpiryDate:   expiryDate,
-		Value:        assetRequest.Value,
+		Price:        assetRequest.Price,
 		UpdatedBy:    user.FullName,
 	}
 
-	var result *out.AssetResponse
+	var result *response.AssetResponse
 	result, err = s.AssetRepository.UpdateAsset(asset, clientID)
 	if err != nil && result == nil {
 		return nil, err
@@ -154,16 +200,16 @@ func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
 	return result, nil
 }
 
-func (s AssetService) GetAssetByID(clientID string, assetID uint) (out.AssetResponseList, error) {
+func (s AssetService) GetAssetByID(clientID string, assetID uint) (response.AssetResponseList, error) {
 	var user = &user.User{}
 	err := utils.GetDataFromRedis(utils.User, clientID, user)
 	if err != nil {
-		return out.AssetResponseList{}, err
+		return response.AssetResponseList{}, err
 	}
 
 	asset, err := s.AssetRepository.GetAssetByID(clientID, assetID)
 	if err != nil {
-		return out.AssetResponseList{}, err
+		return response.AssetResponseList{}, err
 	}
 
 	return *asset, nil

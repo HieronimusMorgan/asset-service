@@ -1,4 +1,4 @@
-package out
+package assets
 
 type AssetCategoryResponse struct {
 	AssetCategoryID uint   `json:"asset_category_id"`

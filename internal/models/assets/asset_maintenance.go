@@ -9,9 +9,12 @@ import (
 type AssetMaintenance struct {
 	ID                 uint           `gorm:"primaryKey" json:"id"`
 	AssetID            int            `gorm:"not null" json:"asset_id"`
+	TypeID             int            `gorm:"not null" json:"type_id"`
 	MaintenanceDate    time.Time      `gorm:"type:date;not null" json:"maintenance_date"`
 	MaintenanceDetails *string        `gorm:"type:text" json:"maintenance_details,omitempty"`
 	MaintenanceCost    float64        `gorm:"type:decimal(15,2)" json:"maintenance_cost"`
+	PerformedBy        *string        `gorm:"type:text" json:"performed_by,omitempty"`
+	NextDueDate        *time.Time     `gorm:"type:date" json:"next_due_date,omitempty"`
 	CreatedAt          time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	CreatedBy          string         `gorm:"type:varchar(255)" json:"created_by,omitempty"`
 	UpdatedAt          time.Time      `gorm:"autoUpdateTime" json:"updated_at"`

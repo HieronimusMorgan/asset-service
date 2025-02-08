@@ -1,8 +1,8 @@
-package controller
+package assets
 
 import (
-	"asset-service/internal/dto/in"
-	"asset-service/internal/services"
+	assets2 "asset-service/internal/dto/in/assets"
+	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"gorm.io/gorm"
@@ -13,15 +13,15 @@ import (
 )
 
 type AssetMaintenanceController struct {
-	Service *services.AssetMaintenanceService
+	Service *assets.AssetMaintenanceService
 }
 
 func NewAssetMaintenanceController(db *gorm.DB) *AssetMaintenanceController {
-	return &AssetMaintenanceController{Service: services.NewAssetMaintenanceService(db)}
+	return &AssetMaintenanceController{Service: assets.NewAssetMaintenanceService(db)}
 }
 
 func (c *AssetMaintenanceController) CreateMaintenance(ctx *gin.Context) {
-	var maintenance in.AssetMaintenanceRequest
+	var maintenance assets2.AssetMaintenanceRequest
 	if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())
 		return
