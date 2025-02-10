@@ -3,7 +3,7 @@ package assets
 import (
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
-	"encoding/json"
+	"database/sql"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
@@ -65,76 +65,7 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	if asset.IsWishlist {
-		selectQuery := `
-        SELECT 
-            asset.asset_id,
-            asset.user_client_id,
-            asset.name,
-            asset.description,
-            asset.price,
-            asset.general,
-            category.asset_category_id,
-            category.category_name,
-            category.description AS category_description,
-            status.asset_status_id,
-            status.status_name,
-            status.description AS status_description,
-            asset.purchase_date,
-            asset.price
-        FROM "my-home"."asset" asset
-        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-        WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-        ORDER BY asset.name DESC;
-    `
-		var generalJSON []byte // Temporary storage for JSON
-
-		row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
-		var assetResult response.AssetResponseList
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
-
-		err = row.Scan(
-			&assetResult.ID,
-			&assetResult.ClientID,
-			&assetResult.Name,
-			&assetResult.Description,
-			&assetResult.Price,
-			&generalJSON,
-			&categoryResult.AssetCategoryID,
-			&categoryResult.CategoryName,
-			&categoryResult.Description,
-			&statusResult.AssetStatusID,
-			&statusResult.StatusName,
-			&statusResult.Description,
-			&assetResult.PurchaseDate,
-			&assetResult.Price,
-		)
-
-		if err == nil {
-			if len(generalJSON) > 0 {
-				if jsonErr := json.Unmarshal(generalJSON, &asset.General); jsonErr != nil {
-					fmt.Println("Error decoding general:", jsonErr)
-				}
-			}
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-
-		err = r.audit.AfterCreateAsset(asset)
-		if err != nil {
-			return nil, err
-		}
-
-		return &assetResult, nil
-	} else {
-		selectQuery := `
+	selectQuery := `
         SELECT 
             asset.asset_id,
             asset.user_client_id,
@@ -145,83 +76,59 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
             asset.purchase_date,
             asset.expiry_date,
             asset.warranty_expiry_date,
-            asset.insurance_policy,
             asset.price,
             asset.stock,
-            asset.general,
             category.asset_category_id,
             category.category_name,
             category.description AS category_description,
             status.asset_status_id,
             status.status_name,
-            status.description AS status_description,
-            asset.purchase_date,
-            asset.price
+            status.description AS status_description
         FROM "my-home"."asset" asset
         INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
         INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
         WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = false
         ORDER BY asset.name DESC;
     `
-		var insuranceJSON []byte
-		var generalJSON []byte
 
-		row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
-		var assetResult response.AssetResponseList
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
+	row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
+	var assetResult response.AssetResponseList
+	var categoryResult response.AssetCategoryResponse
+	var statusResult response.AssetStatusResponse
 
-		err = row.Scan(
-			&assetResult.ID,
-			&assetResult.ClientID,
-			&assetResult.AssetCode,
-			&assetResult.Name,
-			&assetResult.Description,
-			&assetResult.Barcode,
-			&assetResult.ExpiryDate,
-			&assetResult.WarrantyExpiry,
-			&insuranceJSON,
-			&assetResult.Price,
-			&assetResult.Stock,
-			&generalJSON,
-			&categoryResult.AssetCategoryID,
-			&categoryResult.CategoryName,
-			&categoryResult.Description,
-			&statusResult.AssetStatusID,
-			&statusResult.StatusName,
-			&statusResult.Description,
-			&assetResult.PurchaseDate,
-			&assetResult.Price,
-		)
+	err = row.Scan(
+		&assetResult.ID,
+		&assetResult.ClientID,
+		&assetResult.AssetCode,
+		&assetResult.Name,
+		&assetResult.Description,
+		&assetResult.Barcode,
+		&assetResult.PurchaseDate,
+		&assetResult.ExpiryDate,
+		&assetResult.WarrantyExpiry,
+		&assetResult.Price,
+		&assetResult.Stock,
+		&categoryResult.AssetCategoryID,
+		&categoryResult.CategoryName,
+		&categoryResult.Description,
+		&statusResult.AssetStatusID,
+		&statusResult.StatusName,
+		&statusResult.Description,
+	)
 
-		if err == nil {
-			if len(insuranceJSON) > 0 {
-				if jsonErr := json.Unmarshal(insuranceJSON, &asset.InsurancePolicy); jsonErr != nil {
-					fmt.Println("Error decoding insurance_policy:", jsonErr)
-				}
-			}
-
-			if len(generalJSON) > 0 {
-				if jsonErr := json.Unmarshal(generalJSON, &asset.General); jsonErr != nil {
-					fmt.Println("Error decoding general:", jsonErr)
-				}
-			}
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-
-		err = r.audit.AfterCreateAsset(asset)
-		if err != nil {
-			return nil, err
-		}
-
-		return &assetResult, nil
+	if err != nil {
+		return nil, err
 	}
+
+	assetResult.Category = categoryResult
+	assetResult.Status = statusResult
+
+	err = r.audit.AfterCreateAsset(asset)
+	if err != nil {
+		return nil, err
+	}
+
+	return &assetResult, nil
 }
 
 func (r AssetRepository) GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error) {
@@ -241,7 +148,16 @@ func (r AssetRepository) AssetNameExists(name string, clientID string) (bool, er
 	if err != nil {
 		return false, err
 	}
-	return count > 0, nil // ✅ Returns true if asset name exists
+	return count > 0, nil
+}
+func (r AssetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset, error) {
+	var asset assets.Asset
+	err := r.DB.Table(tableAssetName).
+		Where("id = ? AND user_client_id = ?", assetID, clientID).First(asset).Error
+	if err != nil {
+		return nil, err
+	}
+	return &asset, nil
 }
 
 func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponseList, error) {
@@ -256,10 +172,8 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
             asset.purchase_date,
             asset.expiry_date,
             asset.warranty_expiry_date,
-            asset.insurance_policy,
             asset.price,
             asset.stock,
-            asset.general,
             category.asset_category_id,
             category.category_name,
             category.description AS category_description,
@@ -284,8 +198,10 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
 		var asset response.AssetResponseList
 		var category response.AssetCategoryResponse
 		var status response.AssetStatusResponse
-		var insuranceJSON []byte
-		var generalJSON []byte
+
+		var purchaseDate sql.NullTime
+		var expiryDate sql.NullTime
+		var warrantyExpiryDate sql.NullTime
 
 		err := rows.Scan(
 			&asset.ID,
@@ -294,13 +210,11 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
 			&asset.Name,
 			&asset.Description,
 			&asset.Barcode,
-			&asset.PurchaseDate,
-			&asset.ExpiryDate,
-			&asset.WarrantyExpiry,
-			&insuranceJSON,
+			&purchaseDate,
+			&expiryDate,
+			&warrantyExpiryDate,
 			&asset.Price,
 			&asset.Stock,
-			&generalJSON,
 			&category.AssetCategoryID,
 			&category.CategoryName,
 			&category.Description,
@@ -313,18 +227,6 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
 
 		if err != nil {
 			return nil, err
-		}
-
-		if len(insuranceJSON) > 0 {
-			if err := json.Unmarshal(insuranceJSON, &asset.InsurancePolicy); err != nil {
-				fmt.Println("Error decoding insurance_policy:", err)
-			}
-		}
-
-		if len(generalJSON) > 0 {
-			if err := json.Unmarshal(generalJSON, &asset.General); err != nil {
-				fmt.Println("Error decoding general:", err)
-			}
 		}
 
 		asset.Category = category
@@ -348,10 +250,8 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
             asset.purchase_date,
             asset.expiry_date,
             asset.warranty_expiry_date,
-            asset.insurance_policy,
             asset.price,
             asset.stock,
-            asset.general,
             category.asset_category_id,
             category.category_name,
             category.description AS category_description,
@@ -366,14 +266,14 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
         WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = false
         ORDER BY asset.name DESC;
     `
-
-	var insuranceJSON []byte
-	var generalJSON []byte
-
 	row := r.DB.Raw(selectQuery, clientID, id).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
+
+	var purchaseDate sql.NullTime
+	var expiryDate sql.NullTime
+	var warrantyExpiryDate sql.NullTime
 
 	err := row.Scan(
 		&assetResult.ID,
@@ -382,13 +282,11 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
 		&assetResult.Name,
 		&assetResult.Description,
 		&assetResult.Barcode,
-		&assetResult.PurchaseDate,
-		&assetResult.ExpiryDate,
-		&assetResult.WarrantyExpiry,
-		&insuranceJSON,
+		&purchaseDate,
+		&expiryDate,
+		&warrantyExpiryDate,
 		&assetResult.Price,
 		&assetResult.Stock,
-		&generalJSON,
 		&categoryResult.AssetCategoryID,
 		&categoryResult.CategoryName,
 		&categoryResult.Description,
@@ -401,18 +299,6 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
 
 	if err != nil {
 		return nil, err
-	}
-
-	if len(insuranceJSON) > 0 {
-		if err := json.Unmarshal(insuranceJSON, &assetResult.InsurancePolicy); err != nil {
-			fmt.Println("Error decoding insurance_policy:", err)
-		}
-	}
-
-	if len(generalJSON) > 0 {
-		if err := json.Unmarshal(generalJSON, &assetResult.General); err != nil {
-			fmt.Println("Error decoding general:", err)
-		}
 	}
 
 	assetResult.Category = categoryResult
@@ -471,7 +357,7 @@ func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*res
 		FROM "my-home"."asset" a
 		INNER JOIN "my-home"."asset_category" c ON a.category_id = c.asset_category_id
 		INNER JOIN "my-home"."asset_status" s ON a.status_id = s.asset_status_id
-		WHERE a.asset_id = ? AND asset.is_wishlist = false AND a.deleted_at IS NULL;
+		WHERE a.asset_id = ? AND a.is_wishlist = false AND a.deleted_at IS NULL
 	`
 	if err := tx.Raw(selectAssetQuery, asset.AssetID).Scan(&result).Error; err != nil {
 		tx.Rollback()
@@ -590,48 +476,6 @@ func (r AssetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 	return nil
 }
 
-func (r AssetRepository) UpdateIsWishlist(id uint, clientID, fullName string) error {
-	// Start a transaction
-	tx := r.DB.Begin()
-	defer tx.Rollback()
-
-	var assetOld assets.Asset
-	err := r.DB.Table(tableAssetName).Where("asset_id = ?", id).First(&assetOld).Error
-	if err != nil {
-		return fmt.Errorf("failed to find asset: %w", err)
-	}
-
-	// Verify the existence of the asset
-	var asset assets.Asset
-	if err := tx.Table(tableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).
-		First(&asset).Error; err != nil {
-		return fmt.Errorf("failed to find asset: %w", err)
-	}
-
-	// Update the asset category and updated by
-	if err := tx.Table(tableAssetName).Model(&asset).
-		Where("asset_id = ? AND user_client_id = ?", id, clientID).
-		Updates(map[string]interface{}{
-			"is_wishlist": true,
-			"updated_by":  fullName,
-		}).Error; err != nil {
-		return fmt.Errorf("failed to update asset category: %w", err)
-	}
-
-	// Commit the transaction
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	// Log audit
-	err = r.audit.AfterUpdateAsset(assetOld, &asset)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) error {
 	// Start a transaction
 	tx := r.DB.Begin()
@@ -647,18 +491,6 @@ func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) 
 		return fmt.Errorf("failed to find asset: %w", err)
 	}
 
-	// Verify the existence of the asset_maintenance
-	if err := tx.Table("my-home.asset_maintenance").Where("asset_id = ?", id).
-		First(&assetMaintenance).Error; err != nil {
-		return fmt.Errorf("failed to find asset maintenance: %w", err)
-	}
-
-	// Verify the existence of the asset_maintenance_record
-	if err := tx.Table("my-home.asset_maintenance_record").Where("asset_id = ?", id).
-		First(&assetMaintenanceRecord).Error; err != nil {
-		return fmt.Errorf("failed to find asset maintenance record: %w", err)
-	}
-
 	// Soft delete the asset
 	if err := tx.Table(tableAssetName).Model(&asset).
 		Where("asset_id = ? AND user_client_id = ?", id, clientID).
@@ -669,7 +501,7 @@ func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) 
 		return fmt.Errorf("failed to delete asset: %w", err)
 	}
 
-	// soft delete the asset_maintenance
+	// Soft delete the asset_maintenance if it exists
 	if err := tx.Table("my-home.asset_maintenance").Model(&assetMaintenance).
 		Where("asset_id = ?", id).
 		Updates(map[string]interface{}{
@@ -710,4 +542,13 @@ func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) 
 	}
 
 	return nil
+}
+
+func (r AssetRepository) GetAssetByIDForMaintenance(id uint, clientID string) (*assets.Asset, error) {
+	var asset assets.Asset
+	err := r.DB.Table(tableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).First(&asset).Error
+	if err != nil {
+		return nil, err
+	}
+	return &asset, nil
 }

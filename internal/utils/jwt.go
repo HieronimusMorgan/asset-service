@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"asset-service/config"
 	"asset-service/package/response"
 	"errors"
 	"fmt"
@@ -15,13 +16,13 @@ var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 var internalSecretKey = []byte(os.Getenv("JWT_SECRET"))
 
 func ValidateToken(tokenString string) (*jwt.MapClaims, error) {
-	// Parse the token
+	secret := config.GetJWTSecret() // ✅ Load secret dynamically
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Ensure the signing method is HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return secret, nil // ✅ Use dynamically loaded secret
 	})
 
 	if err != nil {
@@ -45,11 +46,13 @@ func ValidateToken(tokenString string) (*jwt.MapClaims, error) {
 }
 
 func ValidateTokenAdmin(tokenString string) (*jwt.MapClaims, error) {
+	secret := config.GetJWTSecret() // ✅ Load secret dynamically
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return secret, nil // ✅ Use dynamically loaded secret
 	})
 
 	if err != nil {
@@ -78,15 +81,17 @@ func ValidateTokenAdmin(tokenString string) (*jwt.MapClaims, error) {
 }
 
 func ExtractClaims(tokenString string) (*TokenClaims, error) {
+	secret := config.GetJWTSecret() // ✅ Load secret dynamically
+
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return jwtSecret, nil
+		return secret, nil // ✅ Use dynamically loaded secret
 	})
 
 	if err != nil {
-		return nil, errors.New("invalid token")
+		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
@@ -108,11 +113,11 @@ func ExtractClaims(tokenString string) (*TokenClaims, error) {
 		tc.Exp = int64(exp)
 	}
 
-	if userID, ok := claims["user_id"].(float64); ok { // JWT numbers are float64
+	if userID, ok := claims["user_id"].(float64); ok {
 		tc.UserID = uint(userID)
 	}
 
-	if clientID, ok := claims["client_id"].(string); ok { // JWT numbers are float64
+	if clientID, ok := claims["client_id"].(string); ok {
 		tc.ClientID = clientID
 	}
 

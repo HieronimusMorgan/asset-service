@@ -37,3 +37,19 @@ func LoadRedisConfig() string {
 	}
 	return os.Getenv("REDIS_URL")
 }
+
+func LoadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("⚠️ Warning: .env file not found. Using system environment variables.")
+	}
+}
+
+func GetJWTSecret() []byte {
+	LoadEnv() // Ensure environment variables are loaded
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
+		log.Fatal("❌ JWT_SECRET is missing in environment variables")
+	}
+	return []byte(secret) // ✅ Convert to byte slice
+}

@@ -74,60 +74,10 @@ func (s AssetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		PurchaseDate:       &purchaseDate,
 		ExpiryDate:         expiryDate,
 		WarrantyExpiryDate: warrantyExpiry,
-		InsurancePolicy:    assetRequest.InsurancePolicy,
 		Price:              assetRequest.Price,
 		Stock:              assetRequest.Stock,
-		General:            assetRequest.General,
 		CreatedBy:          user.FullName,
 		UpdatedBy:          user.FullName,
-	}
-
-	var result *response.AssetResponseList
-	result, err = s.AssetRepository.AddAsset(asset)
-	if err != nil && result == nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func (s AssetService) AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error) {
-	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
-
-	if err != nil {
-		return nil, err
-	}
-
-	check, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID)
-	if err != nil {
-		return nil, err
-	}
-	if check {
-		return nil, errors.New("assets already exists")
-	}
-
-	layout := "2006-01-02" // Date-only format
-	if assetRequest.PurchaseDate == "" {
-		assetRequest.PurchaseDate = time.Now().Format("2006-01-02")
-	}
-
-	purchaseDate, err := time.Parse(layout, assetRequest.PurchaseDate)
-	if err != nil {
-		return nil, fmt.Errorf("invalid purchase date format: %v", err)
-	}
-
-	var asset = &assets.Asset{
-		Name:         assetRequest.Name,
-		UserClientID: clientID,
-		Description:  assetRequest.Description,
-		CategoryID:   assetRequest.CategoryID,
-		StatusID:     assetRequest.StatusID,
-		PurchaseDate: &purchaseDate,
-		Price:        assetRequest.Price,
-		IsWishlist:   assetRequest.IsWishlist,
-		CreatedBy:    user.FullName,
-		UpdatedBy:    user.FullName,
 	}
 
 	var result *response.AssetResponseList

@@ -38,25 +38,6 @@ func (h AssetController) AddAsset(context *gin.Context) {
 	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
 }
 
-func (h AssetController) AddWishlistAsset(context *gin.Context) {
-	var req *assets2.AssetWishlistRequest
-	if err := context.ShouldBindJSON(&req); err != nil {
-		response.SendResponse(context, 400, "Error", nil, err.Error())
-		return
-	}
-	token, err := utils.ExtractClaimsResponse(context)
-	if err != nil {
-		return
-	}
-
-	asset, err := h.AssetService.AddAssetWishlist(req, token.ClientID)
-	if err != nil {
-		response.SendResponse(context, 500, "Failed to add assets", nil, err.Error())
-		return
-	}
-	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
-}
-
 func (h AssetController) UpdateAsset(context *gin.Context) {
 	var req struct {
 		Description  string  `json:"description"`

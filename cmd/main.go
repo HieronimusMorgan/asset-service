@@ -28,6 +28,7 @@ func main() {
 	assets.AssetCategoryRoutes(r, db)
 	assets.AssetStatusRoutes(r, db)
 	assets.AssetRoutes(r, db)
+	assets.AssetWishlistRoutes(r, db)
 	assets.AssetMaintenanceRoutes(r, db)
 
 	// Run server
