@@ -9,24 +9,37 @@ import (
 	"asset-service/internal/utils"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
 )
 
-type AssetWishlistService struct {
-	AssetWishlistRepository *repo.AssetWishlistRepository
-	AssetRepository         *repo.AssetRepository
+type AssetWishlistService interface {
+	AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error)
+	GetAssetWishlist(clientID string) (interface{}, error)
+	UpdateAssetWishlist(assetID uint, assetRequest struct {
+		Description  string  `json:"description"`
+		PurchaseDate string  `json:"purchase_date" binding:"required"`
+		CategoryID   int     `json:"category_id" binding:"required"`
+		StatusID     int     `json:"status_id" binding:"required"`
+		Price        float64 `json:"price" binding:"required"`
+		IsWishlist   bool    `json:"is_wishlist" binding:"required"`
+	}, clientID string) (interface{}, error)
+	DeleteAssetWishlist(assetID uint, clientID string) (interface{}, error)
+	GetAssetWishlistByID(assetID uint, clientID string) (interface{}, error)
 }
 
-func NewAssetWishlistService(db *gorm.DB) *AssetWishlistService {
-	assetWishlistRepository := repo.NewAssetWishlistRepository(db)
-	assetRepository := repo.NewAssetRepository(db)
-	return &AssetWishlistService{AssetWishlistRepository: assetWishlistRepository, AssetRepository: assetRepository}
+type assetWishlistService struct {
+	AssetWishlistRepository repo.AssetWishlistRepository
+	AssetRepository         repo.AssetRepository
+	Redis                   utils.RedisService
 }
 
-func (s AssetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error) {
+func NewAssetWishlistService(assetWishlistRepository repo.AssetWishlistRepository, assetRepository repo.AssetRepository, redis utils.RedisService) AssetWishlistService {
+	return assetWishlistService{AssetWishlistRepository: assetWishlistRepository, AssetRepository: assetRepository, Redis: redis}
+}
+
+func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -72,9 +85,9 @@ func (s AssetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 	return result, nil
 }
 
-func (s AssetWishlistService) GetAssetWishlist(clientID string) (interface{}, error) {
+func (s assetWishlistService) GetAssetWishlist(clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -102,7 +115,7 @@ func (s AssetWishlistService) GetAssetWishlist(clientID string) (interface{}, er
 	return assetResponse, nil
 }
 
-func (s AssetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest struct {
+func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest struct {
 	Description  string  `json:"description"`
 	PurchaseDate string  `json:"purchase_date" binding:"required"`
 	CategoryID   int     `json:"category_id" binding:"required"`
@@ -111,7 +124,7 @@ func (s AssetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest str
 	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
 }, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -145,9 +158,9 @@ func (s AssetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest str
 	return result, nil
 }
 
-func (s AssetWishlistService) DeleteAssetWishlist(assetID uint, clientID string) (interface{}, error) {
+func (s assetWishlistService) DeleteAssetWishlist(assetID uint, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -166,9 +179,9 @@ func (s AssetWishlistService) DeleteAssetWishlist(assetID uint, clientID string)
 	return nil, nil
 }
 
-func (s AssetWishlistService) GetAssetWishlistByID(assetID uint, clientID string) (interface{}, error) {
+func (s assetWishlistService) GetAssetWishlistByID(assetID uint, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err

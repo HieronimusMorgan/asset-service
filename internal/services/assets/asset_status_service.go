@@ -1,24 +1,36 @@
 package assets
 
 import (
-	assets3 "asset-service/internal/dto/in/assets"
-	assets4 "asset-service/internal/dto/out/assets"
+	request "asset-service/internal/dto/in/assets"
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
-	assets2 "asset-service/internal/repository/assets"
+	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"errors"
-	"gorm.io/gorm"
 )
 
-type AssetStatusService struct {
-	AssetStatusRepository *assets2.AssetStatusRepository
+type AssetStatusService interface {
+	AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error)
+	GetAssetStatus() (interface{}, error)
+	GetAssetStatusByID(assetStatusID uint) (interface{}, error)
+	UpdateAssetStatus(assetStatusID uint, assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error)
+	DeleteAssetStatus(assetStatusID uint, clientID string) error
 }
 
-func (s AssetStatusService) AddAssetStatus(assetStatusRequest *assets3.AssetStatusRequest, clientID string) (interface{}, error) {
+type assetStatusService struct {
+	AssetStatusRepository repository.AssetStatusRepository
+	Redis                 utils.RedisService
+}
+
+func NewAssetStatusService(assetStatusRepository repository.AssetStatusRepository, redis utils.RedisService) AssetStatusService {
+	return assetStatusService{AssetStatusRepository: assetStatusRepository, Redis: redis}
+}
+
+func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
 
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +50,7 @@ func (s AssetStatusService) AddAssetStatus(assetStatusRequest *assets3.AssetStat
 	if err != nil {
 		return nil, err
 	}
-	var assetStatusResponse = assets4.AssetStatusResponse{
+	var assetStatusResponse = response.AssetStatusResponse{
 		AssetStatusID: assetStatus.AssetStatusID,
 		StatusName:    assetStatus.StatusName,
 		Description:   assetStatus.Description,
@@ -47,14 +59,14 @@ func (s AssetStatusService) AddAssetStatus(assetStatusRequest *assets3.AssetStat
 	return assetStatusResponse, nil
 }
 
-func (s AssetStatusService) GetAssetStatus() (interface{}, error) {
+func (s assetStatusService) GetAssetStatus() (interface{}, error) {
 	assetStatus, err := s.AssetStatusRepository.GetAssetStatus()
 	if err != nil {
 		return nil, err
 	}
-	var assetStatusResponse []assets4.AssetStatusResponse
+	var assetStatusResponse []response.AssetStatusResponse
 	for _, status := range assetStatus {
-		assetStatusResponse = append(assetStatusResponse, assets4.AssetStatusResponse{
+		assetStatusResponse = append(assetStatusResponse, response.AssetStatusResponse{
 			AssetStatusID: status.AssetStatusID,
 			StatusName:    status.StatusName,
 			Description:   status.Description,
@@ -63,12 +75,12 @@ func (s AssetStatusService) GetAssetStatus() (interface{}, error) {
 	return assetStatusResponse, nil
 }
 
-func (s AssetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{}, error) {
+func (s assetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{}, error) {
 	assetStatus, err := s.AssetStatusRepository.GetAssetStatusByID(assetStatusID)
 	if err != nil {
 		return nil, err
 	}
-	var assetStatusResponse = assets4.AssetStatusResponse{
+	var assetStatusResponse = response.AssetStatusResponse{
 		AssetStatusID: assetStatus.AssetStatusID,
 		StatusName:    assetStatus.StatusName,
 		Description:   assetStatus.Description,
@@ -76,10 +88,10 @@ func (s AssetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{},
 	return assetStatusResponse, nil
 }
 
-func (s AssetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusRequest *assets3.AssetStatusRequest, clientID string) (interface{}, error) {
+func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
 
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +110,7 @@ func (s AssetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 		return nil, err
 	}
 
-	var assetStatusResponse = assets4.AssetStatusResponse{
+	var assetStatusResponse = response.AssetStatusResponse{
 		AssetStatusID: assetStatus.AssetStatusID,
 		StatusName:    assetStatus.StatusName,
 		Description:   assetStatus.Description,
@@ -107,10 +119,10 @@ func (s AssetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 	return assetStatusResponse, nil
 }
 
-func (s AssetStatusService) DeleteAssetStatus(assetStatusID uint, clientID string) error {
+func (s assetStatusService) DeleteAssetStatus(assetStatusID uint, clientID string) error {
 	var user = &user.User{}
 
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return err
 	}
@@ -128,9 +140,4 @@ func (s AssetStatusService) DeleteAssetStatus(assetStatusID uint, clientID strin
 	}
 
 	return nil
-}
-
-func AddAssetStatus(db *gorm.DB) *AssetStatusService {
-	assetStatusRepo := assets2.NewAssetStatusRepository(db)
-	return &AssetStatusService{AssetStatusRepository: assetStatusRepo}
 }

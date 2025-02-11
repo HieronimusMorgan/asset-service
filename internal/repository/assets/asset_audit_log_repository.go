@@ -9,15 +9,33 @@ import (
 
 const tableAssetAuditLogName = "my-home.asset_audit_log"
 
-type AssetAuditLogRepository struct {
-	DB *gorm.DB
+type AssetAuditLogRepository interface {
+	AfterCreateAsset(asset *assets.Asset) error
+	AfterUpdateAsset(old assets.Asset, asset *assets.Asset) error
+	AfterDeleteAsset(asset *assets.Asset) error
+	AfterCreateAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error
+	AfterUpdateAssetMaintenance(old assets.AssetMaintenance, assetMaintenance *assets.AssetMaintenance) error
+	AfterDeleteAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error
+	AfterCreateAssetCategory(assetCategory *assets.AssetCategory) error
+	AfterUpdateAssetCategory(old *assets.AssetCategory, assetCategory *assets.AssetCategory) error
+	AfterDeleteAssetCategory(assetCategory *assets.AssetCategory) error
+	AfterCreateAssetStatus(assetStatus *assets.AssetStatus) error
+	AfterUpdateAssetStatus(old assets.AssetStatus, assetStatus *assets.AssetStatus) error
+	AfterDeleteAssetStatus(assetStatus *assets.AssetStatus) error
+	AfterCreateAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
+	AfterUpdateAssetMaintenanceRecord(old assets.AssetMaintenanceRecord, assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
+	AfterDeleteAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
 }
 
-func NewAssetAuditLogRepository(db *gorm.DB) *AssetAuditLogRepository {
-	return &AssetAuditLogRepository{DB: db}
+type assetAuditLogRepository struct {
+	db gorm.DB
 }
 
-func (a AssetAuditLogRepository) AfterCreateAsset(asset *assets.Asset) (err error) {
+func NewAssetAuditLogRepository(db gorm.DB) AssetAuditLogRepository {
+	return &assetAuditLogRepository{db: db}
+}
+
+func (a assetAuditLogRepository) AfterCreateAsset(asset *assets.Asset) (err error) {
 	newDataBytes, err := json.Marshal(asset)
 	if err != nil {
 		return err
@@ -32,13 +50,13 @@ func (a AssetAuditLogRepository) AfterCreateAsset(asset *assets.Asset) (err erro
 		PerformedBy: &asset.CreatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterUpdateAsset(old assets.Asset, asset *assets.Asset) error {
+func (a assetAuditLogRepository) AfterUpdateAsset(old assets.Asset, asset *assets.Asset) error {
 	oldDataBytes, err := json.Marshal(old)
 	if err != nil {
 		return err
@@ -60,13 +78,13 @@ func (a AssetAuditLogRepository) AfterUpdateAsset(old assets.Asset, asset *asset
 		PerformedBy: &asset.UpdatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterDeleteAsset(asset *assets.Asset) error {
+func (a assetAuditLogRepository) AfterDeleteAsset(asset *assets.Asset) error {
 	oldDataBytes, err := json.Marshal(asset)
 	if err != nil {
 		return err
@@ -81,13 +99,13 @@ func (a AssetAuditLogRepository) AfterDeleteAsset(asset *assets.Asset) error {
 		PerformedBy: asset.DeletedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterCreateAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error {
+func (a assetAuditLogRepository) AfterCreateAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error {
 	newDataBytes, err := json.Marshal(assetMaintenance)
 	if err != nil {
 		return err
@@ -102,13 +120,13 @@ func (a AssetAuditLogRepository) AfterCreateAssetMaintenance(assetMaintenance *a
 		PerformedBy: &assetMaintenance.CreatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterUpdateAssetMaintenance(old assets.AssetMaintenance, assetMaintenance *assets.AssetMaintenance) error {
+func (a assetAuditLogRepository) AfterUpdateAssetMaintenance(old assets.AssetMaintenance, assetMaintenance *assets.AssetMaintenance) error {
 	oldDataBytes, err := json.Marshal(old)
 	if err != nil {
 		return err
@@ -130,13 +148,13 @@ func (a AssetAuditLogRepository) AfterUpdateAssetMaintenance(old assets.AssetMai
 		PerformedBy: &assetMaintenance.UpdatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterDeleteAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error {
+func (a assetAuditLogRepository) AfterDeleteAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error {
 	oldDataBytes, err := json.Marshal(assetMaintenance)
 	if err != nil {
 		return err
@@ -151,13 +169,13 @@ func (a AssetAuditLogRepository) AfterDeleteAssetMaintenance(assetMaintenance *a
 		PerformedBy: assetMaintenance.DeletedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterCreateAssetCategory(assetCategory *assets.AssetCategory) error {
+func (a assetAuditLogRepository) AfterCreateAssetCategory(assetCategory *assets.AssetCategory) error {
 	newDataBytes, err := json.Marshal(assetCategory)
 	if err != nil {
 		return err
@@ -172,13 +190,13 @@ func (a AssetAuditLogRepository) AfterCreateAssetCategory(assetCategory *assets.
 		PerformedBy: &assetCategory.CreatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterUpdateAssetCategory(old *assets.AssetCategory, assetCategory *assets.AssetCategory) error {
+func (a assetAuditLogRepository) AfterUpdateAssetCategory(old *assets.AssetCategory, assetCategory *assets.AssetCategory) error {
 	oldDataBytes, err := json.Marshal(old)
 	if err != nil {
 		return err
@@ -200,13 +218,13 @@ func (a AssetAuditLogRepository) AfterUpdateAssetCategory(old *assets.AssetCateg
 		PerformedBy: &assetCategory.UpdatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterDeleteAssetCategory(assetCategory *assets.AssetCategory) error {
+func (a assetAuditLogRepository) AfterDeleteAssetCategory(assetCategory *assets.AssetCategory) error {
 	oldDataBytes, err := json.Marshal(assetCategory)
 	if err != nil {
 		return err
@@ -221,13 +239,13 @@ func (a AssetAuditLogRepository) AfterDeleteAssetCategory(assetCategory *assets.
 		PerformedBy: assetCategory.DeletedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterCreateAssetStatus(assetStatus *assets.AssetStatus) error {
+func (a assetAuditLogRepository) AfterCreateAssetStatus(assetStatus *assets.AssetStatus) error {
 	newDataBytes, err := json.Marshal(assetStatus)
 	if err != nil {
 		return err
@@ -242,14 +260,14 @@ func (a AssetAuditLogRepository) AfterCreateAssetStatus(assetStatus *assets.Asse
 		PerformedBy: &assetStatus.CreatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterUpdateAssetStatus(old assets.AssetStatus, assetStatus *assets.AssetStatus) error {
+func (a assetAuditLogRepository) AfterUpdateAssetStatus(old assets.AssetStatus, assetStatus *assets.AssetStatus) error {
 	oldDataBytes, err := json.Marshal(old)
 	if err != nil {
 		return err
@@ -271,14 +289,14 @@ func (a AssetAuditLogRepository) AfterUpdateAssetStatus(old assets.AssetStatus, 
 		PerformedBy: &assetStatus.UpdatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterDeleteAssetStatus(assetStatus *assets.AssetStatus) error {
+func (a assetAuditLogRepository) AfterDeleteAssetStatus(assetStatus *assets.AssetStatus) error {
 	oldDataBytes, err := json.Marshal(assetStatus)
 	if err != nil {
 		return err
@@ -293,14 +311,14 @@ func (a AssetAuditLogRepository) AfterDeleteAssetStatus(assetStatus *assets.Asse
 		PerformedBy: assetStatus.DeletedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterCreateAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+func (a assetAuditLogRepository) AfterCreateAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
 	newDataBytes, err := json.Marshal(assetMaintenanceRecord)
 	if err != nil {
 		return err
@@ -315,14 +333,14 @@ func (a AssetAuditLogRepository) AfterCreateAssetMaintenanceRecord(assetMaintena
 		PerformedBy: &assetMaintenanceRecord.CreatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterUpdateAssetMaintenanceRecord(old assets.AssetMaintenanceRecord, assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+func (a assetAuditLogRepository) AfterUpdateAssetMaintenanceRecord(old assets.AssetMaintenanceRecord, assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
 	oldDataBytes, err := json.Marshal(old)
 	if err != nil {
 		return err
@@ -344,14 +362,14 @@ func (a AssetAuditLogRepository) AfterUpdateAssetMaintenanceRecord(old assets.As
 		PerformedBy: &assetMaintenanceRecord.UpdatedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (a AssetAuditLogRepository) AfterDeleteAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
+func (a assetAuditLogRepository) AfterDeleteAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error {
 	oldDataBytes, err := json.Marshal(assetMaintenanceRecord)
 	if err != nil {
 		return err
@@ -366,7 +384,7 @@ func (a AssetAuditLogRepository) AfterDeleteAssetMaintenanceRecord(assetMaintena
 		PerformedBy: assetMaintenanceRecord.DeletedBy,
 	}
 
-	if err := a.DB.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
+	if err := a.db.Table(tableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 

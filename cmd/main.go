@@ -1,39 +1,42 @@
 package main
 
 import (
-	"asset-service/internal/database"
+	"asset-service/config"
 	"asset-service/internal/routes/assets"
-	"asset-service/internal/utils"
-	"asset-service/internal/utils/cron/service"
-	"github.com/gin-gonic/gin"
 	"log"
 )
 
 func main() {
-	// Initialize Redis
-	utils.InitializeRedis()
+	serverConfig, err := config.NewServerConfig()
+	if err != nil {
+		log.Fatalf("❌ Failed to initialize server: %v", err)
+	}
 
-	// Initialize database
-	db := database.InitDB()
-	defer database.CloseDB(db)
+	// Ensure database connection closes when the server shuts down
+	defer func() {
+		sqlDB, _ := serverConfig.DB.DB()
+		sqlDB.Close()
+		log.Println("✅ Database connection closed")
+	}()
 
-	cronService := service.NewCronService(db)
-	cronService.Start()
-	defer cronService.Stop()
+	// Start server config (Ensure everything is ready)
+	if err := serverConfig.Start(); err != nil {
+		log.Fatalf("❌ Error starting server: %v", err)
+	}
 
-	// Setup Gin router
-	r := gin.Default()
+	// Initialize Router
+	engine := serverConfig.Gin
 
 	// Register routes
-	assets.AssetCategoryRoutes(r, db)
-	assets.AssetStatusRoutes(r, db)
-	assets.AssetRoutes(r, db)
-	assets.AssetWishlistRoutes(r, db)
-	assets.AssetMaintenanceRoutes(r, db)
+	assets.AssetCategoryRoutes(engine, serverConfig.Middleware.AuthMiddleware, serverConfig.Controller.AssetCategory)
+	assets.AssetStatusRoutes(engine, serverConfig.Middleware.AuthMiddleware, serverConfig.Controller.AssetStatus)
+	assets.AssetRoutes(engine, serverConfig.Middleware.AuthMiddleware, serverConfig.Controller.Asset)
+	assets.AssetWishlistRoutes(engine, serverConfig.Middleware.AuthMiddleware, serverConfig.Controller.AssetWishlist)
+	assets.AssetMaintenanceRoutes(engine, serverConfig.Middleware.AuthMiddleware, serverConfig.Controller.AssetMaintenance)
 
 	// Run server
 	log.Println("Starting server on :8081")
-	err := r.Run(":8081")
+	err = engine.Run(":8081")
 	if err != nil {
 		return
 	}

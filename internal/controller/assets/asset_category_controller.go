@@ -6,22 +6,30 @@ import (
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 )
 
-type AssetCategoryController struct {
-	AssetCategoryService *assets.AssetCategoryService
+type AssetCategoryController interface {
+	AddAssetCategory(context *gin.Context)
+	UpdateAssetCategory(context *gin.Context)
+	GetAssetCategories(context *gin.Context)
+	GetListAssetCategory(context *gin.Context)
+	GetAssetCategoryById(context *gin.Context)
+	DeleteAssetCategory(context *gin.Context)
 }
 
-func NewAssetCategoryController(db *gorm.DB) *AssetCategoryController {
-	s := assets.NewAssetCategoryService(db)
-	return &AssetCategoryController{AssetCategoryService: s}
+type assetCategoryController struct {
+	AssetCategoryService assets.AssetCategoryService
+	JWTService           utils.JWTService
 }
 
-func (h AssetCategoryController) AddAssetCategory(context *gin.Context) {
+func NewAssetCategoryController(assetCategoryService assets.AssetCategoryService, jwtService utils.JWTService) AssetCategoryController {
+	return assetCategoryController{AssetCategoryService: assetCategoryService, JWTService: jwtService}
+}
+
+func (h assetCategoryController) AddAssetCategory(context *gin.Context) {
 	var req assets2.AssetCategoryRequest
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -39,7 +47,7 @@ func (h AssetCategoryController) AddAssetCategory(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset category added successfully", assetCategory, nil)
 }
 
-func (h AssetCategoryController) UpdateAssetCategory(context *gin.Context) {
+func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
 	var req assets2.AssetCategoryRequest
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
@@ -47,7 +55,7 @@ func (h AssetCategoryController) UpdateAssetCategory(context *gin.Context) {
 		return
 	}
 
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -66,12 +74,12 @@ func (h AssetCategoryController) UpdateAssetCategory(context *gin.Context) {
 
 }
 
-func (h AssetCategoryController) GetAssetCategories(context *gin.Context) {
+func (h assetCategoryController) GetAssetCategories(context *gin.Context) {
 
 }
 
-func (h AssetCategoryController) GetListAssetCategory(context *gin.Context) {
-	token, err := utils.ExtractClaimsResponse(context)
+func (h assetCategoryController) GetListAssetCategory(context *gin.Context) {
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -84,7 +92,7 @@ func (h AssetCategoryController) GetListAssetCategory(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset categories retrieved successfully", assetCategories, nil)
 }
 
-func (h AssetCategoryController) GetAssetCategoryById(context *gin.Context) {
+func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
@@ -99,14 +107,14 @@ func (h AssetCategoryController) GetAssetCategoryById(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Asset category retrieved successfully", assetCategory, nil)
 }
 
-func (h AssetCategoryController) DeleteAssetCategory(context *gin.Context) {
+func (h assetCategoryController) DeleteAssetCategory(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
 		return
 	}
 
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}

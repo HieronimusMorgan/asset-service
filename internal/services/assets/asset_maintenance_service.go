@@ -1,27 +1,37 @@
 package assets
 
 import (
-	assets3 "asset-service/internal/dto/in/assets"
+	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/models/user"
-	assets2 "asset-service/internal/repository/assets"
+	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"encoding/json"
 	"gorm.io/gorm"
 	"log"
 )
 
-type AssetMaintenanceService struct {
-	Repo *assets2.AssetMaintenanceRepository
+type AssetMaintenanceService interface {
+	CreateMaintenance(maintenance request.AssetMaintenanceRequest, clientID string) (assets.AssetMaintenance, error)
+	GetMaintenanceByID(maintenanceID uint, clientID string) (interface{}, error)
+	UpdateMaintenance(maintenance *request.AssetMaintenanceRequest) error
+	DeleteMaintenance(maintenanceID uint) error
+	GetMaintenancesByAssetID(assetID uint, clientID string) (*assets.AssetMaintenance, error)
+	PerformMaintenanceCheck() error
 }
 
-func NewAssetMaintenanceService(db *gorm.DB) *AssetMaintenanceService {
-	return &AssetMaintenanceService{Repo: assets2.NewAssetMaintenanceRepository(db)}
+type assetMaintenanceService struct {
+	AssetMaintenanceRepository repository.AssetMaintenanceRepository
+	RedisService               utils.RedisService
 }
 
-func (s *AssetMaintenanceService) CreateMaintenance(maintenance assets3.AssetMaintenanceRequest, clientID string) (assets.AssetMaintenance, error) {
+func NewAssetMaintenanceService(AssetMaintenance repository.AssetMaintenanceRepository, RedisService utils.RedisService) AssetMaintenanceService {
+	return assetMaintenanceService{AssetMaintenanceRepository: AssetMaintenance, RedisService: RedisService}
+}
+
+func (s assetMaintenanceService) CreateMaintenance(maintenance request.AssetMaintenanceRequest, clientID string) (assets.AssetMaintenance, error) {
 	user := &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.RedisService.GetData(utils.User, clientID, user)
 	if err != nil {
 		return assets.AssetMaintenance{}, err
 	}
@@ -38,7 +48,7 @@ func (s *AssetMaintenanceService) CreateMaintenance(maintenance assets3.AssetMai
 		maintenanceRecord.MaintenanceDetails = nil
 	}
 
-	err = s.Repo.Create(clientID, &maintenanceRecord)
+	err = s.AssetMaintenanceRepository.Create(clientID, &maintenanceRecord)
 	if err != nil {
 		return assets.AssetMaintenance{}, err
 	}
@@ -46,8 +56,8 @@ func (s *AssetMaintenanceService) CreateMaintenance(maintenance assets3.AssetMai
 	return maintenanceRecord, nil
 }
 
-func (s *AssetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientID string) (interface{}, error) {
-	maintenance, err := s.Repo.GetByID(maintenanceID, clientID)
+func (s assetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientID string) (interface{}, error) {
+	maintenance, err := s.AssetMaintenanceRepository.GetByID(maintenanceID, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -59,20 +69,20 @@ func (s *AssetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientI
 	return maintenance, nil
 }
 
-func (s *AssetMaintenanceService) UpdateMaintenance(maintenance *assets3.AssetMaintenanceRequest) error {
+func (s assetMaintenanceService) UpdateMaintenance(maintenance *request.AssetMaintenanceRequest) error {
 	return nil
 }
 
-func (s *AssetMaintenanceService) DeleteMaintenance(maintenanceID uint) error {
-	return s.Repo.Delete(maintenanceID)
+func (s assetMaintenanceService) DeleteMaintenance(maintenanceID uint) error {
+	return s.AssetMaintenanceRepository.Delete(maintenanceID)
 }
 
-func (s *AssetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientID string) (*assets.AssetMaintenance, error) {
-	return s.Repo.GetByAssetID(assetID, clientID)
+func (s assetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientID string) (*assets.AssetMaintenance, error) {
+	return s.AssetMaintenanceRepository.GetByAssetID(assetID, clientID)
 }
 
-func (s *AssetMaintenanceService) PerformMaintenanceCheck() error {
-	maintenance, err := s.Repo.GetList()
+func (s assetMaintenanceService) PerformMaintenanceCheck() error {
+	maintenance, err := s.AssetMaintenanceRepository.GetList()
 	if err != nil {
 		return err
 	}

@@ -10,19 +10,30 @@ import (
 	"log"
 )
 
-type AssetWishlistRepository struct {
-	DB    *gorm.DB
-	audit *AssetAuditLogRepository
-	asset *AssetRepository
+type AssetWishlistRepository interface {
+	AddAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error)
+	GetAssetWishlistByID(clientID string, assetID uint) (*response.AssetResponseList, error)
+	GetAssetWishlistList(clientID string) ([]response.AssetResponseList, error)
+	UpdateAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error)
+	DeleteAssetWishlist(clientID, name string, assetID uint) error
+	GetAssetWishlistByCategory(clientID string, categoryID uint) ([]response.AssetResponseList, error)
+	GetAssetWishlistByStatus(clientID string, statusID uint) ([]response.AssetResponseList, error)
+	GetAssetWishlistByCategoryAndStatus(clientID string, categoryID, statusID uint) ([]response.AssetResponseList, error)
+}
+
+type assetWishlistRepository struct {
+	db    gorm.DB
+	audit AssetAuditLogRepository
+	asset AssetRepository
 }
 
 const tableAssetWishlistName = "my-home.asset"
 
-func NewAssetWishlistRepository(db *gorm.DB) *AssetWishlistRepository {
-	return &AssetWishlistRepository{DB: db, audit: NewAssetAuditLogRepository(db), asset: NewAssetRepository(db)}
+func NewAssetWishlistRepository(db gorm.DB, audit AssetAuditLogRepository, asset AssetRepository) AssetWishlistRepository {
+	return assetWishlistRepository{db: db, audit: audit, asset: asset}
 }
 
-func (r AssetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error) {
+func (r assetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error) {
 	if asset == nil {
 		return nil, errors.New("assets cannot be nil")
 	}
@@ -34,7 +45,7 @@ func (r AssetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*respons
 
 	// Verify the existence of CategoryID and StatusID in a single query
 	var exists int
-	err := r.DB.Raw(
+	err := r.db.Raw(
 		`SELECT 
 			(SELECT COUNT(*) FROM "my-home"."asset_category" WHERE asset_category_id = ?) + 
 			(SELECT COUNT(*) FROM "my-home"."asset_status" WHERE asset_status_id = ?) AS exists`,
@@ -47,7 +58,7 @@ func (r AssetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*respons
 	}
 
 	// Start a transaction for atomic operations
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -87,7 +98,7 @@ func (r AssetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*respons
         WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
         ORDER BY asset.name DESC;
     `
-	row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
+	row := r.db.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
@@ -123,7 +134,7 @@ func (r AssetWishlistRepository) AddAssetWishlist(asset *assets.Asset) (*respons
 	return &assetResult, nil
 }
 
-func (r AssetWishlistRepository) GetAssetWishlistByID(clientID string, assetID uint) (*response.AssetResponseList, error) {
+func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID uint) (*response.AssetResponseList, error) {
 	selectQuery := `
 		SELECT 
 			asset.asset_id,
@@ -145,7 +156,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
 		WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	row := r.DB.Raw(selectQuery, clientID, assetID).Row()
+	row := r.db.Raw(selectQuery, clientID, assetID).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
@@ -176,7 +187,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
 	return &assetResult, nil
 }
 
-func (r AssetWishlistRepository) GetAssetWishlistList(clientID string) ([]response.AssetResponseList, error) {
+func (r assetWishlistRepository) GetAssetWishlistList(clientID string) ([]response.AssetResponseList, error) {
 	selectQuery := `
 		SELECT 
 			asset.asset_id,
@@ -198,7 +209,7 @@ func (r AssetWishlistRepository) GetAssetWishlistList(clientID string) ([]respon
 		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	rows, err := r.DB.Raw(selectQuery, clientID).Rows()
+	rows, err := r.db.Raw(selectQuery, clientID).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +254,7 @@ func (r AssetWishlistRepository) GetAssetWishlistList(clientID string) ([]respon
 	return assetsResult, nil
 }
 
-func (r AssetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error) {
+func (r assetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*response.AssetResponseList, error) {
 	if asset == nil {
 		return nil, errors.New("assets cannot be nil")
 	}
@@ -255,7 +266,7 @@ func (r AssetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*resp
 
 	// Verify the existence of CategoryID and StatusID in a single query
 	var exists int
-	err := r.DB.Raw(
+	err := r.db.Raw(
 		`SELECT 
 			(SELECT COUNT(*) FROM "my-home"."asset_category" WHERE asset_category_id = ?) +
 			(SELECT COUNT(*) FROM "my-home"."asset_status" WHERE asset_status_id = ?) AS exists`,
@@ -268,10 +279,10 @@ func (r AssetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*resp
 	}
 
 	var assetOld assets.Asset
-	err = r.DB.Table(tableAssetName).Where("asset_id = ?", asset.AssetID).First(&assetOld).Error
+	err = r.db.Table(tableAssetName).Where("asset_id = ?", asset.AssetID).First(&assetOld).Error
 
 	// Start a transaction for atomic operations
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -320,7 +331,7 @@ func (r AssetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*resp
 		WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
+	row := r.db.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
@@ -356,11 +367,11 @@ func (r AssetWishlistRepository) UpdateAssetWishlist(asset *assets.Asset) (*resp
 	return &assetResult, nil
 }
 
-func (r AssetWishlistRepository) DeleteAssetWishlist(clientID, name string, assetID uint) error {
+func (r assetWishlistRepository) DeleteAssetWishlist(clientID, name string, assetID uint) error {
 
 	var asset assets.Asset
 
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -396,7 +407,7 @@ func (r AssetWishlistRepository) DeleteAssetWishlist(clientID, name string, asse
 	return nil
 }
 
-func (r AssetWishlistRepository) GetAssetWishlistByCategory(clientID string, categoryID uint) ([]response.AssetResponseList, error) {
+func (r assetWishlistRepository) GetAssetWishlistByCategory(clientID string, categoryID uint) ([]response.AssetResponseList, error) {
 	selectQuery := `
 		SELECT 
 			asset.asset_id,
@@ -418,7 +429,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByCategory(clientID string, cat
 		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	rows, err := r.DB.Raw(selectQuery, clientID, categoryID).Rows()
+	rows, err := r.db.Raw(selectQuery, clientID, categoryID).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -459,7 +470,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByCategory(clientID string, cat
 	return assetsResult, nil
 }
 
-func (r AssetWishlistRepository) GetAssetWishlistByStatus(clientID string, statusID uint) ([]response.AssetResponseList, error) {
+func (r assetWishlistRepository) GetAssetWishlistByStatus(clientID string, statusID uint) ([]response.AssetResponseList, error) {
 	selectQuery := `
 		SELECT 
 			asset.asset_id,
@@ -481,7 +492,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByStatus(clientID string, statu
 		WHERE asset.user_client_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	rows, err := r.DB.Raw(selectQuery, clientID, statusID).Rows()
+	rows, err := r.db.Raw(selectQuery, clientID, statusID).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -522,7 +533,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByStatus(clientID string, statu
 	return assetsResult, nil
 }
 
-func (r AssetWishlistRepository) GetAssetWishlistByCategoryAndStatus(clientID string, categoryID, statusID uint) ([]response.AssetResponseList, error) {
+func (r assetWishlistRepository) GetAssetWishlistByCategoryAndStatus(clientID string, categoryID, statusID uint) ([]response.AssetResponseList, error) {
 	selectQuery := `
 		SELECT 
 			asset.asset_id,
@@ -544,7 +555,7 @@ func (r AssetWishlistRepository) GetAssetWishlistByCategoryAndStatus(clientID st
 		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.name DESC;
 	`
-	rows, err := r.DB.Raw(selectQuery, clientID, categoryID, statusID).Rows()
+	rows, err := r.db.Raw(selectQuery, clientID, categoryID, statusID).Rows()
 	if err != nil {
 		return nil, err
 	}

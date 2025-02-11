@@ -10,18 +10,32 @@ import (
 	"log"
 )
 
-type AssetRepository struct {
-	DB    *gorm.DB
-	audit *AssetAuditLogRepository
+type AssetRepository interface {
+	AddAsset(asset *assets.Asset) (*response.AssetResponseList, error)
+	GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error)
+	AssetNameExists(name string, clientID string) (bool, error)
+	GetAsset(assetID uint, clientID string) (*assets.Asset, error)
+	GetListAsset(clientID string) ([]response.AssetResponseList, error)
+	GetAssetByID(clientID string, id uint) (*response.AssetResponseList, error)
+	UpdateAsset(asset *assets.Asset, clientID string) (*response.AssetResponse, error)
+	UpdateAssetStatus(assetID uint, statusID uint, clientID string, fullName string) error
+	UpdateAssetCategory(assetID uint, categoryID uint, clientID string, fullName string) error
+	DeleteAsset(id uint, clientID string, fullName string) error
+	GetAssetByIDForMaintenance(id uint, clientID string) (*assets.Asset, error)
+}
+
+type assetRepository struct {
+	db    gorm.DB
+	audit AssetAuditLogRepository
 }
 
 const tableAssetName = "my-home.asset"
 
-func NewAssetRepository(db *gorm.DB) *AssetRepository {
-	return &AssetRepository{DB: db, audit: NewAssetAuditLogRepository(db)}
+func NewAssetRepository(db gorm.DB, audit AssetAuditLogRepository) AssetRepository {
+	return assetRepository{db: db, audit: audit}
 }
 
-func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseList, error) {
+func (r assetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseList, error) {
 	if asset == nil {
 		return nil, errors.New("assets cannot be nil")
 	}
@@ -33,7 +47,7 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
 
 	// Verify the existence of CategoryID and StatusID in a single query
 	var exists int
-	err := r.DB.Raw(
+	err := r.db.Raw(
 		`SELECT 
 			(SELECT COUNT(*) FROM "my-home"."asset_category" WHERE asset_category_id = ?) + 
 			(SELECT COUNT(*) FROM "my-home"."asset_status" WHERE asset_status_id = ?) AS exists`,
@@ -46,7 +60,7 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
 	}
 
 	// Start a transaction for atomic operations
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
@@ -91,7 +105,7 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
         ORDER BY asset.name DESC;
     `
 
-	row := r.DB.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
+	row := r.db.Raw(selectQuery, asset.UserClientID, asset.AssetID).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
@@ -131,18 +145,18 @@ func (r AssetRepository) AddAsset(asset *assets.Asset) (*response.AssetResponseL
 	return &assetResult, nil
 }
 
-func (r AssetRepository) GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error) {
+func (r assetRepository) GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error) {
 	var asset assets.Asset
-	err := r.DB.Table(tableAssetName).Where("name = ? AND user_client_id = ?", name, clientID).First(&asset).Error
+	err := r.db.Table(tableAssetName).Where("name = ? AND user_client_id = ?", name, clientID).First(&asset).Error
 	if err != nil {
 		return nil, err
 	}
 	return &asset, nil
 }
 
-func (r AssetRepository) AssetNameExists(name string, clientID string) (bool, error) {
+func (r assetRepository) AssetNameExists(name string, clientID string) (bool, error) {
 	var count int64
-	err := r.DB.Table(tableAssetName).
+	err := r.db.Table(tableAssetName).
 		Where("name = ? AND user_client_id = ?", name, clientID).
 		Count(&count).Error
 	if err != nil {
@@ -150,9 +164,9 @@ func (r AssetRepository) AssetNameExists(name string, clientID string) (bool, er
 	}
 	return count > 0, nil
 }
-func (r AssetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset, error) {
+func (r assetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset, error) {
 	var asset assets.Asset
-	err := r.DB.Table(tableAssetName).
+	err := r.db.Table(tableAssetName).
 		Where("id = ? AND user_client_id = ?", assetID, clientID).First(asset).Error
 	if err != nil {
 		return nil, err
@@ -160,7 +174,7 @@ func (r AssetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset,
 	return &asset, nil
 }
 
-func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponseList, error) {
+func (r assetRepository) GetListAsset(clientID string) ([]response.AssetResponseList, error) {
 	selectQuery := `
         SELECT 
             asset.asset_id,
@@ -188,7 +202,7 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
         WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = false
         ORDER BY asset.name DESC;
     `
-	rows, err := r.DB.Raw(selectQuery, clientID).Rows()
+	rows, err := r.db.Raw(selectQuery, clientID).Rows()
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +252,7 @@ func (r AssetRepository) GetListAsset(clientID string) ([]response.AssetResponse
 	return result, nil
 }
 
-func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.AssetResponseList, error) {
+func (r assetRepository) GetAssetByID(clientID string, id uint) (*response.AssetResponseList, error) {
 	selectQuery := `
         SELECT 
             asset.asset_id,
@@ -266,7 +280,7 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
         WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = false
         ORDER BY asset.name DESC;
     `
-	row := r.DB.Raw(selectQuery, clientID, id).Row()
+	row := r.db.Raw(selectQuery, clientID, id).Row()
 	var assetResult response.AssetResponseList
 	var categoryResult response.AssetCategoryResponse
 	var statusResult response.AssetStatusResponse
@@ -307,7 +321,7 @@ func (r AssetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
 	return &assetResult, nil
 }
 
-func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*response.AssetResponse, error) {
+func (r assetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*response.AssetResponse, error) {
 	if asset == nil {
 		return nil, errors.New("assets cannot be nil")
 	}
@@ -323,10 +337,10 @@ func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*res
 
 	// Retrieve the old asset
 	var assetOld assets.Asset
-	err = r.DB.Table(tableAssetName).Where("asset_id = ?", asset.AssetID).First(&assetOld).Error
+	err = r.db.Table(tableAssetName).Where("asset_id = ?", asset.AssetID).First(&assetOld).Error
 
 	// Start a transaction
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer tx.Rollback()
 
 	// Update asset fields (only changed fields)
@@ -378,13 +392,13 @@ func (r AssetRepository) UpdateAsset(asset *assets.Asset, clientID string) (*res
 	return &result, nil
 }
 
-func (r AssetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID string, fullName string) error {
+func (r assetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID string, fullName string) error {
 	// Start a transaction
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer tx.Rollback()
 
 	var assetOld assets.Asset
-	err := r.DB.Table(tableAssetName).Where("asset_id = ?", assetID).First(&assetOld).Error
+	err := r.db.Table(tableAssetName).Where("asset_id = ?", assetID).First(&assetOld).Error
 	if err != nil {
 		return fmt.Errorf("failed to find asset: %w", err)
 	}
@@ -427,13 +441,13 @@ func (r AssetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID
 	return nil
 }
 
-func (r AssetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clientID string, fullName string) error {
+func (r assetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clientID string, fullName string) error {
 	// Start a transaction
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer tx.Rollback()
 
 	var assetOld assets.Asset
-	err := r.DB.Table(tableAssetName).Where("asset_id = ?", assetID).First(&assetOld).Error
+	err := r.db.Table(tableAssetName).Where("asset_id = ?", assetID).First(&assetOld).Error
 	if err != nil {
 		return fmt.Errorf("failed to find asset: %w", err)
 	}
@@ -476,9 +490,9 @@ func (r AssetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 	return nil
 }
 
-func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) error {
+func (r assetRepository) DeleteAsset(id uint, clientID string, fullName string) error {
 	// Start a transaction
-	tx := r.DB.Begin()
+	tx := r.db.Begin()
 	defer tx.Rollback()
 
 	// Verify the existence of the asset
@@ -544,9 +558,9 @@ func (r AssetRepository) DeleteAsset(id uint, clientID string, fullName string) 
 	return nil
 }
 
-func (r AssetRepository) GetAssetByIDForMaintenance(id uint, clientID string) (*assets.Asset, error) {
+func (r assetRepository) GetAssetByIDForMaintenance(id uint, clientID string) (*assets.Asset, error) {
 	var asset assets.Asset
-	err := r.DB.Table(tableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).First(&asset).Error
+	err := r.db.Table(tableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).First(&asset).Error
 	if err != nil {
 		return nil, err
 	}

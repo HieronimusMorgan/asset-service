@@ -9,24 +9,37 @@ import (
 	"asset-service/internal/utils"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"time"
 )
 
-type AssetService struct {
-	AssetRepository            *repo.AssetRepository
-	AssetMaintenanceRepository *repo.AssetMaintenanceRepository
+type AssetService interface {
+	AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error)
+	UpdateAsset(assetID uint, assetRequest struct {
+		Description  string  `json:"description"`
+		PurchaseDate string  `json:"purchase_date" binding:"required"`
+		ExpiryDate   string  `json:"expiry_date"`
+		Price        float64 `json:"price" binding:"required"`
+	}, clientID string) (interface{}, error)
+	GetListAsset(clientID string) (interface{}, error)
+	GetAssetByID(clientID string, assetID uint) (response.AssetResponseList, error)
+	UpdateAssetStatus(assetID uint, statusID uint, clientID string) error
+	UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error
+	DeleteAsset(assetID uint, clientID string) error
 }
 
-func NewAssetService(db *gorm.DB) *AssetService {
-	assetRepository := repo.NewAssetRepository(db)
-	assetMaintenanceRepository := repo.NewAssetMaintenanceRepository(db)
-	return &AssetService{AssetRepository: assetRepository, AssetMaintenanceRepository: assetMaintenanceRepository}
+type assetService struct {
+	AssetRepository            repo.AssetRepository
+	AssetMaintenanceRepository repo.AssetMaintenanceRepository
+	Redis                      utils.RedisService
 }
 
-func (s AssetService) AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error) {
+func NewAssetService(assetRepository repo.AssetRepository, assetMaintenanceRepository repo.AssetMaintenanceRepository, redis utils.RedisService) AssetService {
+	return assetService{AssetRepository: assetRepository, AssetMaintenanceRepository: assetMaintenanceRepository, Redis: redis}
+}
+
+func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -89,14 +102,14 @@ func (s AssetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 	return result, nil
 }
 
-func (s AssetService) UpdateAsset(assetID uint, assetRequest struct {
+func (s assetService) UpdateAsset(assetID uint, assetRequest struct {
 	Description  string  `json:"description"`
 	PurchaseDate string  `json:"purchase_date" binding:"required"`
 	ExpiryDate   string  `json:"expiry_date"`
 	Price        float64 `json:"price" binding:"required"`
 }, clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 
 	if err != nil {
 		return nil, err
@@ -135,9 +148,9 @@ func (s AssetService) UpdateAsset(assetID uint, assetRequest struct {
 	return result, nil
 }
 
-func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
+func (s assetService) GetListAsset(clientID string) (interface{}, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return nil, err
 	}
@@ -150,9 +163,9 @@ func (s AssetService) GetListAsset(clientID string) (interface{}, error) {
 	return result, nil
 }
 
-func (s AssetService) GetAssetByID(clientID string, assetID uint) (response.AssetResponseList, error) {
+func (s assetService) GetAssetByID(clientID string, assetID uint) (response.AssetResponseList, error) {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return response.AssetResponseList{}, err
 	}
@@ -165,9 +178,9 @@ func (s AssetService) GetAssetByID(clientID string, assetID uint) (response.Asse
 	return *asset, nil
 }
 
-func (s AssetService) UpdateAssetStatus(assetID uint, statusID uint, clientID string) error {
+func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID string) error {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return err
 	}
@@ -180,9 +193,9 @@ func (s AssetService) UpdateAssetStatus(assetID uint, statusID uint, clientID st
 	return nil
 }
 
-func (s AssetService) UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error {
+func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return err
 	}
@@ -196,9 +209,9 @@ func (s AssetService) UpdateAssetCategory(assetID uint, categoryID uint, clientI
 
 }
 
-func (s AssetService) DeleteAsset(assetID uint, clientID string) error {
+func (s assetService) DeleteAsset(assetID uint, clientID string) error {
 	var user = &user.User{}
-	err := utils.GetDataFromRedis(utils.User, clientID, user)
+	err := s.Redis.GetData(utils.User, clientID, user)
 	if err != nil {
 		return err
 	}

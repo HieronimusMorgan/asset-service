@@ -12,38 +12,44 @@ import (
 	"gorm.io/gorm"
 )
 
-type CronService struct {
-	db                      *gorm.DB
-	scheduler               *cron.Cron
-	jobs                    map[uint]cron.EntryID
-	mu                      sync.Mutex
-	cronRepository          *repository.CronRepository
-	assetMaintenanceService *assets.AssetMaintenanceService
+type CronService interface {
+	Start()
+	Stop()
+	AddCronJob(job model.CronJob)
 }
 
-func NewCronService(db *gorm.DB) *CronService {
-	// Configure the cron scheduler to accept cron expressions with seconds
-	scheduler := cron.New()
+// cronService implements CronService
+type cronService struct {
+	db                      gorm.DB
+	scheduler               *cron.Cron
+	mu                      sync.Mutex
+	jobs                    map[uint]cron.EntryID
+	cronRepository          repository.CronRepository
+	assetMaintenanceService assets.AssetMaintenanceService
+}
 
-	return &CronService{
+// NewCronService initializes and returns a CronService instance
+func NewCronService(db gorm.DB, cronRepository repository.CronRepository, assetMaintenanceService assets.AssetMaintenanceService) CronService {
+	return &cronService{
 		db:                      db,
-		scheduler:               scheduler,
+		scheduler:               cron.New(), // Enables second-level precision
 		jobs:                    make(map[uint]cron.EntryID),
-		cronRepository:          repository.NewCronRepository(db),
-		assetMaintenanceService: assets.NewAssetMaintenanceService(db),
+		mu:                      sync.Mutex{},
+		cronRepository:          cronRepository,
+		assetMaintenanceService: assetMaintenanceService,
 	}
 }
 
-func (cs *CronService) Start() {
+func (cs *cronService) Start() {
 	cs.scheduler.Start()
 	cs.loadJobsFromDB()
 }
 
-func (cs *CronService) Stop() {
+func (cs *cronService) Stop() {
 	cs.scheduler.Stop()
 }
 
-func (cs *CronService) loadJobsFromDB() {
+func (cs *cronService) loadJobsFromDB() {
 	var cronJobs []model.CronJob
 
 	cronJobs, err := cs.cronRepository.GetCronJobs()
@@ -57,7 +63,7 @@ func (cs *CronService) loadJobsFromDB() {
 	}
 }
 
-func (cs *CronService) scheduleJob(job model.CronJob) {
+func (cs *cronService) scheduleJob(job model.CronJob) {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 
@@ -76,7 +82,7 @@ func (cs *CronService) scheduleJob(job model.CronJob) {
 	cs.jobs[job.ID] = entryID
 }
 
-func (cs *CronService) executeJob(job model.CronJob) {
+func (cs *cronService) executeJob(job model.CronJob) {
 	now := time.Now()
 
 	// Check for missed executions
@@ -105,13 +111,11 @@ func (cs *CronService) executeJob(job model.CronJob) {
 	}
 }
 
-func (cs *CronService) getJobInterval(schedule string) time.Duration {
-	// Parse the cron schedule to determine the interval
-	// This is a simplified example; you'll need to implement parsing based on your cron library
+func (cs *cronService) getJobInterval(schedule string) time.Duration {
 	return time.Minute // Assuming a default interval of 1 minute
 }
 
-func (cs *CronService) AddCronJob(job model.CronJob) {
+func (cs *cronService) AddCronJob(job model.CronJob) {
 	if err := cs.cronRepository.Create(&job); err != nil {
 		log.Println("Error creating cron job:", err)
 		return

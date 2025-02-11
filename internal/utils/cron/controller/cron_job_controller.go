@@ -3,19 +3,20 @@ package controller
 import (
 	"asset-service/internal/utils/cron/model"
 	"asset-service/internal/utils/cron/service"
-	"gorm.io/gorm"
 )
 
-type CronJobController struct {
-	cronJobService *service.CronService
+type CronJobController interface {
+	AddCronJob(cronJob model.CronJob)
 }
 
-func NewCronJobController(db *gorm.DB) *CronJobController {
-	s := service.NewCronService(db)
-	return &CronJobController{cronJobService: s}
+type cronJobController struct {
+	cronJobService service.CronService
 }
 
-func (h CronJobController) AddCronJob(cronJob model.CronJob) {
+func NewCronJobController(cronJobService service.CronService) CronJobController {
+	return cronJobController{cronJobService: cronJobService}
+}
 
+func (h cronJobController) AddCronJob(cronJob model.CronJob) {
 	h.cronJobService.AddCronJob(cronJob)
 }

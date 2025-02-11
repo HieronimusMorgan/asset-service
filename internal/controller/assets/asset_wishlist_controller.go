@@ -6,31 +6,38 @@ import (
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"strconv"
 )
 
-type AssetWishlistController struct {
-	AssetWishlistService *assets.AssetWishlistService
+type AssetWishlistController interface {
+	AddWishlistAsset(context *gin.Context)
+	GetListWishlistAsset(context *gin.Context)
+	GetWishlistAssetByID(context *gin.Context)
+	UpdateWishlistAsset(context *gin.Context)
+	DeleteWishlistAsset(context *gin.Context)
 }
 
-func NewAssetWishlistController(db *gorm.DB) *AssetWishlistController {
-	s := assets.NewAssetWishlistService(db)
-	return &AssetWishlistController{AssetWishlistService: s}
+type assetWishlistController struct {
+	AssetWishlistService assets.AssetWishlistService
+	JWTService           utils.JWTService
 }
 
-func (a AssetWishlistController) AddWishlistAsset(c *gin.Context) {
+func NewAssetWishlistController(AssetWishlistService assets.AssetWishlistService, JWTService utils.JWTService) AssetWishlistController {
+	return assetWishlistController{AssetWishlistService: AssetWishlistService, JWTService: JWTService}
+}
+
+func (h assetWishlistController) AddWishlistAsset(c *gin.Context) {
 	var req *request.AssetWishlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(c, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(c)
+	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
 
-	asset, err := a.AssetWishlistService.AddAssetWishlist(req, token.ClientID)
+	asset, err := h.AssetWishlistService.AddAssetWishlist(req, token.ClientID)
 	if err != nil {
 		response.SendResponse(c, 500, "Failed to add assets", nil, err.Error())
 		return
@@ -38,13 +45,13 @@ func (a AssetWishlistController) AddWishlistAsset(c *gin.Context) {
 	response.SendResponse(c, 201, "Asset added successfully", asset, nil)
 }
 
-func (a AssetWishlistController) GetListWishlistAsset(c *gin.Context) {
-	token, err := utils.ExtractClaimsResponse(c)
+func (h assetWishlistController) GetListWishlistAsset(c *gin.Context) {
+	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
 
-	wishlist, err := a.AssetWishlistService.GetAssetWishlist(token.ClientID)
+	wishlist, err := h.AssetWishlistService.GetAssetWishlist(token.ClientID)
 	if err != nil {
 		response.SendResponse(c, 500, "Failed to get assets wishlist", nil, err.Error())
 		return
@@ -52,8 +59,8 @@ func (a AssetWishlistController) GetListWishlistAsset(c *gin.Context) {
 	response.SendResponse(c, 200, "Success", wishlist, nil)
 }
 
-func (a AssetWishlistController) GetWishlistAssetByID(c *gin.Context) {
-	token, err := utils.ExtractClaimsResponse(c)
+func (h assetWishlistController) GetWishlistAssetByID(c *gin.Context) {
+	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -65,7 +72,7 @@ func (a AssetWishlistController) GetWishlistAssetByID(c *gin.Context) {
 		return
 	}
 
-	asset, err := a.AssetWishlistService.GetAssetWishlistByID(uint(assetID), token.ClientID)
+	asset, err := h.AssetWishlistService.GetAssetWishlistByID(uint(assetID), token.ClientID)
 	if err != nil {
 		response.SendResponse(c, 500, "Failed to get assets wishlist", nil, err.Error())
 		return
@@ -73,7 +80,7 @@ func (a AssetWishlistController) GetWishlistAssetByID(c *gin.Context) {
 	response.SendResponse(c, 200, "Success", asset, nil)
 }
 
-func (a AssetWishlistController) UpdateWishlistAsset(c *gin.Context) {
+func (h assetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 	var req struct {
 		Description  string  `json:"description"`
 		PurchaseDate string  `json:"purchase_date" binding:"required"`
@@ -86,7 +93,7 @@ func (a AssetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 		response.SendResponse(c, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(c)
+	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -98,7 +105,7 @@ func (a AssetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 		return
 	}
 
-	result, err := a.AssetWishlistService.UpdateAssetWishlist(uint(assetID), req, token.ClientID)
+	result, err := h.AssetWishlistService.UpdateAssetWishlist(uint(assetID), req, token.ClientID)
 	if err != nil {
 		response.SendResponse(c, 500, "Failed to update assets", nil, err.Error())
 		return
@@ -106,8 +113,8 @@ func (a AssetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 	response.SendResponse(c, 201, "Asset update successfully", result, nil)
 }
 
-func (a AssetWishlistController) DeleteWishlistAsset(c *gin.Context) {
-	token, err := utils.ExtractClaimsResponse(c)
+func (h assetWishlistController) DeleteWishlistAsset(c *gin.Context) {
+	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -119,7 +126,7 @@ func (a AssetWishlistController) DeleteWishlistAsset(c *gin.Context) {
 		return
 	}
 
-	result, err := a.AssetWishlistService.DeleteAssetWishlist(uint(assetID), token.ClientID)
+	result, err := h.AssetWishlistService.DeleteAssetWishlist(uint(assetID), token.ClientID)
 	if err != nil {
 		response.SendResponse(c, 500, "Failed to delete assets", nil, err.Error())
 		return

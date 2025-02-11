@@ -6,26 +6,35 @@ import (
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"strconv"
 )
 
-type AssetController struct {
-	AssetService *assets.AssetService
+type AssetController interface {
+	AddAsset(context *gin.Context)
+	UpdateAsset(context *gin.Context)
+	UpdateAssetStatus(context *gin.Context)
+	UpdateAssetCategory(context *gin.Context)
+	GetListAsset(context *gin.Context)
+	GetAssetById(context *gin.Context)
+	DeleteAsset(context *gin.Context)
 }
 
-func NewAssetController(db *gorm.DB) *AssetController {
-	s := assets.NewAssetService(db)
-	return &AssetController{AssetService: s}
+type assetController struct {
+	AssetService assets.AssetService
+	JWTService   utils.JWTService
 }
 
-func (h AssetController) AddAsset(context *gin.Context) {
+func NewAssetController(assetService assets.AssetService, jwtService utils.JWTService) AssetController {
+	return assetController{AssetService: assetService, JWTService: jwtService}
+}
+
+func (h assetController) AddAsset(context *gin.Context) {
 	var req *assets2.AssetRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -38,7 +47,7 @@ func (h AssetController) AddAsset(context *gin.Context) {
 	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
 }
 
-func (h AssetController) UpdateAsset(context *gin.Context) {
+func (h assetController) UpdateAsset(context *gin.Context) {
 	var req struct {
 		Description  string  `json:"description"`
 		PurchaseDate string  `json:"purchase_date" binding:"required"`
@@ -55,7 +64,7 @@ func (h AssetController) UpdateAsset(context *gin.Context) {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -69,7 +78,7 @@ func (h AssetController) UpdateAsset(context *gin.Context) {
 
 }
 
-func (h AssetController) UpdateAssetStatus(context *gin.Context) {
+func (h assetController) UpdateAssetStatus(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
@@ -83,7 +92,7 @@ func (h AssetController) UpdateAssetStatus(context *gin.Context) {
 		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -97,7 +106,7 @@ func (h AssetController) UpdateAssetStatus(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset status updated successfully", nil, nil)
 }
 
-func (h AssetController) UpdateAssetCategory(context *gin.Context) {
+func (h assetController) UpdateAssetCategory(context *gin.Context) {
 	var req struct {
 		CategoryID uint `json:"category_id" binding:"required"`
 	}
@@ -111,7 +120,7 @@ func (h AssetController) UpdateAssetCategory(context *gin.Context) {
 		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
 		return
 	}
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -125,9 +134,9 @@ func (h AssetController) UpdateAssetCategory(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset category updated successfully", nil, nil)
 }
 
-func (h AssetController) GetListAsset(context *gin.Context) {
+func (h assetController) GetListAsset(context *gin.Context) {
 
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -140,10 +149,10 @@ func (h AssetController) GetListAsset(context *gin.Context) {
 	response.SendResponse(context, 200, "Get list assets successfully", asset, nil)
 }
 
-func (h AssetController) GetAssetById(context *gin.Context) {
+func (h assetController) GetAssetById(context *gin.Context) {
 
 	assetID, err := utils.ConvertToUint(context.Param("id"))
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -157,9 +166,9 @@ func (h AssetController) GetAssetById(context *gin.Context) {
 
 }
 
-func (h AssetController) DeleteAsset(context *gin.Context) {
+func (h assetController) DeleteAsset(context *gin.Context) {
 	assetID, err := utils.ConvertToUint(context.Param("id"))
-	token, err := utils.ExtractClaimsResponse(context)
+	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}

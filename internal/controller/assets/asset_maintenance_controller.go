@@ -5,29 +5,37 @@ import (
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
-	"gorm.io/gorm"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
-type AssetMaintenanceController struct {
-	Service *assets.AssetMaintenanceService
+type AssetMaintenanceController interface {
+	CreateMaintenance(ctx *gin.Context)
+	GetMaintenanceByID(ctx *gin.Context)
+	GetMaintenancesByAssetID(ctx *gin.Context)
+	UpdateMaintenance(ctx *gin.Context)
+	DeleteMaintenance(ctx *gin.Context)
 }
 
-func NewAssetMaintenanceController(db *gorm.DB) *AssetMaintenanceController {
-	return &AssetMaintenanceController{Service: assets.NewAssetMaintenanceService(db)}
+type assetMaintenanceController struct {
+	Service    assets.AssetMaintenanceService
+	JWTService utils.JWTService
 }
 
-func (c *AssetMaintenanceController) CreateMaintenance(ctx *gin.Context) {
+func NewAssetMaintenanceController(Service assets.AssetMaintenanceService, JWTService utils.JWTService) AssetMaintenanceController {
+	return assetMaintenanceController{Service: Service, JWTService: JWTService}
+}
+
+func (c assetMaintenanceController) CreateMaintenance(ctx *gin.Context) {
 	var maintenance assets2.AssetMaintenanceRequest
 	if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
 
-	token, err := utils.ExtractClaimsResponse(ctx)
+	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -41,14 +49,14 @@ func (c *AssetMaintenanceController) CreateMaintenance(ctx *gin.Context) {
 	response.SendResponse(ctx, http.StatusCreated, "Maintenance record created successfully", maintenances, nil)
 }
 
-func (c *AssetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
+func (c assetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance ID", nil, err.Error())
 		return
 	}
 
-	token, err := utils.ExtractClaimsResponse(ctx)
+	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -67,14 +75,14 @@ func (c *AssetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 	response.SendResponse(ctx, http.StatusOK, "Success", maintenance, nil)
 }
 
-func (c *AssetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
+func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 	assetID, err := strconv.ParseUint(ctx.Param("asset_id"), 10, 32)
 	if err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Invalid asset ID", nil, err.Error())
 		return
 	}
 
-	token, err := utils.ExtractClaimsResponse(ctx)
+	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
 	if err != nil {
 		return
 	}
@@ -87,7 +95,7 @@ func (c *AssetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) 
 	response.SendResponse(ctx, http.StatusOK, "Success", maintenances, nil)
 }
 
-func (c *AssetMaintenanceController) UpdateMaintenance(ctx *gin.Context) {
+func (c assetMaintenanceController) UpdateMaintenance(ctx *gin.Context) {
 	//var maintenance in.AssetMaintenanceRequest
 	//if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 	//	response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())
@@ -100,7 +108,7 @@ func (c *AssetMaintenanceController) UpdateMaintenance(ctx *gin.Context) {
 	//response.SendResponse(ctx, http.StatusOK, "Maintenance record updated successfully", maintenance, nil)
 }
 
-func (c *AssetMaintenanceController) DeleteMaintenance(ctx *gin.Context) {
+func (c assetMaintenanceController) DeleteMaintenance(ctx *gin.Context) {
 	//id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	//if err != nil {
 	//	response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance ID", nil, err.Error())

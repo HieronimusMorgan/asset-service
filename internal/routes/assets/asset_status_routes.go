@@ -4,24 +4,22 @@ import (
 	"asset-service/internal/controller/assets"
 	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func AssetStatusRoutes(r *gin.Engine, db *gorm.DB) {
-	assetStatusHandler := assets.NewAssetStatusController(db)
+func AssetStatusRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, assetStatus assets.AssetStatusController) {
 
 	protected := r.Group("/asset-service/v1/asset/status")
-	protected.Use(middleware.Middleware())
+	protected.Use(middleware.Handler())
 	{
-		protected.GET("", assetStatusHandler.GetListAssetStatus)
-		protected.GET("/:id", assetStatusHandler.GetAssetStatusByID)
+		protected.GET("", assetStatus.GetListAssetStatus)
+		protected.GET("/:id", assetStatus.GetAssetStatusByID)
 	}
 
 	admin := r.Group("/assets-service/v1/assets/status")
-	admin.Use(middleware.AuthMiddleware())
+	admin.Use(middleware.Handler())
 	{
-		admin.POST("/add", assetStatusHandler.AddAssetStatus)
-		admin.POST("/update/:id", assetStatusHandler.UpdateAssetStatus)
-		admin.DELETE("/delete/:id", assetStatusHandler.DeleteAssetStatus)
+		admin.POST("/add", assetStatus.AddAssetStatus)
+		admin.POST("/update/:id", assetStatus.UpdateAssetStatus)
+		admin.DELETE("/delete/:id", assetStatus.DeleteAssetStatus)
 	}
 }

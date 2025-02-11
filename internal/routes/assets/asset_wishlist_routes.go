@@ -2,19 +2,19 @@ package assets
 
 import (
 	"asset-service/internal/controller/assets"
+	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
-func AssetWishlistRoutes(r *gin.Engine, db *gorm.DB) {
-	assetHandler := assets.NewAssetWishlistController(db)
+func AssetWishlistRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, controller assets.AssetWishlistController) {
 
 	public := r.Group("/asset-service/v1/asset-wishlist")
+	public.Use(middleware.Handler())
 	{
-		public.POST("/add", assetHandler.AddWishlistAsset)
-		public.POST("/update/:id", assetHandler.UpdateWishlistAsset)
-		public.GET("", assetHandler.GetListWishlistAsset)
-		public.GET("/:id", assetHandler.GetWishlistAssetByID)
-		public.DELETE("/delete/:id", assetHandler.DeleteWishlistAsset)
+		public.POST("/add", controller.AddWishlistAsset)
+		public.POST("/update/:id", controller.UpdateWishlistAsset)
+		public.GET("", controller.GetListWishlistAsset)
+		public.GET("/:id", controller.GetWishlistAssetByID)
+		public.DELETE("/delete/:id", controller.DeleteWishlistAsset)
 	}
 }

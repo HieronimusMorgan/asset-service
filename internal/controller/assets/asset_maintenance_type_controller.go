@@ -3,21 +3,26 @@ package assets
 import (
 	"asset-service/internal/models/assets"
 	service "asset-service/internal/services/assets"
+	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"net/http"
 )
 
-type AssetMaintenanceTypeController struct {
-	Service *service.AssetMaintenanceTypeService
+type AssetMaintenanceTypeController interface {
+	CreateMaintenanceType(ctx *gin.Context)
 }
 
-func NewAssetMaintenanceTypeController(db *gorm.DB) *AssetMaintenanceTypeController {
-	return &AssetMaintenanceTypeController{Service: service.NewAssetMaintenanceTypeService(db)}
+type assetMaintenanceTypeController struct {
+	Service    service.AssetMaintenanceTypeService
+	JWTService utils.JWTService
 }
 
-func (c *AssetMaintenanceTypeController) CreateMaintenanceType(ctx *gin.Context) {
+func NewAssetMaintenanceTypeController(Service service.AssetMaintenanceTypeService, JWTService utils.JWTService) AssetMaintenanceTypeController {
+	return assetMaintenanceTypeController{Service: Service, JWTService: JWTService}
+}
+
+func (c assetMaintenanceTypeController) CreateMaintenanceType(ctx *gin.Context) {
 	var maintenance assets.AssetMaintenanceType
 	if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())

@@ -6,16 +6,23 @@ import (
 	"gorm.io/gorm"
 )
 
-type AssetMaintenanceTypeService struct {
-	Repo *repo.AssetMaintenanceTypeRepository
+type AssetMaintenanceTypeService interface {
+	GetMaintenanceTypeByID(maintenanceTypeID uint) (interface{}, error)
+	GetMaintenanceType() ([]model.AssetMaintenanceType, error)
+	AddMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error)
+	UpdateMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error)
+	DeleteMaintenanceType(maintenanceTypeID uint) error
+}
+type assetMaintenanceTypeService struct {
+	AssetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository
 }
 
-func NewAssetMaintenanceTypeService(db *gorm.DB) *AssetMaintenanceTypeService {
-	return &AssetMaintenanceTypeService{Repo: repo.NewAssetMaintenanceTypeRepository(db)}
+func NewAssetMaintenanceTypeService(assetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository) AssetMaintenanceTypeService {
+	return assetMaintenanceTypeService{AssetMaintenanceTypeRepository: assetMaintenanceTypeRepository}
 }
 
-func (s *AssetMaintenanceTypeService) GetMaintenanceTypeByID(maintenanceTypeID uint) (interface{}, error) {
-	maintenanceType, err := s.Repo.GetAssetMaintenanceTypeByID(maintenanceTypeID)
+func (s assetMaintenanceTypeService) GetMaintenanceTypeByID(maintenanceTypeID uint) (interface{}, error) {
+	maintenanceType, err := s.AssetMaintenanceTypeRepository.GetAssetMaintenanceTypeByID(maintenanceTypeID)
 	if err != nil {
 		return nil, err
 	}
@@ -27,8 +34,8 @@ func (s *AssetMaintenanceTypeService) GetMaintenanceTypeByID(maintenanceTypeID u
 	return maintenanceType, nil
 }
 
-func (s *AssetMaintenanceTypeService) GetMaintenanceType() ([]model.AssetMaintenanceType, error) {
-	maintenanceTypes, err := s.Repo.GetAssetMaintenanceType()
+func (s assetMaintenanceTypeService) GetMaintenanceType() ([]model.AssetMaintenanceType, error) {
+	maintenanceTypes, err := s.AssetMaintenanceTypeRepository.GetAssetMaintenanceType()
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +43,8 @@ func (s *AssetMaintenanceTypeService) GetMaintenanceType() ([]model.AssetMainten
 	return maintenanceTypes, nil
 }
 
-func (s *AssetMaintenanceTypeService) AddMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error) {
-	err := s.Repo.AddAssetMaintenanceType(maintenanceType)
+func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error) {
+	err := s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceType)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +52,8 @@ func (s *AssetMaintenanceTypeService) AddMaintenanceType(maintenanceType *model.
 	return maintenanceType, nil
 }
 
-func (s *AssetMaintenanceTypeService) UpdateMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error) {
-	err := s.Repo.UpdateAssetMaintenanceType(maintenanceType)
+func (s assetMaintenanceTypeService) UpdateMaintenanceType(maintenanceType *model.AssetMaintenanceType) (interface{}, error) {
+	err := s.AssetMaintenanceTypeRepository.UpdateAssetMaintenanceType(maintenanceType)
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +61,8 @@ func (s *AssetMaintenanceTypeService) UpdateMaintenanceType(maintenanceType *mod
 	return maintenanceType, nil
 }
 
-func (s *AssetMaintenanceTypeService) DeleteMaintenanceType(maintenanceTypeID uint) error {
-	err := s.Repo.DeleteAssetMaintenanceTypeByID(maintenanceTypeID)
+func (s assetMaintenanceTypeService) DeleteMaintenanceType(maintenanceTypeID uint) error {
+	err := s.AssetMaintenanceTypeRepository.DeleteAssetMaintenanceTypeByID(maintenanceTypeID)
 	if err != nil {
 		return err
 	}
