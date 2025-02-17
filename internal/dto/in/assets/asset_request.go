@@ -1,25 +1,55 @@
 package assets
 
 type AssetRequest struct {
-	AssetCode      string  `json:"asset_code"`
+	SerialNumber   *string `json:"serial_number"`
 	Name           string  `json:"name"`
-	Description    string  `json:"description"`
-	Barcode        string  `json:"barcode"`
+	Description    *string `json:"description"`
+	Barcode        *string `json:"barcode"`
+	ImageUrl       *string `json:"image_url"`
 	CategoryID     int     `json:"category_id"`
 	StatusID       int     `json:"status_id"`
-	PurchaseDate   string  `json:"purchase_date"`
-	ExpiryDate     string  `json:"expiry_date"`
-	WarrantyExpiry string  `json:"warranty_expiry_date,omitempty"`
+	PurchaseDate   *string `json:"purchase_date"`
+	ExpiryDate     *string `json:"expiry_date"`
+	WarrantyExpiry *string `json:"warranty_expiry_date,omitempty"`
 	Price          float64 `json:"price"`
 	Stock          int     `json:"stock"`
+	Notes          *string `json:"notes"`
+}
+
+type UpdateAssetRequest struct {
+	SerialNumber       *string `json:"serial_number,omitempty"`
+	Description        *string `json:"description,omitempty"`
+	Barcode            *string `json:"barcode,omitempty"`
+	ImageUrl           *string `json:"image_url"`
+	CategoryID         int     `json:"category_id,omitempty"`
+	StatusID           int     `json:"status_id,omitempty"`
+	PurchaseDate       *string `json:"purchase_date,omitempty"`
+	ExpiryDate         *string `json:"expiry_date,omitempty"`
+	WarrantyExpiryDate *string `json:"warranty_expiry_date,omitempty"`
+	Price              float64 `json:"price,omitempty"`
+	Stock              int     `json:"stock,omitempty"`
+	Notes              *string `json:"notes"`
 }
 
 type AssetWishlistRequest struct {
 	Name         string  `json:"name" binding:"required"`
-	Description  string  `json:"description"`
+	Description  *string `json:"description"`
+	ImageUrl     *string `json:"image_url"`
 	CategoryID   int     `json:"category_id" binding:"required"`
 	StatusID     int     `json:"status_id" binding:"required"`
-	PurchaseDate string  `json:"purchase_date"`
+	PurchaseDate *string `json:"purchase_date"`
 	Price        float64 `json:"price" binding:"required"`
+	Notes        *string `json:"notes"`
+	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
+}
+
+type UpdateAssetWishlistRequest struct {
+	Description  *string `json:"description"`
+	ImageUrl     *string `json:"image_url"`
+	CategoryID   int     `json:"category_id" binding:"required"`
+	StatusID     int     `json:"status_id" binding:"required"`
+	PurchaseDate *string `json:"purchase_date"`
+	Price        float64 `json:"price" binding:"required"`
+	Notes        *string `json:"notes"`
 	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
 }

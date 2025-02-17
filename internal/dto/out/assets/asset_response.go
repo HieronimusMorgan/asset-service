@@ -28,23 +28,27 @@ func (d *DateOnly) UnmarshalJSON(data []byte) error {
 }
 
 type AssetResponse struct {
-	ID                 uint     `json:"asset_id,omitempty"`
-	ClientID           string   `json:"user_client_id,omitempty"`
-	Name               string   `json:"name,omitempty"`
-	Description        string   `json:"description,omitempty"`
-	CategoryName       string   `json:"category_name,omitempty"`
-	StatusName         string   `json:"status_name,omitempty"`
-	PurchaseDate       DateOnly `json:"purchase_date,omitempty"`
-	Price              float64  `json:"price,omitempty"`
-	MaintenanceDate    DateOnly `json:"maintenance_date,omitempty"`
-	MaintenanceDetails string   `json:"maintenance_details,omitempty"`
-	MaintenanceCost    float64  `json:"maintenance_cost,omitempty"`
+	AssetID            uint                  `json:"asset_id,omitempty"`
+	UserClientID       string                `json:"user_client_id,omitempty"`
+	SerialNumber       *string               `json:"serial_number,omitempty"`
+	Name               string                `json:"name,omitempty"`
+	Description        string                `json:"description,omitempty"`
+	Barcode            *string               `json:"barcode,omitempty"`
+	ImageUrl           *string               `json:"image_url"`
+	Status             AssetStatusResponse   `json:"status,omitempty"`
+	Category           AssetCategoryResponse `json:"category,omitempty"`
+	PurchaseDate       *DateOnly             `json:"purchase_date,omitempty"`
+	ExpiryDate         *DateOnly             `json:"expiry_date,omitempty"`
+	WarrantyExpiryDate *DateOnly             `json:"warranty_expiry_date,omitempty"`
+	Price              float64               `json:"price,omitempty"`
+	Stock              int                   `json:"stock,omitempty"`
+	Notes              *string               `json:"notes,omitempty"`
 }
 
-type AssetResponseList struct {
+type AssetResponseAll struct {
 	ID             uint                  `json:"asset_id,omitempty"`
 	ClientID       string                `json:"user_client_id,omitempty"`
-	AssetCode      string                `json:"asset_code,omitempty"`
+	SerialNumber   string                `json:"serial_number,omitempty"`
 	Name           string                `json:"name,omitempty"`
 	Description    string                `json:"description,omitempty"`
 	Barcode        string                `json:"barcode,omitempty"`

@@ -1,7 +1,7 @@
 package assets
 
 import (
-	assets2 "asset-service/internal/dto/in/assets"
+	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
@@ -29,12 +29,12 @@ func NewAssetController(assetService assets.AssetService, jwtService utils.JWTSe
 }
 
 func (h assetController) AddAsset(context *gin.Context) {
-	var req *assets2.AssetRequest
+	var req *request.AssetRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -48,12 +48,7 @@ func (h assetController) AddAsset(context *gin.Context) {
 }
 
 func (h assetController) UpdateAsset(context *gin.Context) {
-	var req struct {
-		Description  string  `json:"description"`
-		PurchaseDate string  `json:"purchase_date" binding:"required"`
-		ExpiryDate   string  `json:"expiry_date"`
-		Price        float64 `json:"price" binding:"required"`
-	}
+	var req request.UpdateAssetRequest
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
@@ -64,7 +59,7 @@ func (h assetController) UpdateAsset(context *gin.Context) {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -92,7 +87,7 @@ func (h assetController) UpdateAssetStatus(context *gin.Context) {
 		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -120,7 +115,7 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -136,7 +131,7 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 
 func (h assetController) GetListAsset(context *gin.Context) {
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -152,7 +147,7 @@ func (h assetController) GetListAsset(context *gin.Context) {
 func (h assetController) GetAssetById(context *gin.Context) {
 
 	assetID, err := utils.ConvertToUint(context.Param("id"))
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}
@@ -168,7 +163,7 @@ func (h assetController) GetAssetById(context *gin.Context) {
 
 func (h assetController) DeleteAsset(context *gin.Context) {
 	assetID, err := utils.ConvertToUint(context.Param("id"))
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}

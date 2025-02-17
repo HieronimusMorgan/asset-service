@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"asset-service/package/response"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -160,4 +163,21 @@ type TokenClaims struct {
 type InternalClaims struct {
 	Service string `json:"service"`
 	jwt.RegisteredClaims
+}
+
+// ExtractTokenClaims extracts token claims from the Gin context
+func ExtractTokenClaims(c *gin.Context) (*TokenClaims, bool) {
+	tokenData, exists := c.Get("token")
+	if !exists {
+		response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Token not found")
+		return nil, false
+	}
+
+	tokenClaims, ok := tokenData.(*TokenClaims)
+	if !ok || tokenClaims == nil {
+		response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Invalid token format")
+		return nil, false
+	}
+
+	return tokenClaims, true
 }

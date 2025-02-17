@@ -10,8 +10,8 @@ import (
 	"time"
 )
 
-type AssetMaintenanceRepository interface {
-	AddAssetMaintenance(maintenance *model.AssetMaintenance) error
+type AssetMaintenanceRecordRepository interface {
+	AddAssetMaintenanceRecord(maintenance *model.AssetMaintenance) error
 	GetMaintenanceByAssetID(assetID uint, clientID string) (*model.AssetMaintenance, error)
 	GetMaintenanceByID(maintenanceID uint, clientID string) (*response.AssetMaintenanceResponse, error)
 	GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error)
@@ -22,26 +22,25 @@ type AssetMaintenanceRepository interface {
 	GetMaintenanceByTypeExist(clientID string, assetID int, typeID int) (model.AssetMaintenance, error)
 }
 
-type assetMaintenanceRepository struct {
-	db              gorm.DB
-	assetRepository AssetRepository
+type assetMaintenanceRecordRepository struct {
+	db gorm.DB
 }
 
-func NewAssetMaintenanceRepository(db gorm.DB) AssetMaintenanceRepository {
-	return assetMaintenanceRepository{db: db}
+func NewAssetMaintenanceRecordRepository(db gorm.DB) AssetMaintenanceRecordRepository {
+	return assetMaintenanceRecordRepository{db: db}
 }
 
-func (r assetMaintenanceRepository) AddAssetMaintenance(maintenance *model.AssetMaintenance) error {
-	return r.db.Table(utils.TableAssetMaintenanceName).Create(maintenance).Error
+func (r assetMaintenanceRecordRepository) AddAssetMaintenanceRecord(maintenance *model.AssetMaintenance) error {
+	return r.db.Table(utils.TableAssetMaintenanceRecordName).Create(maintenance).Error
 }
 
-func (r assetMaintenanceRepository) GetMaintenanceByAssetID(assetID uint, clientID string) (*model.AssetMaintenance, error) {
+func (r assetMaintenanceRecordRepository) GetMaintenanceByAssetID(assetID uint, clientID string) (*model.AssetMaintenance, error) {
 	var maintenance model.AssetMaintenance
-	err := r.db.Table(utils.TableAssetMaintenanceName).Where("asset_id = ? AND user_client_id = ?", assetID, clientID).First(&maintenance).Error
+	err := r.db.Table(utils.TableAssetMaintenanceRecordName).Where("asset_id = ?", assetID).Order("maintenance_record_id ASC").Scan(&maintenance).Error
 	return &maintenance, err
 }
 
-func (r assetMaintenanceRepository) GetMaintenanceByID(maintenanceID uint, clientID string) (*response.AssetMaintenanceResponse, error) {
+func (r assetMaintenanceRecordRepository) GetMaintenanceByID(maintenanceID uint, clientID string) (*response.AssetMaintenanceResponse, error) {
 	var maintenance response.AssetMaintenanceResponse
 
 	assetMaintenance := `
@@ -58,7 +57,7 @@ func (r assetMaintenanceRepository) GetMaintenanceByID(maintenanceID uint, clien
 	return &maintenance, nil
 }
 
-func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error) {
+func (r assetMaintenanceRecordRepository) GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
 		FROM "my-home"."asset_maintenance" am
@@ -102,7 +101,7 @@ func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, cl
 	return result, nil
 }
 
-func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMaintenancesResponse, error) {
+func (r assetMaintenanceRecordRepository) GetListMaintenance() ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
 		FROM "my-home"."asset_maintenance" am
@@ -145,7 +144,7 @@ func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMainte
 	return result, nil
 }
 
-func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error) {
+func (r assetMaintenanceRecordRepository) GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
 		FROM "my-home"."asset_maintenance" am
@@ -190,24 +189,24 @@ func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string
 	return result, nil
 }
 
-func (r assetMaintenanceRepository) Update(maintenance *model.AssetMaintenance) error {
-	return r.db.Table(utils.TableAssetMaintenanceName).Save(maintenance).Error
+func (r assetMaintenanceRecordRepository) Update(maintenance *model.AssetMaintenance) error {
+	return r.db.Table(utils.TableAssetMaintenanceRecordName).Save(maintenance).Error
 }
 
-func (r assetMaintenanceRepository) Delete(assetID uint, fullName string) error {
+func (r assetMaintenanceRecordRepository) Delete(assetID uint, fullName string) error {
 	if assetID != 0 { // Ensure it exists before deleting
-		if err := r.db.Table("my-home.asset_maintenance").Model(model.AssetMaintenance{}).
+		if err := r.db.Table("my-home.asset_maintenance_record").Model(&model.AssetMaintenance{}).
 			Where("asset_id = ?", assetID).
 			Updates(map[string]interface{}{"deleted_by": fullName, "deleted_at": time.Now()}).
-			Delete(&model.AssetMaintenance{}).Error; err != nil {
-			return fmt.Errorf("failed to delete asset maintenance: %w", err)
+			Delete(&model.AssetMaintenanceRecord{}).Error; err != nil {
+			return fmt.Errorf("failed to delete asset maintenance record: %w", err)
 		}
 	}
 	return nil
 }
 
-func (r assetMaintenanceRepository) GetMaintenanceByTypeExist(clientID string, assetID int, typeID int) (model.AssetMaintenance, error) {
+func (r assetMaintenanceRecordRepository) GetMaintenanceByTypeExist(clientID string, assetID int, typeID int) (model.AssetMaintenance, error) {
 	var maintenance model.AssetMaintenance
-	err := r.db.Table(utils.TableAssetMaintenanceName).Where("user_client_id = ? AND asset_id = ? AND type_id = ?", clientID, assetID, typeID).First(&maintenance).Error
+	err := r.db.Table(utils.TableAssetMaintenanceRecordName).Where("user_client_id = ? AND asset_id = ? AND type_id = ?", clientID, assetID, typeID).First(&maintenance).Error
 	return maintenance, err
 }

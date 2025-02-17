@@ -1,13 +1,15 @@
 package assets
 
 import (
+	"errors"
+
 	request "asset-service/internal/dto/in/assets"
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
-	"asset-service/internal/models/user"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
-	"errors"
+
+	"github.com/rs/zerolog/log"
 )
 
 type AssetCategoryService interface {
@@ -20,82 +22,122 @@ type AssetCategoryService interface {
 
 type assetCategoryService struct {
 	AssetCategoryRepository repository.AssetCategoryRepository
+	AssetRepository         repository.AssetRepository
+	AssetAuditLogRepository repository.AssetAuditLogRepository
 	Redis                   utils.RedisService
 }
 
-func NewAssetCategoryService(assetCategoryRepository repository.AssetCategoryRepository, redis utils.RedisService) AssetCategoryService {
-	return assetCategoryService{AssetCategoryRepository: assetCategoryRepository, Redis: redis}
+func NewAssetCategoryService(
+	assetCategoryRepository repository.AssetCategoryRepository,
+	AssetRepository repository.AssetRepository,
+	AssetAuditLogRepository repository.AssetAuditLogRepository,
+	redis utils.RedisService) AssetCategoryService {
+	return &assetCategoryService{
+		AssetCategoryRepository: assetCategoryRepository,
+		AssetRepository:         AssetRepository,
+		AssetAuditLogRepository: AssetAuditLogRepository,
+		Redis:                   redis,
+	}
 }
 
-func (s assetCategoryService) AddAssetCategory(assetRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
-	var user = &user.User{}
-
-	err := s.Redis.GetData(utils.User, clientID, user)
+func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve data from Redis")
 		return nil, err
 	}
-	var assetCategory = &assets.AssetCategory{
-		CategoryName: assetRequest.CategoryName,
-		Description:  assetRequest.Description,
-		CreatedBy:    user.FullName,
-		UpdatedBy:    user.FullName,
+
+	existingCategory, err := s.AssetCategoryRepository.GetAssetCategoryByName(assetRequest.CategoryName)
+	if existingCategory != nil {
+		log.Warn().Str("category_name", assetRequest.CategoryName).Msg("Asset category already exists")
+		return nil, errors.New("asset category already exists")
 	}
 
-	err = s.AssetCategoryRepository.GetAssetCategoryByName(assetRequest.CategoryName)
-	if err == nil {
-		return nil, errors.New("assets category already exists")
+	assetCategory := &assets.AssetCategory{
+		CategoryName: assetRequest.CategoryName,
+		Description:  assetRequest.Description,
+		CreatedBy:    data.ClientID,
+		UpdatedBy:    data.ClientID,
 	}
 
 	err = s.AssetCategoryRepository.AddAssetCategory(assetCategory)
 	if err != nil {
+		log.Error().Err(err).Str("category_name", assetRequest.CategoryName).Msg("Failed to add asset category")
 		return nil, err
 	}
-	var assetCategoryResponse = response.AssetCategoryResponse{
+
+	if auditErr := s.AssetAuditLogRepository.AfterCreateAssetCategory(assetCategory); auditErr != nil {
+		log.Warn().Err(auditErr).
+			Str("category_name", assetCategory.CategoryName).
+			Msg("⚠ Audit log failed after adding asset category")
+	}
+
+	log.Info().Str("category_name", assetRequest.CategoryName).Msg("✅ Asset category added successfully")
+
+	return response.AssetCategoryResponse{
 		AssetCategoryID: assetCategory.AssetCategoryID,
 		CategoryName:    assetCategory.CategoryName,
 		Description:     assetCategory.Description,
-	}
-	return assetCategoryResponse, nil
+	}, nil
 }
 
-func (s assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
-	var user = &user.User{}
-	var assetCategory = &assets.AssetCategory{}
+func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
+		return nil, err
+	}
 
-	err := s.Redis.GetData(utils.User, clientID, user)
+	oldAssetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(assetCategoryID)
 	if err != nil {
 		return nil, err
 	}
 
-	assetCategory, err = s.AssetCategoryRepository.GetAssetCategoryByIdAndNameNotExist(assetCategoryID, assetCategoryRequest.CategoryName)
+	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryByIdAndNameNotExist(assetCategoryID, assetCategoryRequest.CategoryName)
 	if err != nil {
-		return nil, errors.New("assets category not found or already exists")
+		log.Warn().Uint("asset_category_id", assetCategoryID).Msg("Asset category not found or already exists")
+		return nil, errors.New("asset category not found or already exists")
 	}
 
 	assetCategory.CategoryName = assetCategoryRequest.CategoryName
 	assetCategory.Description = assetCategoryRequest.Description
-	assetCategory.UpdatedBy = user.FullName
+	assetCategory.UpdatedBy = data.ClientID
+
 	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory)
 	if err != nil {
+		log.Error().Err(err).Uint("asset_category_id", assetCategoryID).Msg("Failed to update asset category")
 		return nil, err
 	}
-	return assetCategory, nil
+
+	if auditErr := s.AssetAuditLogRepository.AfterUpdateAssetCategory(oldAssetCategory, assetCategory); auditErr != nil {
+		log.Warn().Err(auditErr).
+			Uint("asset_category_id", assetCategory.AssetCategoryID).
+			Msg("⚠ Audit log failed after updating asset category")
+	}
+
+	log.Info().Uint("asset_category_id", assetCategoryID).Msg("✅ Asset category updated successfully")
+
+	return response.AssetCategoryResponse{
+		AssetCategoryID: assetCategory.AssetCategoryID,
+		CategoryName:    assetCategory.CategoryName,
+		Description:     assetCategory.Description,
+	}, nil
 }
 
-func (s assetCategoryService) GetListAssetCategory(clientID string) (interface{}, error) {
-	var user = &user.User{}
-
-	err := s.Redis.GetData(utils.User, clientID, user)
+func (s *assetCategoryService) GetListAssetCategory(clientID string) (interface{}, error) {
+	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
 		return nil, err
 	}
 
 	assetCategories, err := s.AssetCategoryRepository.GetListAssetCategory()
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve asset categories")
 		return nil, err
 	}
-	var assetCategoriesResponse []response.AssetCategoryResponse
 
+	var assetCategoriesResponse []response.AssetCategoryResponse
 	for _, assetCategory := range assetCategories {
 		assetCategoriesResponse = append(assetCategoriesResponse, response.AssetCategoryResponse{
 			AssetCategoryID: assetCategory.AssetCategoryID,
@@ -107,40 +149,51 @@ func (s assetCategoryService) GetListAssetCategory(clientID string) (interface{}
 	return assetCategoriesResponse, nil
 }
 
-func (s assetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}, error) {
-	var assetCategory *assets.AssetCategory
+func (s *assetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}, error) {
 	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
 	if err != nil {
-		return nil, errors.New("assets category not found")
+		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category not found")
+		return nil, errors.New("asset category not found")
 	}
 
-	var assetCategoryResponse = response.AssetCategoryResponse{
+	return response.AssetCategoryResponse{
 		AssetCategoryID: assetCategory.AssetCategoryID,
 		CategoryName:    assetCategory.CategoryName,
 		Description:     assetCategory.Description,
-	}
-
-	return assetCategoryResponse, nil
+	}, nil
 }
 
-func (s assetCategoryService) DeleteAssetCategory(categoryID uint, clientID string) error {
-	var user = &user.User{}
-	var assetCategory = &assets.AssetCategory{}
-
-	err := s.Redis.GetData(utils.User, clientID, user)
+func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID string) error {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
 		return err
 	}
 
-	assetCategory, err = s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
+	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
 	if err != nil {
-		return errors.New("assets category not found")
+		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category not found")
+		return errors.New("asset category not found")
 	}
 
-	assetCategory.DeletedBy = &user.FullName
+	asset, err := s.AssetRepository.GetAssetByCategoryID(assetCategory.AssetCategoryID, clientID)
+	if err != nil {
+		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to get asset by category ID")
+		return err
+	}
+
+	if asset != nil {
+		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category is still in use")
+		return errors.New("asset category is still in use")
+	}
+
+	assetCategory.DeletedBy = &data.ClientID
 	err = s.AssetCategoryRepository.DeleteAssetCategory(assetCategory)
 	if err != nil {
+		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to delete asset category")
 		return err
 	}
+
+	log.Info().Uint("asset_category_id", categoryID).Msg("✅ Asset category deleted successfully")
 	return nil
 }

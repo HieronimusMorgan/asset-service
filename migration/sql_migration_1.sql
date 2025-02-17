@@ -136,17 +136,19 @@ CREATE TABLE asset
 (
     asset_id             SERIAL PRIMARY KEY,
     user_client_id       VARCHAR(50)  NOT NULL,
-    asset_code           VARCHAR(100)   DEFAULT NULL,
+    serial_number        VARCHAR(100) DEFAULT NULL,
     name                 VARCHAR(100) NOT NULL,
     description          TEXT,
     barcode              VARCHAR(100)   DEFAULT NULL,
+    image_url            TEXT         DEFAULT NULL,
     category_id          INT          NOT NULL,
     status_id            INT          NOT NULL,
     purchase_date        DATE,
     expiry_date          DATE           DEFAULT NULL,
-    warranty_expiry_date DATE DEFAULT NULL,
+    warranty_expiry_date DATE         DEFAULT NULL,
     price                DECIMAL(40, 2) DEFAULT 0,
     stock                INT            DEFAULT 0,
+    notes                TEXT         DEFAULT NULL,
     is_wishlist          BOOLEAN        DEFAULT FALSE,
     created_at           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     created_by           VARCHAR(255),
@@ -158,102 +160,112 @@ CREATE TABLE asset
     FOREIGN KEY (status_id) REFERENCES asset_status (asset_status_id)
 );
 
+CREATE INDEX idx_asset_category ON asset (category_id);
+CREATE INDEX idx_asset_status ON asset (status_id);
+
 -- Table for Maintenance Type
 CREATE TABLE asset_maintenance_type
 (
-    type_id     SERIAL PRIMARY KEY,           -- Unique ID for each type
-    type_name   VARCHAR(100) UNIQUE NOT NULL, -- Name of maintenance type
-    description TEXT,                         -- Description of what this maintenance involves
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by  VARCHAR(255),
-    updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by  VARCHAR(255),
-    deleted_at  TIMESTAMP,
-    deleted_by  VARCHAR(255)
+    type_id        SERIAL PRIMARY KEY,           -- Unique ID for each type
+    user_client_id VARCHAR(50)         NOT NULL,
+    type_name      VARCHAR(100) UNIQUE NOT NULL, -- Name of maintenance type
+    description    TEXT,                         -- Description of what this maintenance involves
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255)
 );
-INSERT INTO asset_maintenance_type (type_name, description, created_by, updated_by)
-VALUES
-    -- ✅ General Maintenance Types
-    ('Battery Replacement', 'Replace worn-out battery with a new one to maintain performance.', 'system', 'system'),
-    ('Software Update', 'Update firmware and OS for better performance and security.', 'system', 'system'),
-    ('Cleaning Service', 'Perform deep cleaning to remove dust and debris from components.', 'system', 'system'),
-    ('Hardware Repair', 'Fix or replace damaged hardware components of the asset.', 'system', 'system'),
-    ('Annual Inspection', 'General check-up and inspection to ensure the asset is in optimal condition.', 'system',
-     'system'),
 
-    -- ✅ IT & Network Maintenance
-    ('Firmware Upgrade', 'Upgrade device firmware to the latest version.', 'system', 'system'),
-    ('Networking Maintenance', 'Check and repair network connections, cables, and routers.', 'system', 'system'),
-    ('Security Patch Update', 'Apply the latest security updates and patches.', 'system', 'system'),
-    ('Cloud Backup Check', 'Ensure that cloud backup systems are properly configured and up to date.', 'system',
-     'system'),
-    ('General Diagnostics', 'Perform full system diagnostics to detect potential issues.', 'system', 'system'),
-    ('Performance Optimization', 'Optimize asset performance through software and hardware adjustments.', 'system',
-     'system'),
-
-    -- ✅ Electrical & Mechanical Maintenance
-    ('Cooling System Check', 'Inspect and clean cooling fans and heat sinks to prevent overheating.', 'system',
-     'system'),
-    ('Electrical Testing', 'Ensure safe electrical operation and check for voltage stability.', 'system', 'system'),
-    ('Oil & Lubrication', 'Apply lubrication to mechanical parts to prevent wear and tear.', 'system', 'system'),
-    ('Parts Replacement', 'Replace broken or worn-out components with new parts.', 'system', 'system'),
-    ('Sensor Calibration', 'Calibrate sensors to maintain accuracy and efficiency.', 'system', 'system'),
-    ('Motor Servicing', 'Check and maintain motors in mechanical and industrial assets.', 'system', 'system'),
-
-    -- ✅ Security & Surveillance Equipment Maintenance
-    ('CCTV Camera Maintenance', 'Inspect and clean surveillance cameras for optimal performance.', 'system', 'system'),
-    ('Alarm System Check', 'Test and verify the functionality of alarm systems.', 'system', 'system'),
-    ('Fire Safety Inspection', 'Ensure fire safety equipment is in working condition.', 'system', 'system'),
-
-    -- ✅ Vehicle & Transportation Maintenance
-    ('Engine Tuning', 'Fine-tune vehicle engines for better efficiency and performance.', 'system', 'system'),
-    ('Brake Inspection', 'Check and replace brake pads, fluids, and related components.', 'system', 'system'),
-    ('Tire Replacement', 'Inspect and replace tires for better safety and performance.', 'system', 'system'),
-    ('Fuel System Maintenance', 'Clean fuel injectors and ensure proper fuel flow.', 'system', 'system'),
-    ('Transmission Check', 'Inspect transmission systems to prevent failure.', 'system', 'system'),
-
-    -- ✅ Heavy Equipment & Industrial Machinery Maintenance
-    ('Hydraulic System Inspection', 'Check and maintain hydraulic systems in heavy machinery.', 'system', 'system'),
-    ('Welding & Structural Repair', 'Inspect and reinforce metal structures.', 'system', 'system'),
-    ('Conveyor Belt Maintenance', 'Check for misalignment and damage in conveyor belts.', 'system', 'system'),
-
-    -- ✅ Medical & Laboratory Equipment Maintenance
-    ('Medical Device Calibration', 'Ensure medical equipment provides accurate readings.', 'system', 'system'),
-    ('Sterilization Service', 'Sterilize medical and laboratory equipment to maintain hygiene.', 'system', 'system'),
-    ('Oxygen System Check', 'Inspect and maintain oxygen supply systems.', 'system', 'system'),
-
-    -- ✅ Office Equipment & Appliances Maintenance
-    ('Printer & Scanner Service', 'Clean and repair printers, scanners, and copiers.', 'system', 'system'),
-    ('Air Conditioner Service', 'Check and refill refrigerant, clean filters in AC systems.', 'system', 'system'),
-    ('Refrigerator Maintenance', 'Ensure proper cooling and clean condenser coils in refrigerators.', 'system',
-     'system'),
-
-    -- ✅ Miscellaneous & General Maintenance
-    ('Furniture Repair', 'Fix loose hinges, screws, and broken parts in furniture.', 'system', 'system'),
-    ('Painting & Coating', 'Repaint assets to maintain aesthetic appeal and prevent rust.', 'system', 'system'),
-
-    -- ✅ The "Other" Type (Must Always be the Last Entry)
-    ('Other', 'Any other maintenance not covered in predefined types.', 'system', 'system');
+-- INSERT INTO asset_maintenance_type (type_name, description, created_by, updated_by)
+-- VALUES
+--     -- ✅ General Maintenance Types
+--     ('Battery Replacement', 'Replace worn-out battery with a new one to maintain performance.', 'system', 'system'),
+--     ('Software Update', 'Update firmware and OS for better performance and security.', 'system', 'system'),
+--     ('Cleaning Service', 'Perform deep cleaning to remove dust and debris from components.', 'system', 'system'),
+--     ('Hardware Repair', 'Fix or replace damaged hardware components of the asset.', 'system', 'system'),
+--     ('Annual Inspection', 'General check-up and inspection to ensure the asset is in optimal condition.', 'system',
+--      'system'),
+--
+--     -- ✅ IT & Network Maintenance
+--     ('Firmware Upgrade', 'Upgrade device firmware to the latest version.', 'system', 'system'),
+--     ('Networking Maintenance', 'Check and repair network connections, cables, and routers.', 'system', 'system'),
+--     ('Security Patch Update', 'Apply the latest security updates and patches.', 'system', 'system'),
+--     ('Cloud Backup Check', 'Ensure that cloud backup systems are properly configured and up to date.', 'system',
+--      'system'),
+--     ('General Diagnostics', 'Perform full system diagnostics to detect potential issues.', 'system', 'system'),
+--     ('Performance Optimization', 'Optimize asset performance through software and hardware adjustments.', 'system',
+--      'system'),
+--
+--     -- ✅ Electrical & Mechanical Maintenance
+--     ('Cooling System Check', 'Inspect and clean cooling fans and heat sinks to prevent overheating.', 'system',
+--      'system'),
+--     ('Electrical Testing', 'Ensure safe electrical operation and check for voltage stability.', 'system', 'system'),
+--     ('Oil & Lubrication', 'Apply lubrication to mechanical parts to prevent wear and tear.', 'system', 'system'),
+--     ('Parts Replacement', 'Replace broken or worn-out components with new parts.', 'system', 'system'),
+--     ('Sensor Calibration', 'Calibrate sensors to maintain accuracy and efficiency.', 'system', 'system'),
+--     ('Motor Servicing', 'Check and maintain motors in mechanical and industrial assets.', 'system', 'system'),
+--
+--     -- ✅ Security & Surveillance Equipment Maintenance
+--     ('CCTV Camera Maintenance', 'Inspect and clean surveillance cameras for optimal performance.', 'system', 'system'),
+--     ('Alarm System Check', 'Test and verify the functionality of alarm systems.', 'system', 'system'),
+--     ('Fire Safety Inspection', 'Ensure fire safety equipment is in working condition.', 'system', 'system'),
+--
+--     -- ✅ Vehicle & Transportation Maintenance
+--     ('Engine Tuning', 'Fine-tune vehicle engines for better efficiency and performance.', 'system', 'system'),
+--     ('Brake Inspection', 'Check and replace brake pads, fluids, and related components.', 'system', 'system'),
+--     ('Tire Replacement', 'Inspect and replace tires for better safety and performance.', 'system', 'system'),
+--     ('Fuel System Maintenance', 'Clean fuel injectors and ensure proper fuel flow.', 'system', 'system'),
+--     ('Transmission Check', 'Inspect transmission systems to prevent failure.', 'system', 'system'),
+--
+--     -- ✅ Heavy Equipment & Industrial Machinery Maintenance
+--     ('Hydraulic System Inspection', 'Check and maintain hydraulic systems in heavy machinery.', 'system', 'system'),
+--     ('Welding & Structural Repair', 'Inspect and reinforce metal structures.', 'system', 'system'),
+--     ('Conveyor Belt Maintenance', 'Check for misalignment and damage in conveyor belts.', 'system', 'system'),
+--
+--     -- ✅ Medical & Laboratory Equipment Maintenance
+--     ('Medical Device Calibration', 'Ensure medical equipment provides accurate readings.', 'system', 'system'),
+--     ('Sterilization Service', 'Sterilize medical and laboratory equipment to maintain hygiene.', 'system', 'system'),
+--     ('Oxygen System Check', 'Inspect and maintain oxygen supply systems.', 'system', 'system'),
+--
+--     -- ✅ Office Equipment & Appliances Maintenance
+--     ('Printer & Scanner Service', 'Clean and repair printers, scanners, and copiers.', 'system', 'system'),
+--     ('Air Conditioner Service', 'Check and refill refrigerant, clean filters in AC systems.', 'system', 'system'),
+--     ('Refrigerator Maintenance', 'Ensure proper cooling and clean condenser coils in refrigerators.', 'system',
+--      'system'),
+--
+--     -- ✅ Miscellaneous & General Maintenance
+--     ('Furniture Repair', 'Fix loose hinges, screws, and broken parts in furniture.', 'system', 'system'),
+--     ('Painting & Coating', 'Repaint assets to maintain aesthetic appeal and prevent rust.', 'system', 'system'),
+--
+--     -- ✅ The "Other" Type (Must Always be the Last Entry)
+--     ('Other', 'Any other maintenance not covered in predefined types.', 'system', 'system');
 
 -- Table for Asset Maintenance
 CREATE TABLE asset_maintenance
 (
     id                  SERIAL PRIMARY KEY,
-    asset_id         INT NOT NULL,      -- Reference to asset
-    type_id          INT NOT NULL,
-    maintenance_date    DATE NOT NULL,
+    user_client_id   VARCHAR(50) NOT NULL,
+    asset_id         INT         NOT NULL, -- Reference to asset
+    type_id          INT         NOT NULL,
+    maintenance_date DATE        NOT NULL,
     maintenance_details TEXT,
-    maintenance_cost DECIMAL(15, 2),    -- Cost of maintenance
-    performed_by     VARCHAR(255),      -- Who performed the maintenance
-    next_due_date    DATE DEFAULT NULL, -- Scheduled next maintenance
+    maintenance_cost DECIMAL(15, 2),       -- Cost of maintenance
+    performed_by     VARCHAR(255),         -- Who performed the maintenance
+    next_due_date    DATE DEFAULT NULL,    -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by          VARCHAR(255),
     deleted_at          TIMESTAMP,
     deleted_by          VARCHAR(255),
-    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
+    FOREIGN KEY (type_id) REFERENCES asset_maintenance_type (type_id) ON DELETE SET NULL
 );
+
+CREATE INDEX idx_maintenance_asset ON asset_maintenance (asset_id);
+CREATE INDEX idx_maintenance_type ON asset_maintenance (type_id);
 
 CREATE TABLE asset_maintenance_record
 (

@@ -1,15 +1,15 @@
 package assets
 
 import (
+	"asset-service/config"
 	"asset-service/internal/controller/assets"
-	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func AssetWishlistRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, controller assets.AssetWishlistController) {
+func AssetWishlistRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetWishlistController) {
 
 	public := r.Group("/asset-service/v1/asset-wishlist")
-	public.Use(middleware.Handler())
+	public.Use(middleware.AuthMiddleware.Handler())
 	{
 		public.POST("/add", controller.AddWishlistAsset)
 		public.POST("/update/:id", controller.UpdateWishlistAsset)

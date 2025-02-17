@@ -4,6 +4,7 @@ import (
 	controller "asset-service/internal/controller/assets"
 	"asset-service/internal/middleware"
 	repository "asset-service/internal/repository/assets"
+	"asset-service/internal/repository/transaction"
 	services "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	controllercron "asset-service/internal/utils/cron/controller"
@@ -15,16 +16,17 @@ import (
 
 // ServerConfig holds all initialized components
 type ServerConfig struct {
-	Gin        *gin.Engine
-	Config     *Config
-	DB         *gorm.DB
-	Redis      utils.RedisService
-	JWTService utils.JWTService
-	Cron       Cron
-	Controller Controller
-	Services   Services
-	Repository Repository
-	Middleware Middleware
+	Gin         *gin.Engine
+	Config      *Config
+	DB          *gorm.DB
+	Redis       utils.RedisService
+	JWTService  utils.JWTService
+	Cron        Cron
+	Controller  Controller
+	Services    Services
+	Repository  Repository
+	Transaction Transaction
+	Middleware  Middleware
 }
 
 // Services holds all service dependencies
@@ -46,6 +48,7 @@ type Repository struct {
 	AssetRepository         repository.AssetRepository
 	AssetStatusRepository   repository.AssetStatusRepository
 	AssetWishlistRepository repository.AssetWishlistRepository
+	AssetMaintenanceRecord  repository.AssetMaintenanceRecordRepository
 }
 
 type Controller struct {
@@ -66,4 +69,8 @@ type Cron struct {
 	CronService    cron.CronService
 	CronRepository repositorycron.CronRepository
 	CronController controllercron.CronJobController
+}
+
+type Transaction struct {
+	AssetTransactionRepository transaction.AssetTransactionRepository
 }

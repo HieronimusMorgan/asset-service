@@ -1,7 +1,7 @@
 package assets
 
 import (
-	assets2 "asset-service/internal/dto/in/assets"
+	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
@@ -28,9 +28,10 @@ func NewAssetCategoryController(assetCategoryService assets.AssetCategoryService
 }
 
 func (h assetCategoryController) AddAssetCategory(context *gin.Context) {
-	var req assets2.AssetCategoryRequest
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	var req request.AssetCategoryRequest
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -48,15 +49,16 @@ func (h assetCategoryController) AddAssetCategory(context *gin.Context) {
 }
 
 func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
-	var req assets2.AssetCategoryRequest
+	var req request.AssetCategoryRequest
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
 		return
 	}
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -79,8 +81,9 @@ func (h assetCategoryController) GetAssetCategories(context *gin.Context) {
 }
 
 func (h assetCategoryController) GetListAssetCategory(context *gin.Context) {
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -114,7 +117,7 @@ func (h assetCategoryController) DeleteAssetCategory(context *gin.Context) {
 		return
 	}
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
 		return
 	}

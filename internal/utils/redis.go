@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"asset-service/internal/models/user"
 	"context"
 	"encoding/json"
 	"errors"
@@ -88,4 +89,13 @@ func (r redisService) DeleteToken(clientID string) error {
 	redisKey := generateRedisKey(clientID)
 	err := r.Client.Del(r.Ctx, redisKey).Err()
 	return err
+}
+
+func GetUserRedis(redis RedisService, key string, clientID string) (*user.User, error) {
+	var u = &user.User{}
+	err := redis.GetData(key, clientID, u)
+	if err != nil {
+		return nil, err
+	}
+	return u, nil
 }

@@ -1,20 +1,20 @@
 package assets
 
 import (
+	"asset-service/config"
 	"asset-service/internal/controller/assets"
-	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func AssetCategoryRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, controller assets.AssetCategoryController) {
+func AssetCategoryRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetCategoryController) {
 
-	protected := r.Group("/asset-service/v1/asset/category")
-	protected.Use(middleware.Handler())
+	routerGroup := r.Group("/asset-service/v1/asset/category")
+	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
-		protected.POST("/add", controller.AddAssetCategory)
-		protected.POST("/update/:id", controller.UpdateAssetCategory)
-		protected.GET("", controller.GetListAssetCategory)
-		protected.GET("/:id", controller.GetAssetCategoryById)
-		protected.DELETE("/delete/:id", controller.DeleteAssetCategory)
+		routerGroup.POST("/add", controller.AddAssetCategory)
+		routerGroup.POST("/update/:id", controller.UpdateAssetCategory)
+		routerGroup.GET("", controller.GetListAssetCategory)
+		routerGroup.GET("/:id", controller.GetAssetCategoryById)
+		routerGroup.DELETE("/delete/:id", controller.DeleteAssetCategory)
 	}
 }

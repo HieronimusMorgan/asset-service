@@ -1,7 +1,7 @@
 package assets
 
 import (
-	assets2 "asset-service/internal/dto/in/assets"
+	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
@@ -12,7 +12,7 @@ import (
 )
 
 type AssetMaintenanceController interface {
-	CreateMaintenance(ctx *gin.Context)
+	AddAssetMaintenance(ctx *gin.Context)
 	GetMaintenanceByID(ctx *gin.Context)
 	GetMaintenancesByAssetID(ctx *gin.Context)
 	UpdateMaintenance(ctx *gin.Context)
@@ -28,19 +28,20 @@ func NewAssetMaintenanceController(Service assets.AssetMaintenanceService, JWTSe
 	return assetMaintenanceController{Service: Service, JWTService: JWTService}
 }
 
-func (c assetMaintenanceController) CreateMaintenance(ctx *gin.Context) {
-	var maintenance assets2.AssetMaintenanceRequest
+func (c assetMaintenanceController) AddAssetMaintenance(ctx *gin.Context) {
+	var maintenance request.AssetMaintenanceRequest
 	if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
 
-	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(ctx)
+	if !exist {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	maintenances, err := c.Service.CreateMaintenance(maintenance, token.ClientID)
+	maintenances, err := c.Service.AddAssetMaintenance(maintenance, token.ClientID)
 	if err != nil {
 		response.SendResponse(ctx, http.StatusInternalServerError, "Failed to create maintenance record", nil, err.Error())
 		return
@@ -56,8 +57,9 @@ func (c assetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(ctx)
+	if !exist {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -82,8 +84,9 @@ func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 		return
 	}
 
-	token, err := c.JWTService.ExtractClaims(ctx.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(ctx)
+	if !exist {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -92,6 +95,11 @@ func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 		response.SendResponse(ctx, http.StatusInternalServerError, "Failed to get maintenance records", nil, err.Error())
 		return
 	}
+	if maintenances == nil {
+		response.SendResponse(ctx, http.StatusNotFound, "No maintenance records found", nil, nil)
+		return
+	}
+
 	response.SendResponse(ctx, http.StatusOK, "Success", maintenances, nil)
 }
 

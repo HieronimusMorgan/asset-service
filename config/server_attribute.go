@@ -4,12 +4,14 @@ import (
 	controller "asset-service/internal/controller/assets"
 	"asset-service/internal/middleware"
 	repository "asset-service/internal/repository/assets"
+	"asset-service/internal/repository/transaction"
 	services "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	controllercron "asset-service/internal/utils/cron/controller"
 	repositorycron "asset-service/internal/utils/cron/repository"
 	"asset-service/internal/utils/cron/service"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
 	"log"
 	"os"
@@ -24,7 +26,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	db := InitDatabase(cfg)
 	engine := InitGin()
 
-	// Graceful Shutdown Handling
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 
@@ -48,6 +50,7 @@ func NewServerConfig() (*ServerConfig, error) {
 	}
 
 	server.initRepository()
+	server.initTransaction()
 	server.initServices()
 	server.initController()
 	server.initMiddleware()
@@ -93,19 +96,20 @@ func (s *ServerConfig) initRepository() {
 		AssetRepository:         repository.NewAssetRepository(*s.DB, s.Repository.AssetAuditLog),
 		AssetStatusRepository:   repository.NewAssetStatusRepository(*s.DB),
 		AssetWishlistRepository: repository.NewAssetWishlistRepository(*s.DB, s.Repository.AssetAuditLog, s.Repository.AssetRepository),
-		AssetMaintenance:        repository.NewAssetMaintenanceRepository(*s.DB, s.Repository.AssetRepository),
+		AssetMaintenance:        repository.NewAssetMaintenanceRepository(*s.DB),
+		AssetMaintenanceRecord:  repository.NewAssetMaintenanceRecordRepository(*s.DB),
 	}
 }
 
 // initServices initializes the application services
 func (s *ServerConfig) initServices() {
 	s.Services = Services{
-		AssetCategory:        services.NewAssetCategoryService(s.Repository.AssetCategory, s.Redis),
-		AssetMaintenance:     services.NewAssetMaintenanceService(s.Repository.AssetMaintenance, s.Redis),
-		AssetMaintenanceType: services.NewAssetMaintenanceTypeService(s.Repository.AssetMaintenanceType),
-		Asset:                services.NewAssetService(s.Repository.AssetRepository, s.Repository.AssetMaintenance, s.Redis),
+		AssetCategory:        services.NewAssetCategoryService(s.Repository.AssetCategory, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
+		AssetMaintenance:     services.NewAssetMaintenanceService(s.Repository.AssetMaintenance, s.Repository.AssetRepository, s.Redis),
+		AssetMaintenanceType: services.NewAssetMaintenanceTypeService(s.Repository.AssetMaintenanceType, s.Repository.AssetMaintenance, s.Redis),
+		Asset:                services.NewAssetService(s.Repository.AssetRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetMaintenance, s.Repository.AssetAuditLog, s.Redis, s.Transaction.AssetTransactionRepository),
 		AssetStatus:          services.NewAssetStatusService(s.Repository.AssetStatusRepository, s.Redis),
-		AssetWishlist:        services.NewAssetWishlistService(s.Repository.AssetWishlistRepository, s.Repository.AssetRepository, s.Redis),
+		AssetWishlist:        services.NewAssetWishlistService(s.Repository.AssetWishlistRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
 	}
 }
 
@@ -130,6 +134,18 @@ func (s *ServerConfig) initMiddleware() {
 	s.Middleware = Middleware{
 		AuthMiddleware:  middleware.NewAuthMiddleware(s.JWTService),
 		AdminMiddleware: middleware.NewAdminMiddleware(s.JWTService),
+	}
+}
+
+func (s *ServerConfig) initTransaction() {
+	s.Transaction = Transaction{
+		AssetTransactionRepository: transaction.NewAssetTransactionRepository(*s.DB,
+			s.Repository.AssetRepository,
+			s.Repository.AssetCategory,
+			s.Repository.AssetStatusRepository,
+			s.Repository.AssetMaintenance,
+			s.Repository.AssetMaintenanceRecord,
+			s.Repository.AssetAuditLog),
 	}
 }
 

@@ -1,22 +1,22 @@
 package assets
 
 import (
+	"asset-service/config"
 	"asset-service/internal/controller/assets"
-	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func AssetStatusRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, assetStatus assets.AssetStatusController) {
+func AssetStatusRoutes(r *gin.Engine, middleware config.Middleware, assetStatus assets.AssetStatusController) {
 
-	protected := r.Group("/asset-service/v1/asset/status")
-	protected.Use(middleware.Handler())
+	routerGroup := r.Group("/asset-service/v1/asset/status")
+	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
-		protected.GET("", assetStatus.GetListAssetStatus)
-		protected.GET("/:id", assetStatus.GetAssetStatusByID)
+		routerGroup.GET("", assetStatus.GetListAssetStatus)
+		routerGroup.GET("/:id", assetStatus.GetAssetStatusByID)
 	}
 
 	admin := r.Group("/assets-service/v1/assets/status")
-	admin.Use(middleware.Handler())
+	admin.Use(middleware.AdminMiddleware.Handler())
 	{
 		admin.POST("/add", assetStatus.AddAssetStatus)
 		admin.POST("/update/:id", assetStatus.UpdateAssetStatus)

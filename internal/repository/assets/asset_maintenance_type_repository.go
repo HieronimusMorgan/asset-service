@@ -2,165 +2,144 @@ package assets
 
 import (
 	"asset-service/internal/models/assets"
+	"asset-service/internal/utils"
 	"gorm.io/gorm"
 )
 
+// AssetMaintenanceTypeRepository defines the interface for managing asset maintenance types
 type AssetMaintenanceTypeRepository interface {
-	GetAssetMaintenanceTypeByName(name string) error
-	AddAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error
-	GetAssetMaintenanceType() ([]assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByID(assetMaintenanceTypeID uint) (*assets.AssetMaintenanceType, error)
-	UpdateAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error
-	DeleteAssetMaintenanceTypeByID(assetMaintenanceTypeID uint) error
-	DeleteAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error
-	GetAssetMaintenanceTypeByType(maintenanceType string) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndID(maintenanceType string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeNotExist(maintenanceType string) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndIDNotExist(maintenanceType string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndNameNotExist(maintenanceType string, maintenanceTypeName string) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndName(maintenanceType string, maintenanceTypeName string) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndNameAndID(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error)
-	GetAssetMaintenanceTypeByTypeAndNameAndIDNotExist(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByName(name string, clientID string) (*assets.AssetMaintenanceType, error)
+	AddAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error
+	GetAssetMaintenanceType(clientID string) ([]assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByID(assetMaintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error)
+	UpdateAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error
+	DeleteAssetMaintenanceTypeByID(assetMaintenanceTypeID uint, clientID string) error
+	DeleteAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error
+	GetAssetMaintenanceTypeByType(maintenanceType string, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndID(maintenanceType string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeNotExist(maintenanceType string, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndIDNotExist(maintenanceType string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndNameNotExist(maintenanceType string, maintenanceTypeName string, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndName(maintenanceType string, maintenanceTypeName string, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndNameAndID(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error)
+	GetAssetMaintenanceTypeByTypeAndNameAndIDNotExist(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error)
 }
 
 type assetMaintenanceTypeRepository struct {
 	db gorm.DB
 }
 
-const tableAssetMaintenanceTypeName = "my-home.asset_maintenance_type"
-
 func NewAssetMaintenanceTypeRepository(db gorm.DB) AssetMaintenanceTypeRepository {
 	return assetMaintenanceTypeRepository{db: db}
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByName(name string) error {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByName(name string, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name LIKE ?", name).First(&assetMaintenanceType).Error
-	if err != nil {
-		return err
-	}
-	return nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name LIKE ? AND user_client_id = ?", name, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) AddAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error {
-	err := r.db.Table(tableAssetMaintenanceTypeName).Create(assetMaintenanceType).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (r assetMaintenanceTypeRepository) AddAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error {
+	assetMaintenanceType.UserClientID = clientID
+	return r.db.Table(utils.TableAssetMaintenanceTypeName).Create(assetMaintenanceType).Error
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceType() ([]assets.AssetMaintenanceType, error) {
-	var assetMaintenanceType []assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Find(&assetMaintenanceType).Where("deleted_at IS NULL").Error
-	if err != nil {
-		return nil, err
-	}
-	return assetMaintenanceType, nil
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceType(clientID string) ([]assets.AssetMaintenanceType, error) {
+	var assetMaintenanceTypes []assets.AssetMaintenanceType
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("user_client_id = ? AND deleted_at IS NULL", clientID).
+		Find(&assetMaintenanceTypes).Error
+	return assetMaintenanceTypes, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByID(assetMaintenanceTypeID uint) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByID(assetMaintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_id = ?", assetMaintenanceTypeID).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_id = ? AND user_client_id = ?", assetMaintenanceTypeID, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) UpdateAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error {
-	err := r.db.Table(tableAssetMaintenanceTypeName).Save(assetMaintenanceType).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (r assetMaintenanceTypeRepository) UpdateAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error {
+	assetMaintenanceType.UserClientID = clientID
+	return r.db.Table(utils.TableAssetMaintenanceTypeName).Save(assetMaintenanceType).Error
 }
 
-// delete by id
-func (r assetMaintenanceTypeRepository) DeleteAssetMaintenanceTypeByID(assetMaintenanceTypeID uint) error {
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_id = ?", assetMaintenanceTypeID).Delete(&assets.AssetMaintenanceType{}).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (r assetMaintenanceTypeRepository) DeleteAssetMaintenanceTypeByID(assetMaintenanceTypeID uint, clientID string) error {
+	return r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_id = ? AND user_client_id = ?", assetMaintenanceTypeID, clientID).
+		Delete(&assets.AssetMaintenanceType{}).Error
 }
 
-func (r assetMaintenanceTypeRepository) DeleteAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType) error {
-	err := r.db.Table(tableAssetMaintenanceTypeName).Delete(assetMaintenanceType).Error
-	if err != nil {
-		return err
-	}
-	return nil
+func (r assetMaintenanceTypeRepository) DeleteAssetMaintenanceType(assetMaintenanceType *assets.AssetMaintenanceType, clientID string) error {
+	return r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("user_client_id = ?", clientID).
+		Delete(assetMaintenanceType).Error
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByType(maintenanceType string) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByType(maintenanceType string, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ?", maintenanceType).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND user_client_id = ?", maintenanceType, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndID(maintenanceType string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndID(maintenanceType string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_id != ?", maintenanceType, maintenanceTypeID).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_id != ? AND user_client_id = ?", maintenanceType, maintenanceTypeID, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndIDNotExist(maintenanceType string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error) {
+// Additional filters with clientID
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeNotExist(maintenanceType string, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_id != ?", maintenanceType, maintenanceTypeID).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND user_client_id = ?", maintenanceType, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeNotExist(maintenanceType string) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndIDNotExist(maintenanceType string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ?", maintenanceType).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_id != ? AND user_client_id = ?", maintenanceType, maintenanceTypeID, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameNotExist(maintenanceType string, maintenanceTypeName string) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameNotExist(maintenanceType string, maintenanceTypeName string, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_name NOT LIKE ?", maintenanceType, maintenanceTypeName).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_name NOT LIKE ? AND user_client_id = ?", maintenanceType, maintenanceTypeName, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndName(maintenanceType string, maintenanceTypeName string) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndName(maintenanceType string, maintenanceTypeName string, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_name LIKE ?", maintenanceType, maintenanceTypeName).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_name LIKE ? AND user_client_id = ?", maintenanceType, maintenanceTypeName, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameAndID(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameAndID(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_name LIKE ? AND maintenance_type_id != ?", maintenanceType, maintenanceTypeName, maintenanceTypeID).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_name LIKE ? AND maintenance_type_id = ? AND user_client_id = ?", maintenanceType, maintenanceTypeName, maintenanceTypeID, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }
 
-func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameAndIDNotExist(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint) (*assets.AssetMaintenanceType, error) {
+func (r assetMaintenanceTypeRepository) GetAssetMaintenanceTypeByTypeAndNameAndIDNotExist(maintenanceType string, maintenanceTypeName string, maintenanceTypeID uint, clientID string) (*assets.AssetMaintenanceType, error) {
 	var assetMaintenanceType assets.AssetMaintenanceType
-	err := r.db.Table(tableAssetMaintenanceTypeName).Where("maintenance_type_name = ? AND maintenance_type_name LIKE ? AND maintenance_type_id != ?", maintenanceType, maintenanceTypeName, maintenanceTypeID).First(&assetMaintenanceType).Error
-	if err != nil {
-		return nil, err
-	}
-	return &assetMaintenanceType, nil
+	err := r.db.Table(utils.TableAssetMaintenanceTypeName).
+		Where("maintenance_type_name = ? AND maintenance_type_name NOT LIKE ? AND maintenance_type_id != ? AND user_client_id = ?", maintenanceType, maintenanceTypeName, maintenanceTypeID, clientID).
+		First(&assetMaintenanceType).Error
+	return &assetMaintenanceType, err
 }

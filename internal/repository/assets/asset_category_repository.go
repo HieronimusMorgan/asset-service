@@ -2,107 +2,157 @@ package assets
 
 import (
 	"asset-service/internal/models/assets"
-	"errors"
+	"asset-service/internal/utils"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
+// AssetCategoryRepository defines the interface
 type AssetCategoryRepository interface {
 	AddAssetCategory(assetCategory *assets.AssetCategory) error
 	UpdateAssetCategory(assetCategory *assets.AssetCategory) error
-	GetAssetCategoryByName(name string) error
+	GetAssetCategoryByName(name string) (*assets.AssetCategory, error)
 	GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error)
 	GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error)
 	GetListAssetCategory() ([]assets.AssetCategory, error)
 	DeleteAssetCategory(assetCategory *assets.AssetCategory) error
 }
+
+// assetCategoryRepository implementation
 type assetCategoryRepository struct {
 	db       gorm.DB
 	logAudit AssetAuditLogRepository
 }
 
-const tableAssetCategoryName = "my-home.asset_category"
-
+// NewAssetCategoryRepository initializes the repository
 func NewAssetCategoryRepository(db gorm.DB, logAudit AssetAuditLogRepository) AssetCategoryRepository {
 	return &assetCategoryRepository{db: db, logAudit: logAudit}
 }
 
-func (r assetCategoryRepository) AddAssetCategory(assetCategory *assets.AssetCategory) error {
-	err := r.db.Table(tableAssetCategoryName).Create(&assetCategory).Error
+// AddAssetCategory inserts a new asset category and logs audit
+func (r *assetCategoryRepository) AddAssetCategory(assetCategory *assets.AssetCategory) error {
+	err := r.db.Table(utils.TableAssetCategoryName).Create(&assetCategory).Error
 	if err != nil {
+		log.Error().Err(err).
+			Str("category_name", assetCategory.CategoryName).
+			Msg("❌ Failed to add asset category")
 		return err
 	}
 
-	// Log audit
-	err = r.logAudit.AfterCreateAssetCategory(assetCategory)
-	if err != nil {
-		return err
-	}
-
+	log.Info().
+		Str("category_name", assetCategory.CategoryName).
+		Msg("✅ Asset category added successfully")
 	return nil
 }
 
-func (r assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.AssetCategory) error {
-	oldAssetCategory, err := r.GetAssetCategoryById(assetCategory.AssetCategoryID)
+// UpdateAssetCategory modifies an existing asset category and logs changes
+func (r *assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.AssetCategory) error {
+	tx := r.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Error().Msg("🔥 Panic occurred, rolling back transaction!")
+		}
+	}()
+
+	err := tx.Table(utils.TableAssetCategoryName).
+		Where("asset_category_id = ?", assetCategory.AssetCategoryID).
+		Updates(assetCategory).Error
 	if err != nil {
+		tx.Rollback()
+		log.Error().Err(err).
+			Uint("asset_category_id", assetCategory.AssetCategoryID).
+			Msg("❌ Failed to update asset category")
 		return err
 	}
 
-	err = r.db.Table(tableAssetCategoryName).Save(assetCategory).Error
-	if err != nil {
-		return err
-	}
-
-	err = r.logAudit.AfterUpdateAssetCategory(oldAssetCategory, assetCategory)
-	if err != nil {
-		return err
-	}
-
+	tx.Commit()
+	log.Info().
+		Uint("asset_category_id", assetCategory.AssetCategoryID).
+		Msg("✅ Asset category updated successfully")
 	return nil
 }
 
-func (r assetCategoryRepository) GetAssetCategoryByName(name string) error {
+// GetAssetCategoryByName fetches a category by name
+func (r *assetCategoryRepository) GetAssetCategoryByName(name string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
-	r.db.Table(tableAssetCategoryName).Where("category_name = ?", name).First(&assetCategory)
-	if assetCategory.AssetCategoryID != 0 {
-		return nil
+	err := r.db.Table(utils.TableAssetCategoryName).
+		Where("category_name = ?", name).
+		First(&assetCategory).Error
+	if err != nil {
+		log.Warn().
+			Str("category_name", name).
+			Msg("⚠ Asset category not found")
+		return nil, err
 	}
-	return errors.New("assets category not found")
+	return &assetCategory, nil
 }
 
-func (r assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error) {
+// GetAssetCategoryById retrieves a category by ID
+func (r *assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
-	r.db.Table(tableAssetCategoryName).Where("asset_category_id = ?", assetCategoryID).First(&assetCategory)
-	if assetCategory.AssetCategoryID != 0 {
-		return &assetCategory, nil
+	err := r.db.Table(utils.TableAssetCategoryName).
+		Where("asset_category_id = ?", assetCategoryID).
+		First(&assetCategory).Error
+	if err != nil {
+		log.Warn().
+			Uint("asset_category_id", assetCategoryID).
+			Msg("⚠ Asset category not found")
+		return nil, err
 	}
-	return nil, errors.New("assets category not found")
+	return &assetCategory, nil
 }
 
-func (r assetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error) {
+// GetAssetCategoryByIdAndNameNotExist checks if category ID and name do not match
+func (r *assetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
-	r.db.Table(tableAssetCategoryName).Where("asset_category_id = ? AND category_name NOT LIKE ?", assetCategoryID, categoryName).First(&assetCategory)
-	if assetCategory.AssetCategoryID != 0 {
-		return &assetCategory, nil
+	err := r.db.Table(utils.TableAssetCategoryName).
+		Where("asset_category_id = ? AND category_name NOT LIKE ?", assetCategoryID, categoryName).
+		First(&assetCategory).Error
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("assets category not found")
+	return &assetCategory, nil
 }
 
-func (r assetCategoryRepository) GetListAssetCategory() ([]assets.AssetCategory, error) {
+// GetListAssetCategory retrieves all categories
+func (r *assetCategoryRepository) GetListAssetCategory() ([]assets.AssetCategory, error) {
 	var assetCategories []assets.AssetCategory
-	err := r.db.Table(tableAssetCategoryName).Find(&assetCategories).Error
+	err := r.db.Table(utils.TableAssetCategoryName).
+		Select("asset_category_id, category_name, created_at").
+		Find(&assetCategories).Error
 	if err != nil {
+		log.Error().Err(err).Msg("❌ Failed to retrieve asset categories")
 		return nil, err
 	}
 	return assetCategories, nil
 }
 
-func (r assetCategoryRepository) DeleteAssetCategory(assetCategory *assets.AssetCategory) error {
-	err := r.db.Table(tableAssetCategoryName).Model(&assetCategory).
+// DeleteAssetCategory marks a category as deleted
+func (r *assetCategoryRepository) DeleteAssetCategory(assetCategory *assets.AssetCategory) error {
+	tx := r.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			log.Error().Msg("🔥 Panic occurred, rolling back transaction!")
+		}
+	}()
+
+	err := tx.Table(utils.TableAssetCategoryName).
 		Where("asset_category_id = ?", assetCategory.AssetCategoryID).
 		Update("deleted_by", assetCategory.DeletedBy).
 		Delete(&assetCategory).Error
 	if err != nil {
+		tx.Rollback()
+		log.Error().Err(err).
+			Uint("asset_category_id", assetCategory.AssetCategoryID).
+			Msg("❌ Failed to delete asset category")
 		return err
 	}
+
+	tx.Commit()
+	log.Info().
+		Uint("asset_category_id", assetCategory.AssetCategoryID).
+		Msg("✅ Asset category deleted successfully")
 	return nil
 }

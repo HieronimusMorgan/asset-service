@@ -6,6 +6,7 @@ import (
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"strconv"
 )
 
@@ -32,8 +33,10 @@ func (h assetWishlistController) AddWishlistAsset(c *gin.Context) {
 		response.SendResponse(c, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
-	if err != nil {
+
+	token, exist := utils.ExtractTokenClaims(c)
+	if !exist {
+		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -46,8 +49,10 @@ func (h assetWishlistController) AddWishlistAsset(c *gin.Context) {
 }
 
 func (h assetWishlistController) GetListWishlistAsset(c *gin.Context) {
-	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
-	if err != nil {
+
+	token, exist := utils.ExtractTokenClaims(c)
+	if !exist {
+		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -60,8 +65,10 @@ func (h assetWishlistController) GetListWishlistAsset(c *gin.Context) {
 }
 
 func (h assetWishlistController) GetWishlistAssetByID(c *gin.Context) {
-	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
-	if err != nil {
+
+	token, exist := utils.ExtractTokenClaims(c)
+	if !exist {
+		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -81,20 +88,15 @@ func (h assetWishlistController) GetWishlistAssetByID(c *gin.Context) {
 }
 
 func (h assetWishlistController) UpdateWishlistAsset(c *gin.Context) {
-	var req struct {
-		Description  string  `json:"description"`
-		PurchaseDate string  `json:"purchase_date" binding:"required"`
-		CategoryID   int     `json:"category_id" binding:"required"`
-		StatusID     int     `json:"status_id" binding:"required"`
-		Price        float64 `json:"price" binding:"required"`
-		IsWishlist   bool    `json:"is_wishlist" binding:"required"`
-	}
+	var req request.UpdateAssetWishlistRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(c, 400, "Error", nil, err.Error())
 		return
 	}
-	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
-	if err != nil {
+
+	token, exist := utils.ExtractTokenClaims(c)
+	if !exist {
+		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -114,8 +116,9 @@ func (h assetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 }
 
 func (h assetWishlistController) DeleteWishlistAsset(c *gin.Context) {
-	token, err := h.JWTService.ExtractClaims(c.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(c)
+	if !exist {
+		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 

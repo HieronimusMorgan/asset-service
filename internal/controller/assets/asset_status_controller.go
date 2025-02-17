@@ -6,6 +6,7 @@ import (
 	"asset-service/internal/utils"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type AssetStatusController interface {
@@ -32,15 +33,12 @@ func (h assetStatusController) AddAssetStatus(context *gin.Context) {
 		return
 	}
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	if err != nil {
-		response.SendResponse(context, 401, "Error", nil, err.Error())
-		return
-	}
 	assetStatus, err := h.AssetStatusService.AddAssetStatus(&req, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to add assets status", nil, err)
@@ -86,8 +84,9 @@ func (h assetStatusController) UpdateAssetStatus(context *gin.Context) {
 		return
 	}
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
@@ -106,8 +105,9 @@ func (h assetStatusController) DeleteAssetStatus(context *gin.Context) {
 		return
 	}
 
-	token, err := h.JWTService.ExtractClaims(context.GetHeader("Authorization"))
-	if err != nil {
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 

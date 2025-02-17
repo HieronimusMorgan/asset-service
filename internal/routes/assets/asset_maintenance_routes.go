@@ -1,20 +1,20 @@
 package assets
 
 import (
+	"asset-service/config"
 	"asset-service/internal/controller/assets"
-	"asset-service/internal/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func AssetMaintenanceRoutes(r *gin.Engine, middleware middleware.AuthMiddleware, controller assets.AssetMaintenanceController) {
+func AssetMaintenanceRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetMaintenanceController) {
 
-	assetMaintenanceRoutes := r.Group("/asset-service/v1/asset-maintenance")
-	assetMaintenanceRoutes.Use(middleware.Handler())
+	routerGroup := r.Group("/asset-service/v1/asset-maintenance")
+	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
-		assetMaintenanceRoutes.POST("/", controller.CreateMaintenance)
-		assetMaintenanceRoutes.GET("/:id", controller.GetMaintenanceByID)
-		assetMaintenanceRoutes.PUT("/:id", controller.UpdateMaintenance)
-		assetMaintenanceRoutes.DELETE("/:id", controller.DeleteMaintenance)
-		assetMaintenanceRoutes.GET("/asset/:asset_id", controller.GetMaintenancesByAssetID)
+		routerGroup.POST("/add-maintenance", controller.AddAssetMaintenance)
+		routerGroup.GET("/:id", controller.GetMaintenanceByID)
+		routerGroup.PUT("/:id", controller.UpdateMaintenance)
+		routerGroup.DELETE("/:id", controller.DeleteMaintenance)
+		routerGroup.GET("/asset/:asset_id", controller.GetMaintenancesByAssetID)
 	}
 }
