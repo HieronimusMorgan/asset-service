@@ -7,12 +7,14 @@ import (
 
 type AssetMaintenanceRecord struct {
 	MaintenanceRecordID uint           `gorm:"primaryKey" json:"maintenance_record_id"`
-	AssetID             uint           `gorm:"not null" json:"asset_id"`
-	MaintenanceDate     time.Time      `gorm:"type:date;not null" json:"maintenance_date"`
-	MaintenanceType     string         `gorm:"type:varchar(255);not null" json:"maintenance_type"`
+	UserClientID        string         `gorm:"type:varchar(50);not null" json:"user_client_id,omitempty"`
+	AssetID             int            `gorm:"not null" json:"asset_id"`
+	TypeID              int            `gorm:"not null" json:"type_id"`
+	MaintenanceDate     *time.Time     `gorm:"type:date;not null" json:"maintenance_date"`
 	MaintenanceDetails  *string        `gorm:"type:text" json:"maintenance_details,omitempty"`
-	MaintenanceCost     *float64       `gorm:"type:decimal(15,2)" json:"maintenance_cost,omitempty"`
-	PerformedBy         *string        `gorm:"type:varchar(255)" json:"performed_by,omitempty"`
+	MaintenanceCost     float64        `gorm:"type:decimal(15,2)" json:"maintenance_cost"`
+	PerformedBy         *string        `gorm:"type:text" json:"performed_by,omitempty"`
+	IntervalDays        *int           `gorm:"type:int" json:"interval_days,omitempty"`
 	NextDueDate         *time.Time     `gorm:"type:date" json:"next_due_date,omitempty"`
 	CreatedAt           time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	CreatedBy           string         `gorm:"type:varchar(255)" json:"created_by"`

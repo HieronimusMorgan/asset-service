@@ -12,6 +12,7 @@ func AssetMaintenanceRoutes(r *gin.Engine, middleware config.Middleware, control
 	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
 		routerGroup.POST("/add-maintenance", controller.AddAssetMaintenance)
+		routerGroup.POST("/perform-maintenance", controller.PerformMaintenance)
 		routerGroup.GET("/:id", controller.GetMaintenanceByID)
 		routerGroup.PUT("/:id", controller.UpdateMaintenance)
 		routerGroup.DELETE("/:id", controller.DeleteMaintenance)

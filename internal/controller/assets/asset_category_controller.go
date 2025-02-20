@@ -76,7 +76,7 @@ func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
 
 }
 
-func (h assetCategoryController) GetAssetCategories(context *gin.Context) {
+func (h assetCategoryController) GetAssetCategories(*gin.Context) {
 
 }
 
@@ -102,7 +102,13 @@ func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {
 		return
 	}
 
-	assetCategory, err := h.AssetCategoryService.GetAssetCategoryById(assetCategoryID)
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	assetCategory, err := h.AssetCategoryService.GetAssetCategoryById(assetCategoryID, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return

@@ -16,7 +16,7 @@ type AssetCategoryService interface {
 	AddAssetCategory(assetRequest *request.AssetCategoryRequest, clientID string) (interface{}, error)
 	UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error)
 	GetListAssetCategory(clientID string) (interface{}, error)
-	GetAssetCategoryById(categoryID uint) (interface{}, error)
+	GetAssetCategoryById(categoryID uint, clientID string) (interface{}, error)
 	DeleteAssetCategory(categoryID uint, clientID string) error
 }
 
@@ -54,6 +54,7 @@ func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCateg
 	}
 
 	assetCategory := &assets.AssetCategory{
+		UserClientID: clientID,
 		CategoryName: assetRequest.CategoryName,
 		Description:  assetRequest.Description,
 		CreatedBy:    data.ClientID,
@@ -88,7 +89,7 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 		return nil, err
 	}
 
-	oldAssetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(assetCategoryID)
+	oldAssetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(assetCategoryID, clientID)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +104,7 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 	assetCategory.Description = assetCategoryRequest.Description
 	assetCategory.UpdatedBy = data.ClientID
 
-	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory)
+	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory, clientID)
 	if err != nil {
 		log.Error().Err(err).Uint("asset_category_id", assetCategoryID).Msg("Failed to update asset category")
 		return nil, err
@@ -131,7 +132,7 @@ func (s *assetCategoryService) GetListAssetCategory(clientID string) (interface{
 		return nil, err
 	}
 
-	assetCategories, err := s.AssetCategoryRepository.GetListAssetCategory()
+	assetCategories, err := s.AssetCategoryRepository.GetListAssetCategory(clientID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve asset categories")
 		return nil, err
@@ -149,8 +150,8 @@ func (s *assetCategoryService) GetListAssetCategory(clientID string) (interface{
 	return assetCategoriesResponse, nil
 }
 
-func (s *assetCategoryService) GetAssetCategoryById(categoryID uint) (interface{}, error) {
-	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
+func (s *assetCategoryService) GetAssetCategoryById(categoryID uint, clientID string) (interface{}, error) {
+	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID, clientID)
 	if err != nil {
 		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category not found")
 		return nil, errors.New("asset category not found")
@@ -170,7 +171,7 @@ func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID str
 		return err
 	}
 
-	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID)
+	assetCategory, err := s.AssetCategoryRepository.GetAssetCategoryById(categoryID, clientID)
 	if err != nil {
 		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category not found")
 		return errors.New("asset category not found")
@@ -182,15 +183,19 @@ func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID str
 		return err
 	}
 
-	if asset != nil {
-		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category is still in use")
+	if len(asset) > 0 {
+		log.Warn().Uint("asset_category_id", categoryID).Msg("Asset category is still in use by assets")
 		return errors.New("asset category is still in use")
 	}
 
 	assetCategory.DeletedBy = &data.ClientID
-	err = s.AssetCategoryRepository.DeleteAssetCategory(assetCategory)
-	if err != nil {
+	if err = s.AssetCategoryRepository.DeleteAssetCategory(assetCategory); err != nil {
 		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to delete asset category")
+		return err
+	}
+
+	if err = s.AssetAuditLogRepository.AfterDeleteAssetCategory(assetCategory); err != nil {
+		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to audit log after deleting asset category")
 		return err
 	}
 

@@ -15,6 +15,7 @@ type AssetMaintenanceController interface {
 	AddAssetMaintenance(ctx *gin.Context)
 	GetMaintenanceByID(ctx *gin.Context)
 	GetMaintenancesByAssetID(ctx *gin.Context)
+	PerformMaintenance(ctx *gin.Context)
 	UpdateMaintenance(ctx *gin.Context)
 	DeleteMaintenance(ctx *gin.Context)
 }
@@ -103,7 +104,28 @@ func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 	response.SendResponse(ctx, http.StatusOK, "Success", maintenances, nil)
 }
 
-func (c assetMaintenanceController) UpdateMaintenance(ctx *gin.Context) {
+func (c assetMaintenanceController) PerformMaintenance(ctx *gin.Context) {
+	var maintenance request.AssetMaintenancePerformRequest
+	if err := ctx.ShouldBindJSON(&maintenance); err != nil {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(ctx)
+	if !exist {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	result, err := c.Service.PerformMaintenance(maintenance, token.ClientID)
+	if err != nil {
+		response.SendResponse(ctx, http.StatusInternalServerError, "Failed to perform maintenance", nil, err.Error())
+		return
+	}
+	response.SendResponse(ctx, http.StatusOK, "Maintenance performed successfully", result, nil)
+}
+
+func (c assetMaintenanceController) UpdateMaintenance(*gin.Context) {
 	//var maintenance in.AssetMaintenanceRequest
 	//if err := ctx.ShouldBindJSON(&maintenance); err != nil {
 	//	response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, err.Error())

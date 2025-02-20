@@ -1,19 +1,13 @@
 package utils
 
-import "time"
+import (
+	"time"
+)
 
-const Token = "token"
 const User = "user"
-const UserSession = "user_session"
 const ClientID = "client_id"
-const UserID = "user_id"
-const RoleID = "role_id"
 
 const (
-	Admin         = "Admin"
-	SuperAdmin    = "Super Admin"
-	NormalUser    = "User"
-	Anonymous     = "Anonymous"
 	Authorization = "Authorization"
 )
 
@@ -24,7 +18,7 @@ const (
 	TableAssetMaintenanceName       = "my-home.asset_maintenance"
 	TableAssetMaintenanceTypeName   = "my-home.asset_maintenance_type"
 	TableAssetName                  = "my-home.asset"
-	TableAssetStatus                = "my-home.asset_status"
+	TableAssetStatusName            = "my-home.asset_status"
 )
 
 func ParseOptionalDate(str *string) (*time.Time, error) {
@@ -36,4 +30,12 @@ func ParseOptionalDate(str *string) (*time.Time, error) {
 		return nil, err
 	}
 	return &parsedDate, nil
+}
+
+func CalculateNextDueDate(date *time.Time, days *int) (*time.Time, error) {
+	if date == nil || days == nil {
+		return nil, nil
+	}
+	nextDueDate := date.AddDate(0, 0, *days)
+	return &nextDueDate, nil
 }

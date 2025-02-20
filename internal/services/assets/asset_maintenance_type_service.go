@@ -14,7 +14,7 @@ type AssetMaintenanceTypeService interface {
 	GetListMaintenanceType(clientID string) ([]model.AssetMaintenanceType, error)
 	AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string) (interface{}, error)
 	UpdateMaintenanceType(id uint, clientID string, maintenanceType *request.AssetMaintenanceTypeRequest) (interface{}, error)
-	DeleteMaintenanceType(maintenanceTypeID uint) error
+	DeleteMaintenanceType(maintenanceTypeID uint, clientID string) error
 }
 type assetMaintenanceTypeService struct {
 	AssetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository
@@ -22,8 +22,14 @@ type assetMaintenanceTypeService struct {
 	Redis                          utils.RedisService
 }
 
-func NewAssetMaintenanceTypeService(assetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository, assetMaintenanceRepository repo.AssetMaintenanceRepository, redis utils.RedisService) AssetMaintenanceTypeService {
-	return assetMaintenanceTypeService{AssetMaintenanceTypeRepository: assetMaintenanceTypeRepository, AssetMaintenanceRepository: assetMaintenanceRepository, Redis: redis}
+func NewAssetMaintenanceTypeService(
+	assetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository,
+	assetMaintenanceRepository repo.AssetMaintenanceRepository,
+	redis utils.RedisService) AssetMaintenanceTypeService {
+	return assetMaintenanceTypeService{
+		AssetMaintenanceTypeRepository: assetMaintenanceTypeRepository,
+		AssetMaintenanceRepository:     assetMaintenanceRepository,
+		Redis:                          redis}
 }
 
 func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string) (interface{}, error) {
@@ -44,8 +50,12 @@ func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request
 		CreatedBy:    data.ClientID,
 	}
 
-	err = s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceTypeRecord, clientID)
-	if err != nil {
+	if err = s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceTypeRecord, clientID); err != nil {
+		log.Error().
+			Str("key", "AddAssetMaintenanceType").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to add asset maintenance type")
 		return nil, err
 	}
 
@@ -109,9 +119,8 @@ func (s assetMaintenanceTypeService) UpdateMaintenanceType(id uint, clientID str
 	return maintenanceTypeRecord, nil
 }
 
-func (s assetMaintenanceTypeService) DeleteMaintenanceType(maintenanceTypeID uint) error {
-	err := s.AssetMaintenanceTypeRepository.DeleteAssetMaintenanceTypeByID(maintenanceTypeID, "")
-	if err != nil {
+func (s assetMaintenanceTypeService) DeleteMaintenanceType(maintenanceTypeID uint, clientID string) error {
+	if err := s.AssetMaintenanceTypeRepository.DeleteAssetMaintenanceTypeByID(maintenanceTypeID, clientID); err != nil {
 		return err
 	}
 

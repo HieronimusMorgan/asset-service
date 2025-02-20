@@ -4,7 +4,6 @@ import (
 	response "asset-service/internal/dto/out/assets"
 	model "asset-service/internal/models/assets"
 	"asset-service/internal/utils"
-	"database/sql"
 	"fmt"
 	"gorm.io/gorm"
 	"time"
@@ -13,7 +12,8 @@ import (
 type AssetMaintenanceRepository interface {
 	AddAssetMaintenance(maintenance *model.AssetMaintenance) error
 	GetMaintenanceByAssetID(assetID uint, clientID string) (*model.AssetMaintenance, error)
-	GetMaintenanceByID(maintenanceID uint, clientID string) (*response.AssetMaintenanceResponse, error)
+	GetMaintenanceByID(maintenanceID uint, clientID string) (*model.AssetMaintenance, error)
+	GetMaintenanceResponseByID(maintenanceID uint, clientID string) (*response.AssetMaintenancesResponse, error)
 	GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error)
 	GetListMaintenance() ([]response.AssetMaintenancesResponse, error)
 	GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error)
@@ -41,30 +41,57 @@ func (r assetMaintenanceRepository) GetMaintenanceByAssetID(assetID uint, client
 	return &maintenance, err
 }
 
-func (r assetMaintenanceRepository) GetMaintenanceByID(maintenanceID uint, clientID string) (*response.AssetMaintenanceResponse, error) {
-	var maintenance response.AssetMaintenanceResponse
+func (r assetMaintenanceRepository) GetMaintenanceByID(maintenanceID uint, clientID string) (*model.AssetMaintenance, error) {
+	var maintenance model.AssetMaintenance
+	err := r.db.Table(utils.TableAssetMaintenanceName).Where("id = ? AND user_client_id = ?", maintenanceID, clientID).First(&maintenance).Error
+	return &maintenance, err
+}
+
+func (r assetMaintenanceRepository) GetMaintenanceResponseByID(maintenanceID uint, clientID string) (*response.AssetMaintenancesResponse, error) {
 
 	assetMaintenance := `
-		SELECT am.id, am.asset_id, am.maintenance_details, am.maintenance_date, am.maintenance_cost 
+		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
 		FROM "my-home"."asset_maintenance" am 
-		WHERE am.id = ?
+		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		WHERE am.id = ? AND am.user_client_id = ?
 `
 
-	err := r.db.Raw(assetMaintenance, maintenanceID).Scan(&maintenance).Error
+	rows := r.db.Raw(assetMaintenance, maintenanceID, clientID).Row()
+
+	var maintenance response.AssetMaintenancesResponse
+	var typeMaintenance response.MaintenanceTypeResponse
+
+	err := rows.Scan(
+		&maintenance.ID,
+		&maintenance.UserClientID,
+		&maintenance.AssetID,
+		&typeMaintenance.TypeID,
+		&typeMaintenance.TypeName,
+		&maintenance.MaintenanceDate,
+		&maintenance.MaintenanceDetails,
+		&maintenance.MaintenanceCost,
+		&maintenance.PerformedBy,
+		&maintenance.IntervalDays,
+		&maintenance.NextDueDate,
+	)
+
 	if err != nil {
 		return nil, err
 	}
+
+	maintenance.Type = typeMaintenance
 
 	return &maintenance, nil
 }
 
 func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
-		FROM "my-home"."asset_maintenance" am
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id 
+		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "my-home"."asset_maintenance" am 
+		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 		WHERE am.asset_id = ? AND am.user_client_id = ?
 `
+
 	rows, err := r.db.Raw(assetMaintenance, assetID, clientID).Rows()
 	if err != nil {
 		return nil, err
@@ -72,31 +99,28 @@ func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, cl
 
 	var result []response.AssetMaintenancesResponse
 	for rows.Next() {
-		var asset response.AssetMaintenancesResponse
-
-		var maintenanceDate sql.NullTime
-		var nextDueDate sql.NullTime
+		var maintenance response.AssetMaintenancesResponse
+		var typeMaintenance response.MaintenanceTypeResponse
 
 		err := rows.Scan(
-			&asset.ID,
-			&asset.TypeName,
-			&maintenanceDate,
-			&asset.MaintenanceDetails,
-			&asset.MaintenanceCost,
-			&asset.PerformedBy,
-			&nextDueDate,
+			&maintenance.ID,
+			&maintenance.UserClientID,
+			&maintenance.AssetID,
+			&typeMaintenance.TypeID,
+			&typeMaintenance.TypeName,
+			&maintenance.MaintenanceDate,
+			&maintenance.MaintenanceDetails,
+			&maintenance.MaintenanceCost,
+			&maintenance.PerformedBy,
+			&maintenance.IntervalDays,
+			&maintenance.NextDueDate,
 		)
 
 		if err != nil {
 			return nil, err
 		}
-		if maintenanceDate.Valid {
-			asset.MaintenanceDate = maintenanceDate.Time
-		}
-		if nextDueDate.Valid {
-			asset.NextDueDate = &nextDueDate.Time
-		}
-		result = append(result, asset)
+		maintenance.Type = typeMaintenance
+		result = append(result, maintenance)
 	}
 
 	return result, nil
@@ -104,10 +128,11 @@ func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, cl
 
 func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
-		FROM "my-home"."asset_maintenance" am
+		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "my-home"."asset_maintenance" am 
 		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 `
+
 	rows, err := r.db.Raw(assetMaintenance).Rows()
 	if err != nil {
 		return nil, err
@@ -115,31 +140,28 @@ func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMainte
 
 	var result []response.AssetMaintenancesResponse
 	for rows.Next() {
-		var asset response.AssetMaintenancesResponse
-
-		var maintenanceDate sql.NullTime
-		var nextDueDate sql.NullTime
+		var maintenance response.AssetMaintenancesResponse
+		var typeMaintenance response.MaintenanceTypeResponse
 
 		err := rows.Scan(
-			&asset.ID,
-			&asset.TypeName,
-			&maintenanceDate,
-			&asset.MaintenanceDetails,
-			&asset.MaintenanceCost,
-			&asset.PerformedBy,
-			&nextDueDate,
+			&maintenance.ID,
+			&maintenance.UserClientID,
+			&maintenance.AssetID,
+			&typeMaintenance.TypeID,
+			&typeMaintenance.TypeName,
+			&maintenance.MaintenanceDate,
+			&maintenance.MaintenanceDetails,
+			&maintenance.MaintenanceCost,
+			&maintenance.PerformedBy,
+			&maintenance.IntervalDays,
+			&maintenance.NextDueDate,
 		)
 
 		if err != nil {
 			return nil, err
 		}
-		if maintenanceDate.Valid {
-			asset.MaintenanceDate = maintenanceDate.Time
-		}
-		if nextDueDate.Valid {
-			asset.NextDueDate = &nextDueDate.Time
-		}
-		result = append(result, asset)
+		maintenance.Type = typeMaintenance
+		result = append(result, maintenance)
 	}
 
 	return result, nil
@@ -147,11 +169,12 @@ func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMainte
 
 func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, amt.type_name, am.maintenance_date, am.maintenance_details, am. maintenance_cost, am. performed_by, am.next_due_date 
-		FROM "my-home"."asset_maintenance" am
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id 
+		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "my-home"."asset_maintenance" am 
+		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 		WHERE am.user_client_id = ?
 `
+
 	rows, err := r.db.Raw(assetMaintenance, clientID).Rows()
 	if err != nil {
 		return nil, err
@@ -159,32 +182,28 @@ func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string
 
 	var result []response.AssetMaintenancesResponse
 	for rows.Next() {
-		var asset response.AssetMaintenancesResponse
-
-		var maintenanceDate sql.NullTime
-		var nextDueDate sql.NullTime
+		var maintenance response.AssetMaintenancesResponse
+		var typeMaintenance response.MaintenanceTypeResponse
 
 		err := rows.Scan(
-			&asset.ID,
-			&asset.TypeName,
-			&maintenanceDate,
-			&asset.MaintenanceDetails,
-			&asset.MaintenanceCost,
-			&asset.PerformedBy,
-			&nextDueDate,
+			&maintenance.ID,
+			&maintenance.UserClientID,
+			&maintenance.AssetID,
+			&typeMaintenance.TypeID,
+			&typeMaintenance.TypeName,
+			&maintenance.MaintenanceDate,
+			&maintenance.MaintenanceDetails,
+			&maintenance.MaintenanceCost,
+			&maintenance.PerformedBy,
+			&maintenance.IntervalDays,
+			&maintenance.NextDueDate,
 		)
 
 		if err != nil {
 			return nil, err
 		}
-
-		if maintenanceDate.Valid {
-			asset.MaintenanceDate = maintenanceDate.Time
-		}
-		if nextDueDate.Valid {
-			asset.NextDueDate = &nextDueDate.Time
-		}
-		result = append(result, asset)
+		maintenance.Type = typeMaintenance
+		result = append(result, maintenance)
 	}
 
 	return result, nil

@@ -18,8 +18,10 @@ type AssetRepository interface {
 	AssetNameExists(name string, clientID string) (bool, error)
 	GetAsset(assetID uint, clientID string) (*assets.Asset, error)
 	GetListAssets(clientID string) ([]response.AssetResponse, error)
-	GetAssetByID(clientID string, id uint) (*response.AssetResponse, error)
+	GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error)
+	GetAssetByID(clientID string, id uint) (*assets.Asset, error)
 	UpdateAsset(asset *assets.Asset, clientID string) error
+	UpdateMaintenanceDateAsset(assetID uint, maintenanceDate *time.Time, clientID string) error
 	UpdateAssetStatus(assetID uint, statusID uint, clientID string) (*assets.Asset, error)
 	UpdateAssetCategory(assetID uint, categoryID uint, clientID string) (*assets.Asset, error)
 	DeleteAsset(id uint, clientID string) error
@@ -92,32 +94,32 @@ func (r assetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset,
 
 func (r assetRepository) GetListAssets(clientID string) ([]response.AssetResponse, error) {
 	selectQuery := `
-        SELECT 
-            asset.asset_id,
-            asset.user_client_id,
-            asset.serial_number,
-            asset.name,
-            asset.description,
-            asset.barcode,
-            asset.image_url,
-            asset.purchase_date,
-            asset.expiry_date,
-            asset.warranty_expiry_date,
-            asset.price,
-            asset.stock,
-            asset.notes,
-            category.asset_category_id,
-            category.category_name,
-            category.description AS category_description,
-            status.asset_status_id,
-            status.status_name,
-            status.description AS status_description
-        FROM "my-home"."asset" asset
-        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
-        ORDER BY asset.name DESC;
-    `
+       SELECT 
+           asset.asset_id,
+           asset.user_client_id,
+           asset.serial_number,
+           asset.name,
+           asset.description,
+           asset.barcode,
+           asset.image_url,
+           asset.purchase_date,
+           asset.expiry_date,
+           asset.warranty_expiry_date,
+           asset.price,
+           asset.stock,
+           asset.notes,
+           category.asset_category_id,
+           category.category_name,
+           category.description AS category_description,
+           status.asset_status_id,
+           status.status_name,
+           status.description AS status_description
+       FROM "my-home"."asset" asset
+       INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+       WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
+       ORDER BY asset.name DESC;
+   `
 
 	rows, err := r.db.Raw(selectQuery, clientID).Rows()
 	if err != nil {
@@ -214,34 +216,34 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 	return assetsList, nil
 }
 
-func (r assetRepository) GetAssetByID(clientID string, id uint) (*response.AssetResponse, error) {
+func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error) {
 	selectQuery := `
-        SELECT 
-            asset.asset_id,
-            asset.user_client_id,
-            asset.serial_number,
-            asset.name,
-            asset.description,
-            asset.barcode,
-            asset.image_url,
-            asset.purchase_date,
-            asset.expiry_date,
-            asset.warranty_expiry_date,
-            asset.price,
-            asset.stock,
-            asset.notes,
-            category.asset_category_id,
-            category.category_name,
-            category.description AS category_description,
-            status.asset_status_id,
-            status.status_name,
-            status.description AS status_description
-        FROM "my-home"."asset" asset
-        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
-        WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = false
-        ORDER BY asset.name DESC;
-    `
+       SELECT 
+           asset.asset_id,
+           asset.user_client_id,
+           asset.serial_number,
+           asset.name,
+           asset.description,
+           asset.barcode,
+           asset.image_url,
+           asset.purchase_date,
+           asset.expiry_date,
+           asset.warranty_expiry_date,
+           asset.price,
+           asset.stock,
+           asset.notes,
+           category.asset_category_id,
+           category.category_name,
+           category.description AS category_description,
+           status.asset_status_id,
+           status.status_name,
+           status.description AS status_description
+       FROM "my-home"."asset" asset
+       INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+       WHERE asset.user_client_id = ? AND asset.asset_id = ?  AND asset.deleted_at IS NULL
+       ORDER BY asset.name DESC;
+   `
 
 	rows := r.db.Raw(selectQuery, clientID, id).Row()
 
@@ -250,23 +252,30 @@ func (r assetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
 	var status response.AssetStatusResponse
 
 	// Handling NULL values from SQL
+	var serialNumber sql.NullString
 	var barcode sql.NullString
 	var imageUrl sql.NullString
+	var description sql.NullString
+	var purchaseDate sql.NullTime
+	var expiryDate sql.NullTime
+	var warrantyExpiryDate sql.NullTime
+	var price sql.NullFloat64
+	var stock sql.NullInt64
 	var notes sql.NullString
 
 	err := rows.Scan(
 		&asset.AssetID,
 		&asset.UserClientID,
-		&asset.SerialNumber,
+		&serialNumber,
 		&asset.Name,
-		&asset.Description,
+		&description,
 		&barcode,
 		&imageUrl,
-		&asset.PurchaseDate,
-		&asset.ExpiryDate,
-		&asset.WarrantyExpiryDate,
-		&asset.Price,
-		&asset.Stock,
+		&purchaseDate,
+		&expiryDate,
+		&warrantyExpiryDate,
+		&price,
+		&stock,
 		&notes,
 		&category.AssetCategoryID,
 		&category.CategoryName,
@@ -277,24 +286,55 @@ func (r assetRepository) GetAssetByID(clientID string, id uint) (*response.Asset
 	)
 
 	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset row")
 		return nil, err
 	}
 
 	// Convert NULL SQL values to Go `nil`
+	if serialNumber.Valid {
+		asset.SerialNumber = &serialNumber.String
+	}
 	if barcode.Valid {
 		asset.Barcode = &barcode.String
 	}
 	if imageUrl.Valid {
 		asset.ImageUrl = &imageUrl.String
 	}
+	if description.Valid {
+		asset.Description = description.String
+	}
+	if price.Valid {
+		asset.Price = price.Float64
+	}
+	if stock.Valid {
+		asset.Stock = int(stock.Int64)
+	}
 	if notes.Valid {
 		asset.Notes = &notes.String
 	}
+	if purchaseDate.Valid {
+		asset.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
+	}
+	if expiryDate.Valid {
+		asset.ExpiryDate = (*response.DateOnly)(&expiryDate.Time)
+	}
+	if warrantyExpiryDate.Valid {
+		asset.WarrantyExpiryDate = (*response.DateOnly)(&warrantyExpiryDate.Time)
+	}
 
-	// Assign relationships
+	// Assign category and status details
 	asset.Category = category
 	asset.Status = status
 
+	return &asset, nil
+}
+
+func (r assetRepository) GetAssetByID(clientID string, id uint) (*assets.Asset, error) {
+	var asset assets.Asset
+	err := r.db.Table(utils.TableAssetName).Where("asset_id = ? AND user_client_id = ?", id, clientID).First(&asset).Error
+	if err != nil {
+		return nil, err
+	}
 	return &asset, nil
 }
 
@@ -307,6 +347,24 @@ func (r assetRepository) UpdateAsset(asset *assets.Asset, clientID string) error
 		Where("asset_id = ? AND user_client_id = ?", asset.AssetID, clientID).
 		Updates(asset).Error; err != nil {
 		return fmt.Errorf("failed to update asset: %w", err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return nil
+}
+
+func (r assetRepository) UpdateMaintenanceDateAsset(assetID uint, maintenanceDate *time.Time, clientID string) error {
+	tx := r.db.Begin()
+	defer tx.Rollback()
+
+	// Update asset fields (only changed fields)
+	if err := tx.Table(utils.TableAssetName).
+		Where("user_client_id = ? AND asset_id = ?", clientID, assetID).
+		Updates(map[string]interface{}{"maintenance_date": maintenanceDate}).Error; err != nil {
+		return fmt.Errorf("failed to update maintenance date: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {

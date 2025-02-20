@@ -61,6 +61,7 @@ VALUES
 CREATE TABLE asset_category
 (
     asset_category_id SERIAL PRIMARY KEY,
+    user_client_id VARCHAR(50) NOT NULL,
     category_name     VARCHAR(255) NOT NULL,
     description       TEXT,
     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -70,66 +71,66 @@ CREATE TABLE asset_category
     deleted_at        TIMESTAMP,
     deleted_by        VARCHAR(255)
 );
-INSERT INTO asset_category (category_name, description, created_by, updated_by)
-VALUES
-    -- ✅ Electronics & IT Equipment
-    ('Electronics', 'Electronic devices, gadgets, and computing equipment', 'system', 'system'),
-    ('Computers & Laptops', 'Desktops, laptops, and tablets', 'system', 'system'),
-    ('Mobile Phones', 'Smartphones, feature phones, and accessories', 'system', 'system'),
-    ('Audio Equipment', 'Speakers, headphones, and microphones', 'system', 'system'),
-    ('Video Equipment', 'Cameras, camcorders, and video production gear', 'system', 'system'),
-    ('Networking Devices', 'Routers, switches, and access points', 'system', 'system'),
-    ('Storage Devices', 'Hard drives, SSDs, and NAS storage', 'system', 'system'),
-
-    -- ✅ Furniture & Office Equipment
-    ('Furniture', 'Office and home furniture', 'system', 'system'),
-    ('Office Desks', 'Workstations and office desks', 'system', 'system'),
-    ('Office Chairs', 'Ergonomic and standard chairs for workspace', 'system', 'system'),
-    ('Conference Tables', 'Tables used in meeting and conference rooms', 'system', 'system'),
-    ('Cabinets & Shelves', 'Storage units including file cabinets and shelves', 'system', 'system'),
-
-    -- ✅ Vehicles & Transport
-    ('Vehicles', 'Company-owned vehicles for transport and logistics', 'system', 'system'),
-    ('Company Cars', 'Sedans and SUVs used by employees', 'system', 'system'),
-    ('Trucks', 'Heavy-duty vehicles for transportation', 'system', 'system'),
-    ('Motorcycles', 'Two-wheeled vehicles for company use', 'system', 'system'),
-    ('Electric Vehicles', 'Battery-powered electric vehicles', 'system', 'system'),
-
-    -- ✅ Machinery & Tools
-    ('Machinery', 'Industrial machinery and large equipment', 'system', 'system'),
-    ('Hand Tools', 'Basic hand tools like hammers and screwdrivers', 'system', 'system'),
-    ('Power Tools', 'Electric drills, saws, grinders, and similar tools', 'system', 'system'),
-
-    -- ✅ Software & Hardware
-    ('Software', 'Licensed software, applications, and digital assets', 'system', 'system'),
-    ('Hardware', 'Computer peripherals and hardware components', 'system', 'system'),
-
-    -- ✅ Appliances & Home Equipment
-    ('Appliances', 'Electrical and non-electrical appliances for office or home use', 'system', 'system'),
-    ('Kitchen Appliances', 'Refrigerators, microwaves, and coffee machines', 'system', 'system'),
-    ('Cleaning Equipment', 'Vacuum cleaners, air purifiers, and sanitation devices', 'system', 'system'),
-
-    -- ✅ Medical & Laboratory Equipment
-    ('Medical Equipment', 'Healthcare and hospital equipment', 'system', 'system'),
-    ('Laboratory Equipment', 'Scientific research and testing instruments', 'system', 'system'),
-
-    -- ✅ Security & Surveillance
-    ('Security Equipment', 'Cameras, alarms, and surveillance devices', 'system', 'system'),
-    ('CCTV Cameras', 'Security cameras for surveillance', 'system', 'system'),
-    ('Alarm Systems', 'Intruder detection and emergency alarms', 'system', 'system'),
-
-    -- ✅ Office Supplies & Stationery
-    ('Stationery', 'Office supplies like pens, paper, and notebooks', 'system', 'system'),
-    ('Printers & Scanners', 'Devices for printing and scanning documents', 'system', 'system'),
-
-    -- ✅ Real Estate & Properties
-    ('Real Estate', 'Buildings, land, and company-owned properties', 'system', 'system'),
-
-    -- ✅ Other Miscellaneous Categories
-    ('Art', 'Paintings, sculptures, and decorative items', 'system', 'system'),
-    ('Books & Reference', 'Books, manuals, and reference materials', 'system', 'system'),
-    ('Clothing & Uniforms', 'Work uniforms and protective clothing', 'system', 'system'),
-    ('Miscellaneous', 'Other uncategorized assets', 'system', 'system');
+-- INSERT INTO asset_category (category_name, description, created_by, updated_by)
+-- VALUES
+--     -- ✅ Electronics & IT Equipment
+--     ('Electronics', 'Electronic devices, gadgets, and computing equipment', 'system', 'system'),
+--     ('Computers & Laptops', 'Desktops, laptops, and tablets', 'system', 'system'),
+--     ('Mobile Phones', 'Smartphones, feature phones, and accessories', 'system', 'system'),
+--     ('Audio Equipment', 'Speakers, headphones, and microphones', 'system', 'system'),
+--     ('Video Equipment', 'Cameras, camcorders, and video production gear', 'system', 'system'),
+--     ('Networking Devices', 'Routers, switches, and access points', 'system', 'system'),
+--     ('Storage Devices', 'Hard drives, SSDs, and NAS storage', 'system', 'system'),
+--
+--     -- ✅ Furniture & Office Equipment
+--     ('Furniture', 'Office and home furniture', 'system', 'system'),
+--     ('Office Desks', 'Workstations and office desks', 'system', 'system'),
+--     ('Office Chairs', 'Ergonomic and standard chairs for workspace', 'system', 'system'),
+--     ('Conference Tables', 'Tables used in meeting and conference rooms', 'system', 'system'),
+--     ('Cabinets & Shelves', 'Storage units including file cabinets and shelves', 'system', 'system'),
+--
+--     -- ✅ Vehicles & Transport
+--     ('Vehicles', 'Company-owned vehicles for transport and logistics', 'system', 'system'),
+--     ('Company Cars', 'Sedans and SUVs used by employees', 'system', 'system'),
+--     ('Trucks', 'Heavy-duty vehicles for transportation', 'system', 'system'),
+--     ('Motorcycles', 'Two-wheeled vehicles for company use', 'system', 'system'),
+--     ('Electric Vehicles', 'Battery-powered electric vehicles', 'system', 'system'),
+--
+--     -- ✅ Machinery & Tools
+--     ('Machinery', 'Industrial machinery and large equipment', 'system', 'system'),
+--     ('Hand Tools', 'Basic hand tools like hammers and screwdrivers', 'system', 'system'),
+--     ('Power Tools', 'Electric drills, saws, grinders, and similar tools', 'system', 'system'),
+--
+--     -- ✅ Software & Hardware
+--     ('Software', 'Licensed software, applications, and digital assets', 'system', 'system'),
+--     ('Hardware', 'Computer peripherals and hardware components', 'system', 'system'),
+--
+--     -- ✅ Appliances & Home Equipment
+--     ('Appliances', 'Electrical and non-electrical appliances for office or home use', 'system', 'system'),
+--     ('Kitchen Appliances', 'Refrigerators, microwaves, and coffee machines', 'system', 'system'),
+--     ('Cleaning Equipment', 'Vacuum cleaners, air purifiers, and sanitation devices', 'system', 'system'),
+--
+--     -- ✅ Medical & Laboratory Equipment
+--     ('Medical Equipment', 'Healthcare and hospital equipment', 'system', 'system'),
+--     ('Laboratory Equipment', 'Scientific research and testing instruments', 'system', 'system'),
+--
+--     -- ✅ Security & Surveillance
+--     ('Security Equipment', 'Cameras, alarms, and surveillance devices', 'system', 'system'),
+--     ('CCTV Cameras', 'Security cameras for surveillance', 'system', 'system'),
+--     ('Alarm Systems', 'Intruder detection and emergency alarms', 'system', 'system'),
+--
+--     -- ✅ Office Supplies & Stationery
+--     ('Stationery', 'Office supplies like pens, paper, and notebooks', 'system', 'system'),
+--     ('Printers & Scanners', 'Devices for printing and scanning documents', 'system', 'system'),
+--
+--     -- ✅ Real Estate & Properties
+--     ('Real Estate', 'Buildings, land, and company-owned properties', 'system', 'system'),
+--
+--     -- ✅ Other Miscellaneous Categories
+--     ('Art', 'Paintings, sculptures, and decorative items', 'system', 'system'),
+--     ('Books & Reference', 'Books, manuals, and reference materials', 'system', 'system'),
+--     ('Clothing & Uniforms', 'Work uniforms and protective clothing', 'system', 'system'),
+--     ('Miscellaneous', 'Other uncategorized assets', 'system', 'system');
 
 -- Table for Asset
 CREATE TABLE asset
@@ -253,6 +254,7 @@ CREATE TABLE asset_maintenance
     maintenance_details TEXT,
     maintenance_cost DECIMAL(15, 2),       -- Cost of maintenance
     performed_by     VARCHAR(255),         -- Who performed the maintenance
+    interval_days INT,                     -- Maintenance interval in days
     next_due_date    DATE DEFAULT NULL,    -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
@@ -270,21 +272,26 @@ CREATE INDEX idx_maintenance_type ON asset_maintenance (type_id);
 CREATE TABLE asset_maintenance_record
 (
     maintenance_record_id SERIAL PRIMARY KEY,
-    asset_id              INT          NOT NULL, -- Reference to the asset
-    maintenance_date      DATE         NOT NULL, -- Date of maintenance
-    maintenance_type      VARCHAR(255) NOT NULL, -- Type of maintenance (e.g., Repair, Inspection)
-    maintenance_details   TEXT,                  -- Details of the maintenance work
-    maintenance_cost      DECIMAL(15, 2),        -- Cost of maintenance
-    performed_by          VARCHAR(255),          -- Who performed the maintenance
-    next_due_date         DATE,                  -- Date of the next maintenance (if applicable)
+    user_client_id      VARCHAR(50) NOT NULL,
+    asset_id            INT         NOT NULL,   -- Reference to asset
+    type_id             INT         NOT NULL,
+    maintenance_date    DATE        NOT NULL,
+    maintenance_details TEXT,
+    maintenance_cost    DECIMAL(15, 2),         -- Cost of maintenance
+    performed_by        VARCHAR(255),           -- Who performed the maintenance
+    interval_days       INT,                    -- Maintenance interval in days
+    next_due_date       DATE      DEFAULT NULL, -- Scheduled next maintenance
     created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by            VARCHAR(255),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by            VARCHAR(255),
     deleted_at            TIMESTAMP,
     deleted_by            VARCHAR(255),
     FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
 );
+
+CREATE INDEX idx_maintenance_record_asset ON asset_maintenance_record (asset_id);
+CREATE INDEX idx_maintenance_record_type ON asset_maintenance_record (type_id);
 
 CREATE TABLE asset_tags
 (

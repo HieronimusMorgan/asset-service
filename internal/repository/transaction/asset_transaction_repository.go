@@ -95,7 +95,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 	}
 
 	// If maintenance record exists, delete it
-	if checkMaintenanceRecord.ID != 0 {
+	if checkMaintenanceRecord.MaintenanceRecordID != 0 {
 		err = r.AssetMaintenanceRecordRepository.Delete(transactionID, fullName)
 		if err != nil {
 			tx.Rollback()
@@ -111,6 +111,8 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 			Uint("transactionID", transactionID).
 			Str("clientID", clientID).
 			Msg("✅ Maintenance record deleted")
+
+		err = r.AssetAuditLogRepository.AfterDeleteAssetMaintenanceRecord(checkMaintenanceRecord)
 	}
 
 	// If maintenance exists, delete it
@@ -130,6 +132,8 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 			Uint("transactionID", transactionID).
 			Str("clientID", clientID).
 			Msg("✅ Maintenance deleted")
+
+		err = r.AssetAuditLogRepository.AfterDeleteAssetMaintenance(checkMaintenance)
 	}
 
 	// DeleteAsset the asset
@@ -144,6 +148,8 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 			Msg("Failed to delete asset")
 		return err
 	}
+
+	err = r.AssetAuditLogRepository.AfterDeleteAsset(checkAsset)
 
 	// Commit the transaction
 	err = tx.Commit().Error
@@ -176,7 +182,7 @@ func (r assetTransactionRepository) DeleteAssetCategory(assetCategoryID uint, cl
 	}()
 
 	// Check if the asset category exists
-	checkAssetCategory, err := r.AssetCategoryRepository.GetAssetCategoryById(assetCategoryID)
+	checkAssetCategory, err := r.AssetCategoryRepository.GetAssetCategoryById(assetCategoryID, clientID)
 	if err != nil {
 		tx.Rollback()
 		log.Error().

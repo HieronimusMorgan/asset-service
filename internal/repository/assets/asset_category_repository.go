@@ -10,11 +10,11 @@ import (
 // AssetCategoryRepository defines the interface
 type AssetCategoryRepository interface {
 	AddAssetCategory(assetCategory *assets.AssetCategory) error
-	UpdateAssetCategory(assetCategory *assets.AssetCategory) error
+	UpdateAssetCategory(assetCategory *assets.AssetCategory, clientID string) error
 	GetAssetCategoryByName(name string) (*assets.AssetCategory, error)
-	GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error)
+	GetAssetCategoryById(assetCategoryID uint, clientID string) (*assets.AssetCategory, error)
 	GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error)
-	GetListAssetCategory() ([]assets.AssetCategory, error)
+	GetListAssetCategory(clientID string) ([]assets.AssetCategory, error)
 	DeleteAssetCategory(assetCategory *assets.AssetCategory) error
 }
 
@@ -46,7 +46,7 @@ func (r *assetCategoryRepository) AddAssetCategory(assetCategory *assets.AssetCa
 }
 
 // UpdateAssetCategory modifies an existing asset category and logs changes
-func (r *assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.AssetCategory) error {
+func (r *assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.AssetCategory, clientID string) error {
 	tx := r.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -56,7 +56,7 @@ func (r *assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.Asse
 	}()
 
 	err := tx.Table(utils.TableAssetCategoryName).
-		Where("asset_category_id = ?", assetCategory.AssetCategoryID).
+		Where("asset_category_id = ? AND user_client_id = ?", assetCategory.AssetCategoryID, clientID).
 		Updates(assetCategory).Error
 	if err != nil {
 		tx.Rollback()
@@ -89,10 +89,10 @@ func (r *assetCategoryRepository) GetAssetCategoryByName(name string) (*assets.A
 }
 
 // GetAssetCategoryById retrieves a category by ID
-func (r *assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint) (*assets.AssetCategory, error) {
+func (r *assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint, clientID string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
-		Where("asset_category_id = ?", assetCategoryID).
+		Where("asset_category_id = ? AND user_client_id = ?", assetCategoryID, clientID).
 		First(&assetCategory).Error
 	if err != nil {
 		log.Warn().
@@ -116,10 +116,10 @@ func (r *assetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCateg
 }
 
 // GetListAssetCategory retrieves all categories
-func (r *assetCategoryRepository) GetListAssetCategory() ([]assets.AssetCategory, error) {
+func (r *assetCategoryRepository) GetListAssetCategory(clientID string) ([]assets.AssetCategory, error) {
 	var assetCategories []assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
-		Select("asset_category_id, category_name, created_at").
+		Where("user_client_id = ?", clientID).
 		Find(&assetCategories).Error
 	if err != nil {
 		log.Error().Err(err).Msg("❌ Failed to retrieve asset categories")

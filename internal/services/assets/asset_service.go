@@ -2,7 +2,6 @@ package assets
 
 import (
 	request "asset-service/internal/dto/in/assets"
-	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
@@ -15,7 +14,7 @@ type AssetService interface {
 	AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error)
 	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
 	GetListAsset(clientID string) (interface{}, error)
-	GetAssetByID(clientID string, assetID uint) (response.AssetResponse, error)
+	GetAssetByID(clientID string, assetID uint) (interface{}, error)
 	UpdateAssetStatus(assetID uint, statusID uint, clientID string) error
 	UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error
 	DeleteAsset(assetID uint, clientID string) error
@@ -76,7 +75,7 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		return nil, errors.New("assets already exists")
 	}
 
-	if _, err := s.AssetCategoryRepository.GetAssetCategoryById(uint(assetRequest.CategoryID)); err != nil {
+	if _, err := s.AssetCategoryRepository.GetAssetCategoryById(uint(assetRequest.CategoryID), clientID); err != nil {
 		log.Error().
 			Str("key", "GetAssetCategoryById").
 			Str("clientID", clientID).
@@ -160,10 +159,10 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		return nil, err
 	}
 
-	result, err := s.AssetRepository.GetAssetByID(clientID, asset.AssetID)
+	result, err := s.AssetRepository.GetAssetResponseByID(clientID, asset.AssetID)
 	if err != nil {
 		log.Error().
-			Str("key", "GetAssetByID").
+			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
 			Msg("Failed to get asset by ID")
@@ -171,7 +170,7 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 	}
 
 	log.Info().
-		Str("key", "GetAssetByID").
+		Str("key", "GetAssetResponseByID").
 		Str("clientID", clientID).
 		Fields(asset).
 		Msg("Success to get asset by ID")
@@ -245,9 +244,22 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 	}
 
 	err = s.AssetRepository.UpdateAsset(asset, clientID)
+	if err != nil {
+		log.Error().
+			Str("key", "UpdateAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset")
+		return nil, err
+	}
 
 	err = s.AuditLogRepository.AfterUpdateAsset(*oldAsset, asset)
 	if err != nil {
+		log.Error().
+			Str("key", "AfterUpdateAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset")
 		return nil, err
 	}
 
@@ -257,21 +269,36 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 func (s assetService) GetListAsset(clientID string) (interface{}, error) {
 	result, err := s.AssetRepository.GetListAssets(clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetListAssets").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get list assets")
 		return nil, err
 	}
 
 	return result, nil
 }
 
-func (s assetService) GetAssetByID(clientID string, assetID uint) (response.AssetResponse, error) {
+func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, error) {
 	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
-		return response.AssetResponse{}, err
+		log.Error().
+			Str("key", "GetUserRedis").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get user redis")
+		return nil, err
 	}
 
-	asset, err := s.AssetRepository.GetAssetByID(clientID, assetID)
+	asset, err := s.AssetRepository.GetAssetResponseByID(clientID, assetID)
 	if err != nil {
-		return response.AssetResponse{}, err
+		log.Error().
+			Str("key", "GetAssetResponseByID").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get asset by ID")
+		return nil, err
 	}
 
 	return *asset, nil
@@ -280,22 +307,41 @@ func (s assetService) GetAssetByID(clientID string, assetID uint) (response.Asse
 func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetUserRedis").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get user redis")
 		return err
 	}
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get asset by ID")
 		return err
 	}
 
 	asset, err := s.AssetRepository.UpdateAssetStatus(assetID, statusID, data.ClientID)
 	if err != nil {
+		log.Error().
+			Str("key", "UpdateAssetStatus").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset status")
 		return err
 	}
 
-	// AuditLogRepository audit
 	err = s.AuditLogRepository.AfterUpdateAsset(*oldAsset, asset)
 	if err != nil {
+		log.Error().
+			Str("key", "AfterUpdateAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset")
 		return err
 	}
 
@@ -305,23 +351,41 @@ func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID st
 func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetUserRedis").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get user redis")
 		return err
 	}
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get asset by ID")
 		return err
 	}
 
-	var asset *assets.Asset
-	asset, err = s.AssetRepository.UpdateAssetCategory(assetID, categoryID, data.ClientID)
+	asset, err := s.AssetRepository.UpdateAssetCategory(assetID, categoryID, data.ClientID)
 	if err != nil {
+		log.Error().
+			Str("key", "UpdateAssetCategory").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset category")
 		return err
 	}
 
-	// AuditLogRepository audit
 	err = s.AuditLogRepository.AfterUpdateAsset(*oldAsset, asset)
 	if err != nil {
+		log.Error().
+			Str("key", "AfterUpdateAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to update asset")
 		return err
 	}
 	return nil
@@ -330,11 +394,21 @@ func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientI
 func (s assetService) DeleteAsset(assetID uint, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
+		log.Error().
+			Str("key", "GetUserRedis").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get user redis")
 		return err
 	}
 
 	err = s.AssetTransaction.DeleteAsset(assetID, clientID, data.ClientID)
 	if err != nil {
+		log.Error().
+			Str("key", "DeleteAsset").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to delete asset")
 		return err
 	}
 

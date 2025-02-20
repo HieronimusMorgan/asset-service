@@ -15,6 +15,7 @@ type AssetMaintenance struct {
 	MaintenanceDetails *string        `gorm:"type:text" json:"maintenance_details,omitempty"`
 	MaintenanceCost    float64        `gorm:"type:decimal(15,2)" json:"maintenance_cost"`
 	PerformedBy        *string        `gorm:"type:text" json:"performed_by,omitempty"`
+	IntervalDays       *int           `gorm:"type:int" json:"interval_days,omitempty"`
 	NextDueDate        *time.Time     `gorm:"type:date" json:"next_due_date,omitempty"`
 	CreatedAt          time.Time      `gorm:"autoCreateTime" json:"created_at"`
 	CreatedBy          string         `gorm:"type:varchar(255)" json:"created_by,omitempty"`

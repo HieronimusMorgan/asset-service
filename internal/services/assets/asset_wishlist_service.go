@@ -108,7 +108,7 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 	assetResult, err := s.AssetWishlistRepository.GetAssetWishlistByID(clientID, asset.AssetID)
 	if err != nil {
 		log.Error().
-			Str("key", "GetAssetByID").
+			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
 			Msg("Failed to get asset by ID")
@@ -152,7 +152,7 @@ func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest req
 		return nil, err
 	}
 
-	if _, err := s.AssetCategoryRepository.GetAssetCategoryById(uint(assetRequest.CategoryID)); err != nil {
+	if _, err := s.AssetCategoryRepository.GetAssetCategoryById(uint(assetRequest.CategoryID), clientID); err != nil {
 		log.Error().
 			Str("key", "GetAssetCategoryById").
 			Str("clientID", clientID).
