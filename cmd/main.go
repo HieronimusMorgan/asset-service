@@ -14,7 +14,10 @@ func main() {
 
 	defer func() {
 		sqlDB, _ := serverConfig.DB.DB()
-		sqlDB.Close()
+		err := sqlDB.Close()
+		if err != nil {
+			return
+		}
 		log.Println("✅ Database connection closed")
 	}()
 

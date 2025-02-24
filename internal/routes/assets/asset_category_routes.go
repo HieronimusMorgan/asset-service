@@ -8,7 +8,7 @@ import (
 
 func AssetCategoryRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetCategoryController) {
 
-	routerGroup := r.Group("/asset-service/v1/asset/category")
+	routerGroup := r.Group("/v1/asset-category")
 	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
 		routerGroup.POST("/add", controller.AddAssetCategory)

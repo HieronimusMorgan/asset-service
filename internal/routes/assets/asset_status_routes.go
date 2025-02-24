@@ -8,7 +8,7 @@ import (
 
 func AssetStatusRoutes(r *gin.Engine, middleware config.Middleware, assetStatus assets.AssetStatusController) {
 
-	routerGroup := r.Group("/asset-service/v1/asset/status")
+	routerGroup := r.Group("/v1/asset-status")
 	routerGroup.Use(middleware.AuthMiddleware.Handler())
 	{
 		routerGroup.GET("", assetStatus.GetListAssetStatus)
