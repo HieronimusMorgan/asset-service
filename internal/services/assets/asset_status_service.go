@@ -40,7 +40,7 @@ func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStat
 	var assetStatus = &assets.AssetStatus{
 		StatusName:  assetStatusRequest.StatusName,
 		Description: assetStatusRequest.Description,
-		CreatedBy:   data.ClientID,
+		CreatedBy:   data.FullName,
 	}
 
 	if err = s.AssetStatusRepository.GetAssetStatusByName(assetStatusRequest.StatusName); err == nil {
@@ -127,7 +127,7 @@ func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 	var oldAsset = assetStatus
 	assetStatus.StatusName = assetStatusRequest.StatusName
 	assetStatus.Description = assetStatusRequest.Description
-	assetStatus.UpdatedBy = data.ClientID
+	assetStatus.UpdatedBy = data.FullName
 
 	if err = s.AssetStatusRepository.UpdateAssetStatus(assetStatus); err != nil {
 		log.Error().
@@ -164,7 +164,7 @@ func (s assetStatusService) DeleteAssetStatus(assetStatusID uint, clientID strin
 		return err
 	}
 
-	assetStatus.DeletedBy = &data.ClientID
+	assetStatus.DeletedBy = &data.FullName
 
 	if err = s.AssetStatusRepository.DeleteAssetStatus(assetStatus); err != nil {
 		log.Error().

@@ -16,6 +16,24 @@ type AssetRequest struct {
 	Notes          *string `json:"notes"`
 }
 
+func (a *AssetRequest) ConvertAssetRequestEmptyToNil() {
+	a.SerialNumber = checkEmptyString(a.SerialNumber)
+	a.Description = checkEmptyString(a.Description)
+	a.Barcode = checkEmptyString(a.Barcode)
+	a.ImageUrl = checkEmptyString(a.ImageUrl)
+	a.PurchaseDate = checkEmptyString(a.PurchaseDate)
+	a.ExpiryDate = checkEmptyString(a.ExpiryDate)
+	a.WarrantyExpiry = checkEmptyString(a.WarrantyExpiry)
+	a.Notes = checkEmptyString(a.Notes)
+}
+
+func checkEmptyString(field *string) *string {
+	if field != nil && *field == "" {
+		return nil
+	}
+	return field
+}
+
 type UpdateAssetRequest struct {
 	SerialNumber       *string `json:"serial_number,omitempty"`
 	Description        *string `json:"description,omitempty"`

@@ -118,7 +118,7 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
-       ORDER BY asset.name DESC;
+       ORDER BY asset.created_at ASC;
    `
 
 	rows, err := r.db.Raw(selectQuery, clientID).Rows()
@@ -242,7 +242,7 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
        WHERE asset.user_client_id = ? AND asset.asset_id = ?  AND asset.deleted_at IS NULL
-       ORDER BY asset.name DESC;
+       ORDER BY asset.asset_id ASC;
    `
 
 	rows := r.db.Raw(selectQuery, clientID, id).Row()

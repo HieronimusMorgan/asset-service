@@ -138,7 +138,7 @@ func (c assetMaintenanceController) UpdateMaintenance(*gin.Context) {
 	//response.SendResponse(ctx, http.StatusOK, "Maintenance record updated successfully", maintenance, nil)
 }
 
-func (c assetMaintenanceController) DeleteMaintenance(ctx *gin.Context) {
+func (c assetMaintenanceController) DeleteMaintenance(*gin.Context) {
 	//id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	//if err != nil {
 	//	response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance ID", nil, err.Error())

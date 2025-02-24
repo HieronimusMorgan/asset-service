@@ -120,6 +120,8 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 			Msg("Failed to get asset status by ID")
 	}
 
+	assetRequest.ConvertAssetRequestEmptyToNil()
+
 	var asset = &assets.Asset{
 		UserClientID:       clientID,
 		SerialNumber:       assetRequest.SerialNumber,
@@ -135,8 +137,8 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		Price:              assetRequest.Price,
 		Stock:              assetRequest.Stock,
 		Notes:              assetRequest.Notes,
-		CreatedBy:          data.ClientID,
-		UpdatedBy:          data.ClientID,
+		CreatedBy:          data.FullName,
+		UpdatedBy:          data.FullName,
 	}
 
 	err = s.AssetRepository.AddAsset(asset)
@@ -240,7 +242,7 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 		WarrantyExpiryDate: warrantyExpiry,
 		Price:              assetRequest.Price,
 		Notes:              assetRequest.Notes,
-		UpdatedBy:          data.ClientID,
+		UpdatedBy:          data.FullName,
 	}
 
 	err = s.AssetRepository.UpdateAsset(asset, clientID)

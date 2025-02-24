@@ -339,7 +339,7 @@ CREATE TABLE cron_jobs
 );
 
 INSERT INTO cron_jobs (name, schedule, is_active, description, created_by)
-VALUES ('asset_maintenance', '* * * * *', true, 'Check Maintenance Asset', 'system');
+VALUES ('asset_maintenance', '0 5 * * *', true, 'Check Maintenance Asset', 'system');
 
 
 -- Triggers to update `update_at`

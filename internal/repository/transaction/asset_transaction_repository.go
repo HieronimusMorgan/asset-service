@@ -112,6 +112,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 			Str("clientID", clientID).
 			Msg("✅ Maintenance record deleted")
 
+		checkMaintenanceRecord.DeletedBy = &fullName
 		err = r.AssetAuditLogRepository.AfterDeleteAssetMaintenanceRecord(checkMaintenanceRecord)
 	}
 
@@ -133,6 +134,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 			Str("clientID", clientID).
 			Msg("✅ Maintenance deleted")
 
+		checkMaintenance.DeletedBy = &fullName
 		err = r.AssetAuditLogRepository.AfterDeleteAssetMaintenance(checkMaintenance)
 	}
 
@@ -149,6 +151,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 		return err
 	}
 
+	checkAsset.DeletedBy = &fullName
 	err = r.AssetAuditLogRepository.AfterDeleteAsset(checkAsset)
 
 	// Commit the transaction
