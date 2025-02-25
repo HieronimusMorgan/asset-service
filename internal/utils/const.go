@@ -12,13 +12,13 @@ const (
 )
 
 const (
-	TableAssetAuditLogName          = "my-home.asset_audit_log"
-	TableAssetCategoryName          = "my-home.asset_category"
-	TableAssetMaintenanceRecordName = "my-home.asset_maintenance_record"
-	TableAssetMaintenanceName       = "my-home.asset_maintenance"
-	TableAssetMaintenanceTypeName   = "my-home.asset_maintenance_type"
-	TableAssetName                  = "my-home.asset"
-	TableAssetStatusName            = "my-home.asset_status"
+	TableAssetAuditLogName          = "asset-service.asset_audit_log"
+	TableAssetCategoryName          = "asset-service.asset_category"
+	TableAssetMaintenanceRecordName = "asset-service.asset_maintenance_record"
+	TableAssetMaintenanceName       = "asset-service.asset_maintenance"
+	TableAssetMaintenanceTypeName   = "asset-service.asset_maintenance_type"
+	TableAssetName                  = "asset-service.asset"
+	TableAssetStatusName            = "asset-service.asset_status"
 )
 
 func ParseOptionalDate(str *string) (*time.Time, error) {

@@ -114,9 +114,9 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
            status.asset_status_id,
            status.status_name,
            status.description AS status_description
-       FROM "my-home"."asset" asset
-       INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-       INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+       FROM "asset-service"."asset" asset
+       INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
        ORDER BY asset.created_at ASC;
    `
@@ -238,9 +238,9 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
            status.asset_status_id,
            status.status_name,
            status.description AS status_description
-       FROM "my-home"."asset" asset
-       INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-       INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+       FROM "asset-service"."asset" asset
+       INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
        WHERE asset.user_client_id = ? AND asset.asset_id = ?  AND asset.deleted_at IS NULL
        ORDER BY asset.asset_id ASC;
    `
@@ -394,7 +394,7 @@ func (r assetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID
 
 	// Verify the existence of the status
 	var status assets.AssetStatus
-	if err := tx.Table("my-home.asset_status").Where("asset_status_id = ?", statusID).
+	if err := tx.Table("asset-service.asset_status").Where("asset_status_id = ?", statusID).
 		First(&status).Error; err != nil {
 		return nil, fmt.Errorf("failed to find status: %w", err)
 	}
@@ -437,7 +437,7 @@ func (r assetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 
 	// Verify the existence of the category
 	var category assets.AssetCategory
-	if err := tx.Table("my-home.asset_category").Where("asset_category_id = ?", categoryID).
+	if err := tx.Table("asset-service.asset_category").Where("asset_category_id = ?", categoryID).
 		First(&category).Error; err != nil {
 		return nil, fmt.Errorf("failed to find category: %w", err)
 	}

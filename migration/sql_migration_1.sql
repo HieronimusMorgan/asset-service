@@ -1,15 +1,15 @@
 -- Function and Trigger to update `update_at`
 CREATE
-OR REPLACE FUNCTION update_updated_at_column()
+    OR REPLACE FUNCTION update_updated_at_column()
     RETURNS TRIGGER AS
 $$
 BEGIN
     NEW.updated_at
-= NOW();
-RETURN NEW;
+        = NOW();
+    RETURN NEW;
 END;
 $$
-LANGUAGE plpgsql;
+    LANGUAGE plpgsql;
 
 -- Table for Asset Status
 CREATE TABLE asset_status
@@ -254,7 +254,7 @@ CREATE TABLE asset_maintenance
     maintenance_details TEXT,
     maintenance_cost DECIMAL(15, 2),       -- Cost of maintenance
     performed_by     VARCHAR(255),         -- Who performed the maintenance
-    interval_days INT,                     -- Maintenance interval in days
+    interval_days    INT,                  -- Maintenance interval in days
     next_due_date    DATE DEFAULT NULL,    -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
@@ -347,29 +347,29 @@ CREATE TRIGGER trigger_update_cron_jobs
     BEFORE UPDATE
     ON cron_jobs
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();
 
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_asset_status
     BEFORE UPDATE
     ON asset_status
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trigger_update_asset_category
     BEFORE UPDATE
     ON asset_category
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trigger_update_asset
     BEFORE UPDATE
     ON asset
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trigger_update_asset_maintenance
     BEFORE UPDATE
     ON asset_maintenance
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+EXECUTE FUNCTION update_updated_at_column();

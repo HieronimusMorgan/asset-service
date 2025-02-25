@@ -75,9 +75,9 @@ func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
             status.asset_status_id,
             status.status_name,
             status.description AS status_description
-        FROM "my-home"."asset" asset
-        INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-        INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+        FROM "asset-service"."asset" asset
+        INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+        INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
         WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
         ORDER BY asset.asset_id ASC;
     `
@@ -168,9 +168,9 @@ func (r assetWishlistRepository) GetAssetWishlistList(clientID string) ([]respon
 			status.status_name,
 			status.description AS status_description,
 			asset.purchase_date
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+		FROM "asset-service"."asset" asset
+		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
 		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.asset_id ASC;
 	`
@@ -303,9 +303,9 @@ func (r assetWishlistRepository) GetAssetWishlistByCategory(clientID string, cat
 			status.description AS status_description,
 			asset.purchase_date,
 			asset.price
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+		FROM "asset-service"."asset" asset
+		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
 		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.asset_id ASC;
 	`
@@ -364,9 +364,9 @@ func (r assetWishlistRepository) GetAssetWishlistByStatus(clientID string, statu
 			status.status_name,
 			status.description AS status_description,
 			asset.purchase_date
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+		FROM "asset-service"."asset" asset
+		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
 		WHERE asset.user_client_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.asset_id ASC;
 	`
@@ -441,9 +441,9 @@ func (r assetWishlistRepository) GetAssetWishlistByCategoryAndStatus(clientID st
 			status.status_name,
 			status.description AS status_description,
 			asset.purchase_date
-		FROM "my-home"."asset" asset
-		INNER JOIN "my-home"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "my-home"."asset_status" status ON asset.status_id = status.asset_status_id
+		FROM "asset-service"."asset" asset
+		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
+		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
 		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
 		ORDER BY asset.asset_id ASC;
 	`

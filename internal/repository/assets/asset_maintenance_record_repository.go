@@ -43,8 +43,8 @@ func (r assetMaintenanceRecordRepository) GetMaintenanceByAssetID(assetID uint, 
 func (r assetMaintenanceRecordRepository) GetMaintenanceRecordByMaintenanceID(maintenanceID uint, clientID string) (*response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "my-home"."asset_maintenance_record" am 
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		FROM "asset-service"."asset_maintenance_record" am 
+		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 		WHERE am.asset_id = ? AND am.user_client_id = ?
 `
 
@@ -79,8 +79,8 @@ func (r assetMaintenanceRecordRepository) GetMaintenanceRecordByMaintenanceID(ma
 func (r assetMaintenanceRecordRepository) GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "my-home"."asset_maintenance_record" am 
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		FROM "asset-service"."asset_maintenance_record" am 
+		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 		WHERE am.asset_id = ? AND am.user_client_id = ?
 `
 
@@ -121,8 +121,8 @@ func (r assetMaintenanceRecordRepository) GetListMaintenanceByAssetID(assetID ui
 func (r assetMaintenanceRecordRepository) GetListMaintenance() ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "my-home"."asset_maintenance_record" am 
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		FROM "asset-service"."asset_maintenance_record" am 
+		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 `
 
 	rows, err := r.db.Raw(assetMaintenance).Rows()
@@ -162,8 +162,8 @@ func (r assetMaintenanceRecordRepository) GetListMaintenance() ([]response.Asset
 func (r assetMaintenanceRecordRepository) GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
 		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "my-home"."asset_maintenance_record" am 
-		LEFT JOIN "my-home"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		FROM "asset-service"."asset_maintenance_record" am 
+		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
 		WHERE am.user_client_id = ?
 `
 
@@ -207,7 +207,7 @@ func (r assetMaintenanceRecordRepository) Update(maintenance *model.AssetMainten
 
 func (r assetMaintenanceRecordRepository) Delete(assetID uint, fullName string) error {
 	if assetID != 0 { // Ensure it exists before deleting
-		if err := r.db.Table("my-home.asset_maintenance_record").Model(&model.AssetMaintenanceRecord{}).
+		if err := r.db.Table("asset-service.asset_maintenance_record").Model(&model.AssetMaintenanceRecord{}).
 			Where("asset_id = ?", assetID).
 			Updates(map[string]interface{}{"deleted_by": fullName, "deleted_at": time.Now()}).
 			Delete(&model.AssetMaintenanceRecord{}).Error; err != nil {
