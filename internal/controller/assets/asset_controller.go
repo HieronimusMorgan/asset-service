@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -223,7 +224,7 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 	var _ []responses.AssetImageResponse
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-
+	log.Info().Msgf("Uploading %d images", len(files))
 	// Add clientID field
 	_ = writer.WriteField("client_id", clientID)
 
@@ -252,8 +253,10 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 	writer.Close()
 
 	// Send request to `cdn-service`
+	log.Log().Msgf("ipCdn: %s", ipCdn)
 	req, err := http.NewRequest("POST", ipCdn+"/v1/upload", body)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to create request")
 		return nil, err
 	}
 
@@ -264,6 +267,7 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Error().Err(err).Msg("Failed to upload images")
 		return nil, err
 	}
 	defer resp.Body.Close()
