@@ -2,6 +2,7 @@ package assets
 
 import (
 	request "asset-service/internal/dto/in/assets"
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
@@ -11,7 +12,7 @@ import (
 )
 
 type AssetService interface {
-	AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error)
+	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error)
 	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
 	GetListAsset(clientID string) (interface{}, error)
 	GetAssetByID(clientID string, assetID uint) (interface{}, error)
@@ -25,6 +26,7 @@ type assetService struct {
 	AssetCategoryRepository    repo.AssetCategoryRepository
 	AssetStatusRepository      repo.AssetStatusRepository
 	AssetMaintenanceRepository repo.AssetMaintenanceRepository
+	AssetImageRepository       repo.AssetImageRepository
 	Redis                      utils.RedisService
 	AuditLogRepository         repo.AssetAuditLogRepository
 	AssetTransaction           transaction.AssetTransactionRepository
@@ -34,6 +36,7 @@ func NewAssetService(assetRepository repo.AssetRepository,
 	AssetCategoryRepository repo.AssetCategoryRepository,
 	AssetStatusRepository repo.AssetStatusRepository,
 	assetMaintenanceRepository repo.AssetMaintenanceRepository,
+	AssetImageRepository repo.AssetImageRepository,
 	log repo.AssetAuditLogRepository,
 	redis utils.RedisService,
 	AssetTransaction transaction.AssetTransactionRepository) AssetService {
@@ -42,12 +45,13 @@ func NewAssetService(assetRepository repo.AssetRepository,
 		AssetCategoryRepository:    AssetCategoryRepository,
 		AssetStatusRepository:      AssetStatusRepository,
 		AssetMaintenanceRepository: assetMaintenanceRepository,
+		AssetImageRepository:       AssetImageRepository,
 		AuditLogRepository:         log,
 		Redis:                      redis,
 		AssetTransaction:           AssetTransaction}
 }
 
-func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID string) (interface{}, error) {
+func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 
 	if err != nil {
@@ -128,7 +132,6 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		Name:               assetRequest.Name,
 		Description:        assetRequest.Description,
 		Barcode:            assetRequest.Barcode,
-		ImageUrl:           assetRequest.ImageUrl,
 		CategoryID:         assetRequest.CategoryID,
 		StatusID:           assetRequest.StatusID,
 		PurchaseDate:       purchaseDate,
@@ -137,8 +140,8 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 		Price:              assetRequest.Price,
 		Stock:              assetRequest.Stock,
 		Notes:              assetRequest.Notes,
-		CreatedBy:          data.FullName,
-		UpdatedBy:          data.FullName,
+		CreatedBy:          data.ClientID,
+		UpdatedBy:          data.ClientID,
 	}
 
 	err = s.AssetRepository.AddAsset(asset)
@@ -149,6 +152,29 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, clientID stri
 			Err(err).
 			Msg("Failed to add asset")
 		return nil, err
+	}
+
+	if len(images) != 0 {
+		for _, image := range images {
+			var assetImage = &assets.AssetImage{
+				AssetID:   asset.AssetID,
+				ImageURL:  image.ImageURL,
+				FileSize:  image.FileSize,
+				FileType:  image.FileType,
+				CreatedBy: data.ClientID,
+				UpdatedBy: data.ClientID,
+			}
+			err = s.AssetImageRepository.AddAssetImage(assetImage)
+		}
+
+		if err != nil {
+			log.Error().
+				Str("key", "AddAssetImage").
+				Str("clientID", clientID).
+				Err(err).
+				Msg("Failed to add asset image")
+			return nil, err
+		}
 	}
 
 	err = s.AuditLogRepository.AfterCreateAsset(asset)
@@ -233,7 +259,6 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 		SerialNumber:       assetRequest.SerialNumber,
 		Description:        assetRequest.Description,
 		Barcode:            assetRequest.Barcode,
-		ImageUrl:           assetRequest.ImageUrl,
 		CategoryID:         assetRequest.CategoryID,
 		StatusID:           assetRequest.StatusID,
 		Stock:              assetRequest.Stock,
@@ -242,7 +267,7 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 		WarrantyExpiryDate: warrantyExpiry,
 		Price:              assetRequest.Price,
 		Notes:              assetRequest.Notes,
-		UpdatedBy:          data.FullName,
+		UpdatedBy:          data.ClientID,
 	}
 
 	err = s.AssetRepository.UpdateAsset(asset, clientID)

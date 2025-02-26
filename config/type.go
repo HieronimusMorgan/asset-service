@@ -37,6 +37,7 @@ type Services struct {
 	Asset                services.AssetService
 	AssetStatus          services.AssetStatusService
 	AssetWishlist        services.AssetWishlistService
+	AssetImage           services.AssetImageService
 }
 
 // Repository contains repository (database access objects)
@@ -49,6 +50,7 @@ type Repository struct {
 	AssetStatusRepository   repository.AssetStatusRepository
 	AssetWishlistRepository repository.AssetWishlistRepository
 	AssetMaintenanceRecord  repository.AssetMaintenanceRecordRepository
+	AssetImageRepository    repository.AssetImageRepository
 }
 
 type Controller struct {

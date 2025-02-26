@@ -34,7 +34,6 @@ type AssetResponse struct {
 	Name               string                `json:"name,omitempty"`
 	Description        string                `json:"description,omitempty"`
 	Barcode            *string               `json:"barcode,omitempty"`
-	ImageUrl           *string               `json:"image_url"`
 	Status             AssetStatusResponse   `json:"status,omitempty"`
 	Category           AssetCategoryResponse `json:"category,omitempty"`
 	PurchaseDate       *DateOnly             `json:"purchase_date,omitempty"`
@@ -59,4 +58,11 @@ type AssetResponseAll struct {
 	WarrantyExpiry string                `json:"warranty_expiry_date,omitempty"`
 	Price          float64               `json:"price,omitempty"`
 	Stock          int                   `json:"stock,omitempty"`
+}
+
+type AssetImageResponse struct {
+	ImageURL   string    `json:"image_url"`   // URL or file path of the uploaded image
+	FileType   string    `json:"file_type"`   // Image format (jpg, png, etc.)
+	FileSize   int64     `json:"file_size"`   // Image size in bytes
+	UploadedAt time.Time `json:"uploaded_at"` // Timestamp of upload
 }

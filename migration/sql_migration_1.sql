@@ -141,7 +141,6 @@ CREATE TABLE asset
     name                 VARCHAR(100) NOT NULL,
     description          TEXT,
     barcode              VARCHAR(100)   DEFAULT NULL,
-    image_url            TEXT         DEFAULT NULL,
     category_id          INT          NOT NULL,
     status_id            INT          NOT NULL,
     purchase_date        DATE,
@@ -163,6 +162,23 @@ CREATE TABLE asset
 
 CREATE INDEX idx_asset_category ON asset (category_id);
 CREATE INDEX idx_asset_status ON asset (status_id);
+
+CREATE TABLE asset_image
+(
+    image_id   SERIAL PRIMARY KEY,
+    asset_id   INT         NOT NULL,
+    image_url  TEXT        NOT NULL,
+    file_type  VARCHAR(50) NOT NULL,
+    file_size  BIGINT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(255),
+    deleted_at TIMESTAMP,
+    deleted_by VARCHAR(255),
+    CONSTRAINT fk_asset FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE
+);
+
 
 -- Table for Maintenance Type
 CREATE TABLE asset_maintenance_type
@@ -339,7 +355,8 @@ CREATE TABLE cron_jobs
 );
 
 INSERT INTO cron_jobs (name, schedule, is_active, description, created_by)
-VALUES ('asset_maintenance', '0 5 * * *', true, 'Check Maintenance Asset', 'system');
+VALUES ('asset_maintenance', '0 5 * * *', true, 'Check Maintenance Asset', 'system'),
+       ('image_cleanup', '*/1 * * * *', true, 'Cleanup Asset Image', 'system');
 
 
 -- Triggers to update `update_at`

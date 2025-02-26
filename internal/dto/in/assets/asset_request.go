@@ -1,26 +1,27 @@
 package assets
 
+import "mime/multipart"
+
 type AssetRequest struct {
-	SerialNumber   *string `json:"serial_number"`
-	Name           string  `json:"name"`
-	Description    *string `json:"description"`
-	Barcode        *string `json:"barcode"`
-	ImageUrl       *string `json:"image_url"`
-	CategoryID     int     `json:"category_id"`
-	StatusID       int     `json:"status_id"`
-	PurchaseDate   *string `json:"purchase_date"`
-	ExpiryDate     *string `json:"expiry_date"`
-	WarrantyExpiry *string `json:"warranty_expiry_date,omitempty"`
-	Price          float64 `json:"price"`
-	Stock          int     `json:"stock"`
-	Notes          *string `json:"notes"`
+	SerialNumber   *string                 `json:"serial_number"`
+	Name           string                  `json:"name"`
+	Description    *string                 `json:"description"`
+	Barcode        *string                 `json:"barcode"`
+	Images         []*multipart.FileHeader `form:"images"` // List of image files
+	CategoryID     int                     `json:"category_id"`
+	StatusID       int                     `json:"status_id"`
+	PurchaseDate   *string                 `json:"purchase_date"`
+	ExpiryDate     *string                 `json:"expiry_date"`
+	WarrantyExpiry *string                 `json:"warranty_expiry_date,omitempty"`
+	Price          float64                 `json:"price"`
+	Stock          int                     `json:"stock"`
+	Notes          *string                 `json:"notes"`
 }
 
 func (a *AssetRequest) ConvertAssetRequestEmptyToNil() {
 	a.SerialNumber = checkEmptyString(a.SerialNumber)
 	a.Description = checkEmptyString(a.Description)
 	a.Barcode = checkEmptyString(a.Barcode)
-	a.ImageUrl = checkEmptyString(a.ImageUrl)
 	a.PurchaseDate = checkEmptyString(a.PurchaseDate)
 	a.ExpiryDate = checkEmptyString(a.ExpiryDate)
 	a.WarrantyExpiry = checkEmptyString(a.WarrantyExpiry)
@@ -38,7 +39,6 @@ type UpdateAssetRequest struct {
 	SerialNumber       *string `json:"serial_number,omitempty"`
 	Description        *string `json:"description,omitempty"`
 	Barcode            *string `json:"barcode,omitempty"`
-	ImageUrl           *string `json:"image_url"`
 	CategoryID         int     `json:"category_id,omitempty"`
 	StatusID           int     `json:"status_id,omitempty"`
 	PurchaseDate       *string `json:"purchase_date,omitempty"`
@@ -52,7 +52,6 @@ type UpdateAssetRequest struct {
 type AssetWishlistRequest struct {
 	Name         string  `json:"name" binding:"required"`
 	Description  *string `json:"description"`
-	ImageUrl     *string `json:"image_url"`
 	CategoryID   int     `json:"category_id" binding:"required"`
 	StatusID     int     `json:"status_id" binding:"required"`
 	PurchaseDate *string `json:"purchase_date"`
@@ -63,7 +62,6 @@ type AssetWishlistRequest struct {
 
 type UpdateAssetWishlistRequest struct {
 	Description  *string `json:"description"`
-	ImageUrl     *string `json:"image_url"`
 	CategoryID   int     `json:"category_id" binding:"required"`
 	StatusID     int     `json:"status_id" binding:"required"`
 	PurchaseDate *string `json:"purchase_date"`

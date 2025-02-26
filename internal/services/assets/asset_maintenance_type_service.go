@@ -47,7 +47,7 @@ func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request
 		UserClientID: clientID,
 		TypeName:     maintenanceType.TypeName,
 		Description:  maintenanceType.Description,
-		CreatedBy:    data.FullName,
+		CreatedBy:    data.ClientID,
 	}
 
 	if err = s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceTypeRecord, clientID); err != nil {
@@ -108,7 +108,7 @@ func (s assetMaintenanceTypeService) UpdateMaintenanceType(id uint, clientID str
 		ID:          id,
 		TypeName:    maintenanceType.TypeName,
 		Description: maintenanceType.Description,
-		UpdatedBy:   data.FullName,
+		UpdatedBy:   data.ClientID,
 	}
 
 	err = s.AssetMaintenanceTypeRepository.UpdateAssetMaintenanceType(maintenanceTypeRecord, clientID)

@@ -27,6 +27,7 @@ type AssetRepository interface {
 	DeleteAsset(id uint, clientID string) error
 	GetAssetByIDForMaintenance(id uint, clientID string) (*assets.Asset, error)
 	GetAssetByCategoryID(assetCategoryID uint, clientID string) ([]assets.Asset, error)
+	GetAssetDeleted() ([]assets.Asset, error)
 }
 
 type assetRepository struct {
@@ -101,7 +102,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
            asset.name,
            asset.description,
            asset.barcode,
-           asset.image_url,
            asset.purchase_date,
            asset.expiry_date,
            asset.warranty_expiry_date,
@@ -136,7 +136,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		// Handling NULL values from SQL
 		var serialNumber sql.NullString
 		var barcode sql.NullString
-		var imageUrl sql.NullString
 		var description sql.NullString
 		var purchaseDate sql.NullTime
 		var expiryDate sql.NullTime
@@ -152,7 +151,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 			&asset.Name,
 			&description,
 			&barcode,
-			&imageUrl,
 			&purchaseDate,
 			&expiryDate,
 			&warrantyExpiryDate,
@@ -178,9 +176,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		}
 		if barcode.Valid {
 			asset.Barcode = &barcode.String
-		}
-		if imageUrl.Valid {
-			asset.ImageUrl = &imageUrl.String
 		}
 		if description.Valid {
 			asset.Description = description.String
@@ -225,7 +220,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
            asset.name,
            asset.description,
            asset.barcode,
-           asset.image_url,
            asset.purchase_date,
            asset.expiry_date,
            asset.warranty_expiry_date,
@@ -254,7 +248,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	// Handling NULL values from SQL
 	var serialNumber sql.NullString
 	var barcode sql.NullString
-	var imageUrl sql.NullString
 	var description sql.NullString
 	var purchaseDate sql.NullTime
 	var expiryDate sql.NullTime
@@ -270,7 +263,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 		&asset.Name,
 		&description,
 		&barcode,
-		&imageUrl,
 		&purchaseDate,
 		&expiryDate,
 		&warrantyExpiryDate,
@@ -296,9 +288,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	}
 	if barcode.Valid {
 		asset.Barcode = &barcode.String
-	}
-	if imageUrl.Valid {
-		asset.ImageUrl = &imageUrl.String
 	}
 	if description.Valid {
 		asset.Description = description.String
@@ -481,6 +470,17 @@ func (r assetRepository) GetAssetByIDForMaintenance(id uint, clientID string) (*
 func (r assetRepository) GetAssetByCategoryID(assetCategoryID uint, clientID string) ([]assets.Asset, error) {
 	var asset []assets.Asset
 	err := r.db.Table(utils.TableAssetName).Where("category_id = ? AND user_client_id = ?", assetCategoryID, clientID).Find(&asset).Error
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
+}
+
+func (r assetRepository) GetAssetDeleted() ([]assets.Asset, error) {
+	var asset []assets.Asset
+	err := r.db.Unscoped().Table(utils.TableAssetName).
+		Where("deleted_at IS NOT NULL").
+		Find(&asset).Error
 	if err != nil {
 		return nil, err
 	}

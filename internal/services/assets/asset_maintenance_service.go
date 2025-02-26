@@ -108,9 +108,9 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 		MaintenanceDate:    maintenanceDate,
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
-		PerformedBy:        &data.FullName,
-		CreatedBy:          data.FullName,
-		UpdatedBy:          data.FullName,
+		PerformedBy:        &data.ClientID,
+		CreatedBy:          data.ClientID,
+		UpdatedBy:          data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -223,8 +223,8 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 		MaintenanceDate:    maintenanceDate,
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
-		PerformedBy:        &data.FullName,
-		UpdatedBy:          data.FullName,
+		PerformedBy:        &data.ClientID,
+		UpdatedBy:          data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -309,8 +309,8 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		MaintenanceDate:    &maintenanceDate,
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
-		PerformedBy:        &data.FullName,
-		UpdatedBy:          data.FullName,
+		PerformedBy:        &data.ClientID,
+		UpdatedBy:          data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -335,8 +335,8 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        maintenance.NextDueDate,
 		PerformedBy:        maintenance.PerformedBy,
-		CreatedBy:          data.FullName,
-		UpdatedBy:          data.FullName,
+		CreatedBy:          data.ClientID,
+		UpdatedBy:          data.ClientID,
 	}
 
 	if err = s.AssetMaintenanceRecord.AddAssetMaintenanceRecord(&assetMaintenanceRecord); err != nil {

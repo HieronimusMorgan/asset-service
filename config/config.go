@@ -30,6 +30,8 @@ type Config struct {
 	DBName     string `envconfig:"DB_NAME" default:"asset"`
 	DBSchema   string `envconfig:"DB_SCHEMA" default:"asset-service"`
 	DBSSLMode  string `envconfig:"DB_SSLMODE" default:"disable"`
+	IpCDN      string `envconfig:"IP_CDN"  default:"http://localhost:8181"`
+	Nats       string `envconfig:"NATS_URL" default:"nats://localhost:4222"`
 }
 
 // LoadConfig loads environment variables into the Config struct

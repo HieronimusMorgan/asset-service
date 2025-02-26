@@ -21,22 +21,26 @@ type CronService interface {
 // cronService implements CronService
 type cronService struct {
 	db                      gorm.DB
+	nats                    string
 	scheduler               *cron.Cron
 	mu                      sync.Mutex
 	jobs                    map[uint]cron.EntryID
 	cronRepository          repository.CronRepository
 	assetMaintenanceService assets.AssetMaintenanceService
+	assetImageService       assets.AssetImageService
 }
 
 // NewCronService initializes and returns a CronService instance
-func NewCronService(db gorm.DB, cronRepository repository.CronRepository, assetMaintenanceService assets.AssetMaintenanceService) CronService {
+func NewCronService(db gorm.DB, nats string, cronRepository repository.CronRepository, assetMaintenanceService assets.AssetMaintenanceService, image assets.AssetImageService) CronService {
 	return &cronService{
 		db:                      db,
+		nats:                    nats,
 		scheduler:               cron.New(), // Enables second-level precision
 		jobs:                    make(map[uint]cron.EntryID),
 		mu:                      sync.Mutex{},
 		cronRepository:          cronRepository,
 		assetMaintenanceService: assetMaintenanceService,
+		assetImageService:       image,
 	}
 }
 
@@ -107,7 +111,13 @@ func (cs *cronService) executeJob(job model.CronJob) {
 		if err != nil {
 			log.Println("Error performing asset maintenance check:", err)
 		}
-
+	case "image_cleanup":
+		err := cs.assetImageService.Cleanup(cs.nats)
+		if err != nil {
+			log.Println("Error performing image cleanup:", err)
+		}
+	default:
+		log.Printf("Unknown job: %s\n", job.Name)
 	}
 }
 

@@ -2,10 +2,17 @@ package assets
 
 import (
 	request "asset-service/internal/dto/in/assets"
+	responses "asset-service/internal/dto/out/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
+	"mime/multipart"
+	"net/http"
 	"strconv"
 )
 
@@ -22,28 +29,63 @@ type AssetController interface {
 type assetController struct {
 	AssetService assets.AssetService
 	JWTService   utils.JWTService
+	IpCDN        string
 }
 
-func NewAssetController(assetService assets.AssetService, jwtService utils.JWTService) AssetController {
-	return assetController{AssetService: assetService, JWTService: jwtService}
+func NewAssetController(assetService assets.AssetService, jwtService utils.JWTService, IpCDN string) AssetController {
+	return assetController{AssetService: assetService, JWTService: jwtService, IpCDN: IpCDN}
 }
 
 func (h assetController) AddAsset(context *gin.Context) {
-	var req *request.AssetRequest
-	if err := context.ShouldBindJSON(&req); err != nil {
-		response.SendResponse(context, 400, "Error", nil, err.Error())
-		return
-	}
-	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	// Parse multipart form (for images + JSON fields)
+	err := context.Request.ParseMultipartForm(10 << 20) // 10 MB limit
 	if err != nil {
+		response.SendResponse(context, 400, "Error parsing form", nil, err.Error())
 		return
 	}
 
-	asset, err := h.AssetService.AddAsset(req, token.ClientID)
+	// Extract form data (JSON fields)
+	req := request.AssetRequest{
+		SerialNumber:   getOptionalString(context, "serial_number"),
+		Name:           context.PostForm("name"),
+		Description:    getOptionalString(context, "description"),
+		Barcode:        getOptionalString(context, "barcode"),
+		CategoryID:     parseFormInt(context, "category_id"),
+		StatusID:       parseFormInt(context, "status_id"),
+		PurchaseDate:   getOptionalString(context, "purchase_date"),
+		ExpiryDate:     getOptionalString(context, "expiry_date"),
+		WarrantyExpiry: getOptionalString(context, "warranty_expiry_date"),
+		Price:          parseFormFloat(context, "price"),
+		Stock:          parseFormInt(context, "stock"),
+		Notes:          getOptionalString(context, "notes"),
+	}
+
+	// Extract token
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
 	if err != nil {
-		response.SendResponse(context, 500, "Failed to add assets", nil, err.Error())
+		response.SendResponse(context, 401, "Unauthorized", nil, err.Error())
 		return
 	}
+
+	// Extract files
+	files := context.Request.MultipartForm.File["images"]
+	if len(files) == 0 {
+		response.SendResponse(context, 400, "No images uploaded", nil, "At least one image is required")
+		return
+	}
+
+	var imageMetadata []responses.AssetImageResponse
+	if len(files) != 0 {
+		imageMetadata, err = uploadImagesToCDN(h.IpCDN, files, token.ClientID, context.GetHeader(utils.Authorization))
+	}
+
+	asset, err := h.AssetService.AddAsset(&req, imageMetadata, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to add asset", nil, err.Error())
+		return
+	}
+
+	// Return response with saved asset
 	response.SendResponse(context, 201, "Asset added successfully", asset, nil)
 }
 
@@ -175,4 +217,98 @@ func (h assetController) DeleteAsset(context *gin.Context) {
 	}
 
 	response.SendResponse(context, 200, "Asset deleted successfully", nil, nil)
+}
+
+func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID string, authToken string) ([]responses.AssetImageResponse, error) {
+	var _ []responses.AssetImageResponse
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	// Add clientID field
+	_ = writer.WriteField("client_id", clientID)
+
+	// Add files to form data
+	for _, file := range files {
+		part, err := writer.CreateFormFile("images", file.Filename)
+		if err != nil {
+			return nil, err
+		}
+
+		// Open file
+		src, err := file.Open()
+		if err != nil {
+			return nil, err
+		}
+		defer src.Close()
+
+		// Copy file content to form
+		_, err = io.Copy(part, src)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Close writer
+	writer.Close()
+
+	// Send request to `cdn-service`
+	req, err := http.NewRequest("POST", ipCdn+"/v1/upload", body)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set headers
+	req.Header.Set("Authorization", authToken)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	// Check response status
+	if resp.StatusCode != http.StatusCreated {
+		return nil, fmt.Errorf("Failed to upload images: %s", resp.Status)
+	}
+
+	// Parse response JSON
+	var res struct {
+		Data []responses.AssetImageResponse `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		return nil, err
+	}
+
+	return res.Data, nil
+}
+
+// Get an optional string field from the form
+func getOptionalString(context *gin.Context, field string) *string {
+	val := context.PostForm(field)
+	if val == "" {
+		return nil
+	}
+	return &val
+}
+
+// Parse an integer from the form data
+func parseFormInt(context *gin.Context, field string) int {
+	val := context.PostForm(field)
+	if val == "" {
+		return 0
+	}
+	intVal, _ := strconv.Atoi(val)
+	return intVal
+}
+
+// Parse a float from the form data
+func parseFormFloat(context *gin.Context, field string) float64 {
+	val := context.PostForm(field)
+	if val == "" {
+		return 0.0
+	}
+	floatVal, _ := strconv.ParseFloat(val, 64)
+	return floatVal
 }

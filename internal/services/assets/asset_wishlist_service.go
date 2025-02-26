@@ -91,8 +91,8 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 		PurchaseDate: purchaseDate,
 		Price:        assetRequest.Price,
 		IsWishlist:   assetRequest.IsWishlist,
-		CreatedBy:    data.FullName,
-		UpdatedBy:    data.FullName,
+		CreatedBy:    data.ClientID,
+		UpdatedBy:    data.ClientID,
 	}
 
 	err = s.AssetWishlistRepository.AddAssetWishlist(asset)
@@ -187,14 +187,13 @@ func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest req
 
 	updateData := map[string]interface{}{
 		"description":   assetRequest.Description,
-		"image_url":     assetRequest.ImageUrl,
 		"category_id":   assetRequest.CategoryID,
 		"status_id":     assetRequest.StatusID,
 		"price":         assetRequest.Price,
 		"purchase_date": purchaseDate,
 		"notes":         assetRequest.Notes,
 		"is_wishlist":   assetRequest.IsWishlist,
-		"updated_by":    data.FullName,
+		"updated_by":    data.ClientID,
 	}
 
 	err = s.AssetWishlistRepository.UpdateAssetWishlist(asset.AssetID, updateData)

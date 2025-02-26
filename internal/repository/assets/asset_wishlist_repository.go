@@ -62,7 +62,6 @@ func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
             asset.name,
             asset.description,
             asset.barcode,
-            asset.image_url,
             asset.purchase_date,
             asset.expiry_date,
             asset.warranty_expiry_date,
@@ -91,7 +90,6 @@ func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
 	// Handling NULL values from SQL
 	var serialNumber sql.NullString
 	var barcode sql.NullString
-	var imageUrl sql.NullString
 	var notes sql.NullString
 	var purchaseDate sql.NullTime
 	var expiryDate sql.NullTime
@@ -104,7 +102,6 @@ func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
 		&asset.Name,
 		&asset.Description,
 		&barcode,
-		&imageUrl,
 		&purchaseDate,
 		&expiryDate,
 		&warrantyExpiryDate,
@@ -130,9 +127,6 @@ func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID u
 	}
 	if barcode.Valid {
 		asset.Barcode = &barcode.String
-	}
-	if imageUrl.Valid {
-		asset.ImageUrl = &imageUrl.String
 	}
 	if notes.Valid {
 		asset.Notes = &notes.String

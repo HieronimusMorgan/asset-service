@@ -57,8 +57,8 @@ func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCateg
 		UserClientID: clientID,
 		CategoryName: assetRequest.CategoryName,
 		Description:  assetRequest.Description,
-		CreatedBy:    data.FullName,
-		UpdatedBy:    data.FullName,
+		CreatedBy:    data.ClientID,
+		UpdatedBy:    data.ClientID,
 	}
 
 	err = s.AssetCategoryRepository.AddAssetCategory(assetCategory)
@@ -102,7 +102,7 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 
 	assetCategory.CategoryName = assetCategoryRequest.CategoryName
 	assetCategory.Description = assetCategoryRequest.Description
-	assetCategory.UpdatedBy = data.FullName
+	assetCategory.UpdatedBy = data.ClientID
 
 	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory, clientID)
 	if err != nil {
@@ -188,7 +188,7 @@ func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID str
 		return errors.New("asset category is still in use")
 	}
 
-	assetCategory.DeletedBy = &data.FullName
+	assetCategory.DeletedBy = &data.ClientID
 	if err = s.AssetCategoryRepository.DeleteAssetCategory(assetCategory); err != nil {
 		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to delete asset category")
 		return err

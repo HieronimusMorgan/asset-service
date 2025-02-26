@@ -12,7 +12,6 @@ type Asset struct {
 	Name               string         `gorm:"type:varchar(100);not null" json:"name,omitempty"`
 	Description        *string        `gorm:"type:text" json:"description,omitempty"`
 	Barcode            *string        `gorm:"type:varchar(100)" json:"barcode,omitempty"`
-	ImageUrl           *string        `gorm:"type:text" json:"image_url,omitempty"`
 	CategoryID         int            `gorm:"not null" json:"category_id,omitempty"`
 	StatusID           int            `gorm:"not null" json:"status_id,omitempty"`
 	PurchaseDate       *time.Time     `gorm:"type:date" json:"purchase_date,omitempty"`

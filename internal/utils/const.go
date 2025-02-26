@@ -19,6 +19,7 @@ const (
 	TableAssetMaintenanceTypeName   = "asset-service.asset_maintenance_type"
 	TableAssetName                  = "asset-service.asset"
 	TableAssetStatusName            = "asset-service.asset_status"
+	TableAssetImageName             = "asset-service.asset_image"
 )
 
 func ParseOptionalDate(str *string) (*time.Time, error) {
