@@ -126,7 +126,7 @@ func (s *ServerConfig) initController() {
 		AssetCategory:        controller.NewAssetCategoryController(s.Services.AssetCategory, s.JWTService),
 		AssetMaintenance:     controller.NewAssetMaintenanceController(s.Services.AssetMaintenance, s.JWTService),
 		AssetMaintenanceType: controller.NewAssetMaintenanceTypeController(s.Services.AssetMaintenanceType, s.JWTService),
-		Asset:                controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.IpCDN),
+		Asset:                controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.CdnUrl),
 		AssetStatus:          controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
 		AssetWishlist:        controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),
 	}
@@ -154,7 +154,7 @@ func (s *ServerConfig) initTransaction() {
 func (s *ServerConfig) initCron() {
 	s.Cron = Cron{
 		CronRepository: repositorycron.NewCronRepository(*s.DB),
-		CronService:    service.NewCronService(*s.DB, s.Config.Nats, repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, s.Services.AssetImage),
+		CronService:    service.NewCronService(*s.DB, s.Config.NatsUrl, repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, s.Services.AssetImage),
 		CronController: controllercron.NewCronJobController(service.NewCronService(*s.DB, "", repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, nil)),
 	}
 	s.Cron.CronService.Start()

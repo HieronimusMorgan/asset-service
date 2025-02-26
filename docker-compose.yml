@@ -20,6 +20,6 @@ services:
       REDIS_PORT: ${REDIS_PORT}
       REDIS_DB: ${REDIS_DB}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      IP_CDN: ${IP_CDN}
+      CDN_URL: ${CDN_URL}
       NATS_URL: ${NATS_URL}
     restart: always
