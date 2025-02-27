@@ -12,10 +12,11 @@ import (
 )
 
 type AssetImageService interface {
-	AddAssetImage(assetRequest []response.AssetImageResponse, assetID uint, clientID string) (interface{}, error)
+	AddAssetImage(assetRequest []response.AssetImageResponse, assetID uint, clientID string) error
 	GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error)
 	DeleteAssetImage(assetID uint, clientID string) error
 	Cleanup(nats string) error
+	CleanupUnusedImages(nats string) error
 }
 
 type assetImageService struct {
@@ -35,22 +36,23 @@ func NewAssetImageService(
 	}
 }
 
-func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageResponse, assetID uint, clientID string) (interface{}, error) {
+func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageResponse, assetID uint, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve data from Redis")
-		return nil, err
+		return err
 	}
 
 	if len(assetRequest) != 0 {
 		for _, image := range assetRequest {
 			var assetImage = &assets.AssetImage{
-				AssetID:   assetID,
-				ImageURL:  image.ImageURL,
-				FileSize:  image.FileSize,
-				FileType:  image.FileType,
-				CreatedBy: data.ClientID,
-				UpdatedBy: data.ClientID,
+				UserClientID: clientID,
+				AssetID:      assetID,
+				ImageURL:     image.ImageURL,
+				FileSize:     image.FileSize,
+				FileType:     image.FileType,
+				CreatedBy:    data.ClientID,
+				UpdatedBy:    data.ClientID,
 			}
 			err = s.AssetImageRepository.AddAssetImage(assetImage)
 		}
@@ -61,15 +63,10 @@ func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageRespo
 				Str("clientID", clientID).
 				Err(err).
 				Msg("Failed to add asset image")
-			return nil, err
+			return err
 		}
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
+	return nil
 }
 
 func (s assetImageService) GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error) {
@@ -100,12 +97,6 @@ func (s assetImageService) DeleteAssetImage(assetID uint, clientID string) error
 	return nil
 }
 
-// ImageDeleteRequest represents the deletion request sent to NATS
-type ImageDeleteRequest struct {
-	ClientID string   `json:"client_id"`
-	Images   []string `json:"images"`
-}
-
 // Cleanup removes images of deleted assets
 func (s assetImageService) Cleanup(nats string) error {
 	deleted, err := s.AssetRepository.GetAssetDeleted()
@@ -130,18 +121,56 @@ func (s assetImageService) Cleanup(nats string) error {
 			log.Error().Str("key", "DeleteAssetImage").Uint("asset_id", asset.AssetID).Err(err).Msg("Failed to delete asset images")
 			return err
 		}
+
 		if len(images) == 0 {
 			continue
-		}
-		if err = requestImageDeletion(nats, asset.UserClientID, images); err != nil {
-			log.Error().Str("key", "RequestImageDeletion").Err(err).Msg("Failed to request image deletion")
+		} else {
+			if err = requestImageDeletion(nats, asset.UserClientID, images); err != nil {
+				log.Error().Str("key", "RequestImageDeletion").Err(err).Msg("Failed to request image deletion")
+			}
 		}
 	}
 
 	return nil
 }
 
-// Sends a delete request to `cdn-service` via NATS
+func (s assetImageService) CleanupUnusedImages(nats string) error {
+	images, err := s.AssetImageRepository.GetAssetImage()
+	if err != nil {
+		log.Error().Str("key", "GetUnusedImages").Err(err).Msg("Failed to get unused images")
+		return err
+	}
+	var assetImages []assets.ImageDeleteRequest
+	var clientID string
+	var url []string
+	for _, img := range images {
+		clientID = img.UserClientID
+		imagesAsset, err := s.AssetImageRepository.GetAssetImageByClientID(clientID)
+		if err != nil {
+			log.Error().Str("key", "GetAssetImageByClientID").Str("client_id", clientID).Err(err).Msg("Failed to get asset images")
+		}
+		if imagesAsset == nil {
+			continue
+		}
+		for _, image := range *imagesAsset {
+			url = append(url, filepath.Base(image.ImageURL))
+		}
+		assetImages = append(assetImages, assets.ImageDeleteRequest{
+			ClientID: clientID,
+			Images:   url,
+		})
+	}
+	if len(assetImages) == 0 {
+		log.Info().Msg("No unused images found")
+		return nil
+	} else {
+		if err = requestImageUsage(nats, assetImages); err != nil {
+			log.Error().Str("key", "RequestImageDeletion").Err(err).Msg("Failed to request image deletion")
+		}
+	}
+	return nil
+}
+
 func requestImageDeletion(natsAPI string, clientID string, images []string) error {
 	nc, err := nats.Connect(natsAPI)
 	if err != nil {
@@ -149,7 +178,19 @@ func requestImageDeletion(natsAPI string, clientID string, images []string) erro
 	}
 	defer nc.Close()
 
-	data, _ := json.Marshal(ImageDeleteRequest{ClientID: clientID, Images: images})
+	data, _ := json.Marshal(assets.ImageDeleteRequest{ClientID: clientID, Images: images})
 
 	return nc.Publish("asset.image.delete", data)
+}
+
+func requestImageUsage(natsAPI string, images []assets.ImageDeleteRequest) error {
+	nc, err := nats.Connect(natsAPI)
+	if err != nil {
+		return err
+	}
+	defer nc.Close()
+
+	data, _ := json.Marshal(images)
+
+	return nc.Publish("asset.image.usage", data)
 }

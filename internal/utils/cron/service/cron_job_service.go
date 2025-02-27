@@ -111,8 +111,13 @@ func (cs *cronService) executeJob(job model.CronJob) {
 		if err != nil {
 			log.Println("Error performing asset maintenance check:", err)
 		}
-	case "image_cleanup":
+	case "asset_image_cleanup":
 		err := cs.assetImageService.Cleanup(cs.nats)
+		if err != nil {
+			log.Println("Error performing image cleanup:", err)
+		}
+	case "image_cleanup_unused":
+		err := cs.assetImageService.CleanupUnusedImages(cs.nats)
 		if err != nil {
 			log.Println("Error performing image cleanup:", err)
 		}

@@ -16,6 +16,8 @@ type AssetImageRepository interface {
 	DeleteAssetImage(assetID uint, clientID string) error
 	Cleanup() error
 	GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error)
+	GetAssetImage() ([]assets.AssetImage, error)
+	GetAssetImageByClientID(clientID string) (*[]assets.AssetImage, error)
 }
 
 // assetImageRepository implementation
@@ -70,6 +72,38 @@ func (r *assetImageRepository) GetAssetImageByAssetID(assetID uint) (*[]assets.A
 	log.Info().
 		Uint("asset_id", assetID).
 		Msg("✅ Asset image retrieved successfully")
+	return &assetImages, nil
+}
+
+// GetAssetImage retrieves all asset images
+func (r *assetImageRepository) GetAssetImage() ([]assets.AssetImage, error) {
+	var assetImages []assets.AssetImage
+	err := r.db.Table(utils.TableAssetImageName).
+		Find(&assetImages).Error
+	if err != nil {
+		log.Error().Err(err).Msg("❌ Failed to get asset images")
+		return nil, err
+	}
+
+	log.Info().Msg("✅ Asset images retrieved successfully")
+	return assetImages, nil
+}
+
+func (r *assetImageRepository) GetAssetImageByClientID(clientID string) (*[]assets.AssetImage, error) {
+	var assetImages []assets.AssetImage
+	err := r.db.Table(utils.TableAssetImageName).
+		Where("user_client_id = ?", clientID).
+		Find(&assetImages).Error
+	if err != nil {
+		log.Error().Err(err).
+			Str("client_id", clientID).
+			Msg("❌ Failed to get asset images by client ID")
+		return nil, err
+	}
+
+	log.Info().
+		Str("client_id", clientID).
+		Msg("✅ Asset images retrieved successfully")
 	return &assetImages, nil
 }
 

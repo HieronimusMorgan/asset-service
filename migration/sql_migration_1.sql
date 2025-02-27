@@ -165,17 +165,18 @@ CREATE INDEX idx_asset_status ON asset (status_id);
 
 CREATE TABLE asset_image
 (
-    image_id   SERIAL PRIMARY KEY,
-    asset_id   INT         NOT NULL,
-    image_url  TEXT        NOT NULL,
-    file_type  VARCHAR(50) NOT NULL,
-    file_size  BIGINT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(255),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by VARCHAR(255),
-    deleted_at TIMESTAMP,
-    deleted_by VARCHAR(255),
+    image_id       SERIAL PRIMARY KEY,
+    user_client_id VARCHAR(50) NOT NULL,
+    asset_id       INT         NOT NULL,
+    image_url      TEXT        NOT NULL,
+    file_type      VARCHAR(50) NOT NULL,
+    file_size      BIGINT,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255),
     CONSTRAINT fk_asset FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE
 );
 
@@ -355,8 +356,9 @@ CREATE TABLE cron_jobs
 );
 
 INSERT INTO cron_jobs (name, schedule, is_active, description, created_by)
-VALUES ('asset_maintenance', '0 5 * * *', true, 'Check Maintenance Asset', 'system'),
-       ('image_cleanup', '*/1 * * * *', true, 'Cleanup Asset Image', 'system');
+VALUES ('asset_maintenance', '0 5 * * *', true, 'Check and schedule maintenance for assets', 'system'),
+       ('asset_image_cleanup', '*/1 * * * *', true, 'Cleanup old and unused asset images', 'system'),
+       ('image_cleanup_unused', '*/1 * * * *', true, 'Remove unused images from asset storage', 'system');
 
 
 -- Triggers to update `update_at`

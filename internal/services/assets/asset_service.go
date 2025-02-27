@@ -157,12 +157,13 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 	if len(images) != 0 {
 		for _, image := range images {
 			var assetImage = &assets.AssetImage{
-				AssetID:   asset.AssetID,
-				ImageURL:  image.ImageURL,
-				FileSize:  image.FileSize,
-				FileType:  image.FileType,
-				CreatedBy: data.ClientID,
-				UpdatedBy: data.ClientID,
+				UserClientID: clientID,
+				AssetID:      asset.AssetID,
+				ImageURL:     image.ImageURL,
+				FileSize:     image.FileSize,
+				FileType:     image.FileType,
+				CreatedBy:    data.ClientID,
+				UpdatedBy:    data.ClientID,
 			}
 			err = s.AssetImageRepository.AddAssetImage(assetImage)
 		}
