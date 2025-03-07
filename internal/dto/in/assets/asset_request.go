@@ -69,3 +69,9 @@ type UpdateAssetWishlistRequest struct {
 	Notes        *string `json:"notes"`
 	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
 }
+
+type UpdateAssetStockRequest struct {
+	AssetID  uint    `json:"asset_id"`
+	Quantity int     `json:"quantity"`
+	Reason   *string `json:"reason,omitempty"`
+}

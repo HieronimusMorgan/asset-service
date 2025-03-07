@@ -159,9 +159,27 @@ CREATE TABLE asset
     FOREIGN KEY (category_id) REFERENCES asset_category (asset_category_id),
     FOREIGN KEY (status_id) REFERENCES asset_status (asset_status_id)
 );
-
 CREATE INDEX idx_asset_category ON asset (category_id);
 CREATE INDEX idx_asset_status ON asset (status_id);
+
+CREATE TABLE asset_stock
+(
+    stock_id         SERIAL PRIMARY KEY,
+    asset_id         INT         NOT NULL,
+    user_client_id   VARCHAR(50) NOT NULL,
+    initial_quantity INT         NOT NULL CHECK (initial_quantity >= 0),                   -- First recorded quantity
+    latest_quantity  INT         NOT NULL CHECK (latest_quantity >= 0),                    -- Updated latest stock count
+    change_type      VARCHAR(50) NOT NULL CHECK (change_type IN ('INCREASE', 'DECREASE')), -- Defines stock adjustments
+    quantity         INT         NOT NULL CHECK (quantity > 0),                            -- The amount added or removed
+    reason           TEXT      DEFAULT NULL,                                               -- Optional reason for stock adjustment
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by       VARCHAR(255),
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by       VARCHAR(255),
+    deleted_at       TIMESTAMP,
+    deleted_by       VARCHAR(255),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+);
 
 CREATE TABLE asset_image
 (

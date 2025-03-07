@@ -12,6 +12,9 @@ type AssetAuditLogRepository interface {
 	AfterCreateAsset(asset *assets.Asset) error
 	AfterUpdateAsset(old assets.Asset, asset *assets.Asset) error
 	AfterDeleteAsset(asset *assets.Asset) error
+	AfterCreateAssetStock(assetStock *assets.AssetStock) error
+	AfterUpdateAssetStock(old assets.AssetStock, assetStock *assets.AssetStock) error
+	AfterDeleteAssetStock(assetStock *assets.AssetStock) error
 	AfterCreateAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error
 	AfterUpdateAssetMaintenance(old assets.AssetMaintenance, assetMaintenance *assets.AssetMaintenance) error
 	AfterDeleteAssetMaintenance(assetMaintenance *assets.AssetMaintenance) error
@@ -96,6 +99,76 @@ func (a assetAuditLogRepository) AfterDeleteAsset(asset *assets.Asset) error {
 		OldData:     &oldData,
 		PerformedAt: time.Now(),
 		PerformedBy: asset.DeletedBy,
+	}
+
+	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterCreateAssetStock(assetStock *assets.AssetStock) error {
+	newDataBytes, err := json.Marshal(assetStock)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_stock",
+		Action:      "CREATE",
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &assetStock.CreatedBy,
+	}
+
+	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterUpdateAssetStock(old assets.AssetStock, assetStock *assets.AssetStock) error {
+	oldDataBytes, err := json.Marshal(old)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	newDataBytes, err := json.Marshal(assetStock)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_stock",
+		Action:      "UPDATE",
+		OldData:     &oldData,
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &assetStock.UpdatedBy,
+	}
+
+	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterDeleteAssetStock(assetStock *assets.AssetStock) error {
+	oldDataBytes, err := json.Marshal(assetStock)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_stock",
+		Action:      "DELETE",
+		OldData:     &oldData,
+		PerformedAt: time.Now(),
+		PerformedBy: assetStock.DeletedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {

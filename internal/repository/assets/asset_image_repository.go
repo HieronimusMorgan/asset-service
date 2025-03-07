@@ -1,6 +1,7 @@
 package assets
 
 import (
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
 	"errors"
@@ -15,6 +16,7 @@ type AssetImageRepository interface {
 	AddAssetImage(assetImage *assets.AssetImage) error
 	DeleteAssetImage(assetID uint, clientID string) error
 	Cleanup() error
+	GetAssetImageResponseByAssetID(assetID uint) (*[]response.AssetImageResponse, error)
 	GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error)
 	GetAssetImage() ([]assets.AssetImage, error)
 	GetAssetImageByClientID(clientID string) (*[]assets.AssetImage, error)
@@ -54,6 +56,34 @@ func (r assetImageRepository) AddAssetImage(assetImage *assets.AssetImage) error
 	}
 
 	return nil
+}
+
+// GetAssetImageResponseByAssetID retrieves asset image response by asset ID
+func (r *assetImageRepository) GetAssetImageResponseByAssetID(assetID uint) (*[]response.AssetImageResponse, error) {
+	var assetImages []assets.AssetImage
+	err := r.db.Table(utils.TableAssetImageName).
+		Where("asset_id = ?", assetID).
+		Find(&assetImages).Error
+	if err != nil {
+		log.Error().Err(err).
+			Uint("asset_id", assetID).
+			Msg("❌ Failed to get asset image response by asset ID")
+		return nil, err
+	}
+
+	var assetImageResponse []response.AssetImageResponse
+	for _, assetImage := range assetImages {
+		assetImageResponse = append(assetImageResponse, response.AssetImageResponse{
+			ImageURL: assetImage.ImageURL,
+			FileSize: assetImage.FileSize,
+			FileType: assetImage.FileType,
+		})
+	}
+
+	log.Info().
+		Uint("asset_id", assetID).
+		Msg("✅ Asset image response retrieved successfully")
+	return &assetImageResponse, nil
 }
 
 // GetAssetImageByAssetID retrieves asset image by asset ID

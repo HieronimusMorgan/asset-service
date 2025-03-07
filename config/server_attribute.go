@@ -10,6 +10,7 @@ import (
 	controllercron "asset-service/internal/utils/cron/controller"
 	repositorycron "asset-service/internal/utils/cron/repository"
 	"asset-service/internal/utils/cron/service"
+	nt "asset-service/internal/utils/nats"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
@@ -49,6 +50,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		JWTService: utils.NewJWTService(cfg.JWTSecret),
 	}
 
+	server.initNats()
 	server.initRepository()
 	server.initTransaction()
 	server.initServices()
@@ -99,6 +101,7 @@ func (s *ServerConfig) initRepository() {
 		AssetMaintenance:        repository.NewAssetMaintenanceRepository(*s.DB),
 		AssetMaintenanceRecord:  repository.NewAssetMaintenanceRecordRepository(*s.DB),
 		AssetImageRepository:    repository.NewAssetImageRepository(*s.DB),
+		AssetStockRepository:    repository.NewAssetStockRepository(*s.DB),
 	}
 }
 
@@ -108,10 +111,17 @@ func (s *ServerConfig) initServices() {
 		AssetCategory:        services.NewAssetCategoryService(s.Repository.AssetCategory, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
 		AssetMaintenance:     services.NewAssetMaintenanceService(s.Repository.AssetMaintenance, s.Repository.AssetRepository, s.Repository.AssetMaintenanceRecord, s.Repository.AssetAuditLog, s.Redis),
 		AssetMaintenanceType: services.NewAssetMaintenanceTypeService(s.Repository.AssetMaintenanceType, s.Repository.AssetMaintenance, s.Redis),
-		Asset:                services.NewAssetService(s.Repository.AssetRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetMaintenance, s.Repository.AssetImageRepository, s.Repository.AssetAuditLog, s.Redis, s.Transaction.AssetTransactionRepository),
+		Asset:                services.NewAssetService(s.Repository.AssetRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetMaintenance, s.Repository.AssetImageRepository, s.Repository.AssetAuditLog, s.Redis, s.Transaction.AssetTransactionRepository, s.Repository.AssetStockRepository),
 		AssetStatus:          services.NewAssetStatusService(s.Repository.AssetStatusRepository, s.Repository.AssetAuditLog, s.Redis),
 		AssetWishlist:        services.NewAssetWishlistService(s.Repository.AssetWishlistRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
-		AssetImage:           services.NewAssetImageService(s.Repository.AssetImageRepository, s.Repository.AssetRepository, s.Redis),
+		AssetImage:           services.NewAssetImageService(s.Repository.AssetImageRepository, s.Repository.AssetRepository, s.Redis, s.Nats.NatsService),
+	}
+}
+
+// initNats initializes the application services
+func (s *ServerConfig) initNats() {
+	s.Nats = Nats{
+		NatsService: nt.NewNatsService(s.Config.NatsUrl),
 	}
 }
 
@@ -154,8 +164,8 @@ func (s *ServerConfig) initTransaction() {
 func (s *ServerConfig) initCron() {
 	s.Cron = Cron{
 		CronRepository: repositorycron.NewCronRepository(*s.DB),
-		CronService:    service.NewCronService(*s.DB, s.Config.NatsUrl, repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, s.Services.AssetImage),
-		CronController: controllercron.NewCronJobController(service.NewCronService(*s.DB, "", repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, nil)),
+		CronService:    service.NewCronService(*s.DB, repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, s.Services.AssetImage),
+		CronController: controllercron.NewCronJobController(service.NewCronService(*s.DB, repositorycron.NewCronRepository(*s.DB), s.Services.AssetMaintenance, nil)),
 	}
 	s.Cron.CronService.Start()
 }

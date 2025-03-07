@@ -10,6 +10,7 @@ import (
 	controllercron "asset-service/internal/utils/cron/controller"
 	repositorycron "asset-service/internal/utils/cron/repository"
 	cron "asset-service/internal/utils/cron/service"
+	nt "asset-service/internal/utils/nats"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -22,6 +23,7 @@ type ServerConfig struct {
 	Redis       utils.RedisService
 	JWTService  utils.JWTService
 	Cron        Cron
+	Nats        Nats
 	Controller  Controller
 	Services    Services
 	Repository  Repository
@@ -51,6 +53,7 @@ type Repository struct {
 	AssetWishlistRepository repository.AssetWishlistRepository
 	AssetMaintenanceRecord  repository.AssetMaintenanceRecordRepository
 	AssetImageRepository    repository.AssetImageRepository
+	AssetStockRepository    repository.AssetStockRepository
 }
 
 type Controller struct {
@@ -71,6 +74,9 @@ type Cron struct {
 	CronService    cron.CronService
 	CronRepository repositorycron.CronRepository
 	CronController controllercron.CronJobController
+}
+type Nats struct {
+	NatsService nt.NatsService
 }
 
 type Transaction struct {

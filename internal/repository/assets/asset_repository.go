@@ -106,17 +106,20 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
            asset.expiry_date,
            asset.warranty_expiry_date,
            asset.price,
-           asset.stock,
            asset.notes,
            category.asset_category_id,
            category.category_name,
            category.description AS category_description,
            status.asset_status_id,
            status.status_name,
-           status.description AS status_description
+           status.description AS status_description,
+           stock.stock_id,
+           stock.initial_quantity,
+           stock.latest_quantity           
        FROM "asset-service"."asset" asset
        INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
        INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
+       INNER JOIN "asset-service"."asset_stock" stock ON asset.asset_id = stock.asset_id
        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
        ORDER BY asset.created_at ASC;
    `
@@ -132,6 +135,7 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		var asset response.AssetResponse
 		var category response.AssetCategoryResponse
 		var status response.AssetStatusResponse
+		var stock response.AssetStockResponse
 
 		// Handling NULL values from SQL
 		var serialNumber sql.NullString
@@ -141,7 +145,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		var expiryDate sql.NullTime
 		var warrantyExpiryDate sql.NullTime
 		var price sql.NullFloat64
-		var stock sql.NullInt64
 		var notes sql.NullString
 
 		err := rows.Scan(
@@ -155,7 +158,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 			&expiryDate,
 			&warrantyExpiryDate,
 			&price,
-			&stock,
 			&notes,
 			&category.AssetCategoryID,
 			&category.CategoryName,
@@ -163,6 +165,9 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 			&status.AssetStatusID,
 			&status.StatusName,
 			&status.Description,
+			&stock.StockID,
+			&stock.InitialQuantity,
+			&stock.LatestQuantity,
 		)
 
 		if err != nil {
@@ -183,9 +188,6 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		if price.Valid {
 			asset.Price = price.Float64
 		}
-		if stock.Valid {
-			asset.Stock = int(stock.Int64)
-		}
 		if notes.Valid {
 			asset.Notes = &notes.String
 		}
@@ -202,6 +204,7 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		// Assign category and status details
 		asset.Category = category
 		asset.Status = status
+		asset.Stock = stock
 
 		// Append to result slice
 		assetsList = append(assetsList, asset)
@@ -224,19 +227,22 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
            asset.expiry_date,
            asset.warranty_expiry_date,
            asset.price,
-           asset.stock,
            asset.notes,
            category.asset_category_id,
            category.category_name,
            category.description AS category_description,
            status.asset_status_id,
            status.status_name,
-           status.description AS status_description
+           status.description AS status_description,
+           stock.stock_id,
+           stock.initial_quantity,
+           stock.latest_quantity           
        FROM "asset-service"."asset" asset
        INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
        INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-       WHERE asset.user_client_id = ? AND asset.asset_id = ?  AND asset.deleted_at IS NULL
-       ORDER BY asset.asset_id ASC;
+       INNER JOIN "asset-service"."asset_stock" stock ON asset.asset_id = stock.asset_id
+       WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL
+       ORDER BY asset.created_at ASC;
    `
 
 	rows := r.db.Raw(selectQuery, clientID, id).Row()
@@ -244,6 +250,7 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	var asset response.AssetResponse
 	var category response.AssetCategoryResponse
 	var status response.AssetStatusResponse
+	var stock response.AssetStockResponse
 
 	// Handling NULL values from SQL
 	var serialNumber sql.NullString
@@ -253,7 +260,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	var expiryDate sql.NullTime
 	var warrantyExpiryDate sql.NullTime
 	var price sql.NullFloat64
-	var stock sql.NullInt64
 	var notes sql.NullString
 
 	err := rows.Scan(
@@ -267,7 +273,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 		&expiryDate,
 		&warrantyExpiryDate,
 		&price,
-		&stock,
 		&notes,
 		&category.AssetCategoryID,
 		&category.CategoryName,
@@ -275,6 +280,9 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 		&status.AssetStatusID,
 		&status.StatusName,
 		&status.Description,
+		&stock.StockID,
+		&stock.InitialQuantity,
+		&stock.LatestQuantity,
 	)
 
 	if err != nil {
@@ -295,9 +303,6 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	if price.Valid {
 		asset.Price = price.Float64
 	}
-	if stock.Valid {
-		asset.Stock = int(stock.Int64)
-	}
 	if notes.Valid {
 		asset.Notes = &notes.String
 	}
@@ -314,6 +319,7 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
 	// Assign category and status details
 	asset.Category = category
 	asset.Status = status
+	asset.Stock = stock
 
 	return &asset, nil
 }
@@ -448,6 +454,7 @@ func (r assetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 
 	return &asset, nil
 }
+
 func (r assetRepository) DeleteAsset(id uint, clientID string) error {
 	if err := r.db.Table(utils.TableAssetName).Model(assets.Asset{}).
 		Where("asset_id = ? AND user_client_id = ?", id, clientID).

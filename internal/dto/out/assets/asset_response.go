@@ -36,11 +36,12 @@ type AssetResponse struct {
 	Barcode            *string               `json:"barcode,omitempty"`
 	Status             AssetStatusResponse   `json:"status,omitempty"`
 	Category           AssetCategoryResponse `json:"category,omitempty"`
+	Images             []AssetImageResponse  `json:"images,omitempty"`
 	PurchaseDate       *DateOnly             `json:"purchase_date,omitempty"`
 	ExpiryDate         *DateOnly             `json:"expiry_date,omitempty"`
 	WarrantyExpiryDate *DateOnly             `json:"warranty_expiry_date,omitempty"`
 	Price              float64               `json:"price,omitempty"`
-	Stock              int                   `json:"stock,omitempty"`
+	Stock              AssetStockResponse    `json:"stock,omitempty"`
 	Notes              *string               `json:"notes,omitempty"`
 }
 
@@ -53,6 +54,7 @@ type AssetResponseAll struct {
 	Barcode        string                `json:"barcode,omitempty"`
 	Status         AssetStatusResponse   `json:"status,omitempty"`
 	Category       AssetCategoryResponse `json:"category,omitempty"`
+	Images         []AssetImageResponse  `json:"images,omitempty"`
 	PurchaseDate   string                `json:"purchase_date,omitempty"`
 	ExpiryDate     string                `json:"expiry_date,omitempty"`
 	WarrantyExpiry string                `json:"warranty_expiry_date,omitempty"`
@@ -61,8 +63,18 @@ type AssetResponseAll struct {
 }
 
 type AssetImageResponse struct {
-	ImageURL   string    `json:"image_url"`   // URL or file path of the uploaded image
-	FileType   string    `json:"file_type"`   // Image format (jpg, png, etc.)
-	FileSize   int64     `json:"file_size"`   // Image size in bytes
-	UploadedAt time.Time `json:"uploaded_at"` // Timestamp of upload
+	ImageURL   string    `json:"image_url,omitempty"`
+	FileType   string    `json:"file_type,omitempty"`
+	FileSize   int64     `json:"file_size,omitempty"`
+	UploadedAt time.Time `json:"uploaded_at,omitempty"`
+}
+
+type AssetStockResponse struct {
+	StockID         uint    `json:"stock_id,omitempty"`
+	AssetID         uint    `json:"asset_id,omitempty"`
+	InitialQuantity int     `json:"initial_quantity,omitempty"`
+	LatestQuantity  int     `json:"latest_quantity,omitempty"`
+	ChangeType      string  `json:"change_type,omitempty"`
+	Quantity        int     `json:"quantity,omitempty"`
+	Reason          *string `json:"reason,omitempty,omitempty"`
 }

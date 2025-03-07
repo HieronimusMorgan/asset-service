@@ -20,6 +20,12 @@ const (
 	TableAssetName                  = "asset-service.asset"
 	TableAssetStatusName            = "asset-service.asset_status"
 	TableAssetImageName             = "asset-service.asset_image"
+	TableAssetStockName             = "asset-service.asset_stock"
+)
+
+const (
+	NatsAssetImageDelete = "asset.image.delete"
+	NatsAssetImageUsage  = "asset.image.usage"
 )
 
 func ParseOptionalDate(str *string) (*time.Time, error) {

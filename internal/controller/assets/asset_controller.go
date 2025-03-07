@@ -22,6 +22,8 @@ type AssetController interface {
 	UpdateAsset(context *gin.Context)
 	UpdateAssetStatus(context *gin.Context)
 	UpdateAssetCategory(context *gin.Context)
+	AddStockAsset(context *gin.Context)
+	ReduceStockAsset(context *gin.Context)
 	GetListAsset(context *gin.Context)
 	GetAssetById(context *gin.Context)
 	DeleteAsset(context *gin.Context)
@@ -172,6 +174,62 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset category updated successfully", nil, nil)
 }
 
+func (h assetController) AddStockAsset(context *gin.Context) {
+	var req struct {
+		Stock int `json:"stock" binding:"required"`
+	}
+	assetIDStr := context.Param("id")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		return
+	}
+	if err := context.ShouldBindJSON(&req); err != nil {
+		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
+		return
+	}
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	if err != nil {
+		return
+	}
+
+	data, err := h.AssetService.UpdateStockAsset(true, uint(assetID), req.Stock, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Stock asset updated successfully", data, nil)
+}
+
+func (h assetController) ReduceStockAsset(context *gin.Context) {
+	var req struct {
+		Stock int `json:"stock" binding:"required"`
+	}
+	assetIDStr := context.Param("id")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		return
+	}
+	if err := context.ShouldBindJSON(&req); err != nil {
+		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
+		return
+	}
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	if err != nil {
+		return
+	}
+
+	data, err := h.AssetService.UpdateStockAsset(false, uint(assetID), req.Stock, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Stock asset updated successfully", data, nil)
+}
+
 func (h assetController) GetListAsset(context *gin.Context) {
 
 	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
@@ -285,7 +343,16 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 		return nil, err
 	}
 
-	return res.Data, nil
+	var result struct {
+		Data []responses.AssetImageResponse `json:"data"`
+	}
+	for _, img := range res.Data {
+		result.Data = append(result.Data, responses.AssetImageResponse{
+			ImageURL: ipCdn + "/v1" + img.ImageURL,
+		})
+	}
+
+	return result.Data, nil
 }
 
 // Get an optional string field from the form
