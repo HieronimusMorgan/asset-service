@@ -208,11 +208,11 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 
 		// Fetch asset images separately (handling multiple images)
 		imageQuery := `
-        SELECT image.image_url, image.file_size
+        SELECT image.image_url
         FROM "asset-service"."asset_image" image
-        WHERE image.asset_id = ?;
+        WHERE image.asset_id = ? AND user_client_id = ? AND image.deleted_at IS NULL;
     `
-		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID).Rows()
+		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID, clientID).Rows()
 		if err != nil {
 			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset images")
 			return nil, err
