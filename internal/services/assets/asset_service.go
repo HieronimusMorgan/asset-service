@@ -109,8 +109,6 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 			UserClientID: clientID,
 			AssetID:      asset.AssetID,
 			ImageURL:     image.ImageURL,
-			FileSize:     image.FileSize,
-			FileType:     image.FileType,
 			CreatedBy:    data.ClientID,
 			UpdatedBy:    data.ClientID,
 		}
@@ -294,6 +292,10 @@ func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, 
 	if err != nil {
 		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by ID")
 	}
+
+	assetImage, _ := s.AssetImageRepository.GetAssetImageResponseByAssetID(assetID)
+
+	asset.Images = *assetImage
 
 	return *asset, nil
 }

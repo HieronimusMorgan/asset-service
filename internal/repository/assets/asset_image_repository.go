@@ -75,8 +75,6 @@ func (r *assetImageRepository) GetAssetImageResponseByAssetID(assetID uint) (*[]
 	for _, assetImage := range assetImages {
 		assetImageResponse = append(assetImageResponse, response.AssetImageResponse{
 			ImageURL: assetImage.ImageURL,
-			FileSize: assetImage.FileSize,
-			FileType: assetImage.FileType,
 		})
 	}
 

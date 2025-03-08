@@ -49,8 +49,6 @@ func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageRespo
 				UserClientID: clientID,
 				AssetID:      assetID,
 				ImageURL:     image.ImageURL,
-				FileSize:     image.FileSize,
-				FileType:     image.FileType,
 				CreatedBy:    data.ClientID,
 				UpdatedBy:    data.ClientID,
 			}

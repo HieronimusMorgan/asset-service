@@ -206,6 +206,30 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		asset.Status = status
 		asset.Stock = stock
 
+		// Fetch asset images separately (handling multiple images)
+		imageQuery := `
+        SELECT image.image_url, image.file_size
+        FROM "asset-service"."asset_image" image
+        WHERE image.asset_id = ?;
+    `
+		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID).Rows()
+		if err != nil {
+			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset images")
+			return nil, err
+		}
+
+		var images []response.AssetImageResponse
+		for imagesRows.Next() {
+			var img response.AssetImageResponse
+			if err := imagesRows.Scan(&img.ImageURL); err != nil {
+				log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset image row")
+				return nil, err
+			}
+			images = append(images, img)
+		}
+
+		asset.Images = images
+
 		// Append to result slice
 		assetsList = append(assetsList, asset)
 	}

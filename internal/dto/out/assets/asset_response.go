@@ -63,10 +63,7 @@ type AssetResponseAll struct {
 }
 
 type AssetImageResponse struct {
-	ImageURL   string    `json:"image_url,omitempty"`
-	FileType   string    `json:"file_type,omitempty"`
-	FileSize   int64     `json:"file_size,omitempty"`
-	UploadedAt time.Time `json:"uploaded_at,omitempty"`
+	ImageURL string `json:"image_url,omitempty"`
 }
 
 type AssetStockResponse struct {
