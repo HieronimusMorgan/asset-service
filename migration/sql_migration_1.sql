@@ -167,19 +167,23 @@ CREATE TABLE asset_stock
     stock_id         SERIAL PRIMARY KEY,
     asset_id         INT         NOT NULL,
     user_client_id   VARCHAR(50) NOT NULL,
-    initial_quantity INT         NOT NULL CHECK (initial_quantity >= 0),                   -- First recorded quantity
-    latest_quantity  INT         NOT NULL CHECK (latest_quantity >= 0),                    -- Updated latest stock count
+    initial_quantity INT NOT NULL CHECK (initial_quantity >= 0),                           -- Can be 0 or more
+    latest_quantity  INT NOT NULL CHECK (latest_quantity >= 0),                            -- Can be 0 or more
     change_type      VARCHAR(50) NOT NULL CHECK (change_type IN ('INCREASE', 'DECREASE')), -- Defines stock adjustments
-    quantity         INT         NOT NULL CHECK (quantity > 0),                            -- The amount added or removed
-    reason           TEXT      DEFAULT NULL,                                               -- Optional reason for stock adjustment
+    quantity         INT NOT NULL CHECK (quantity > 0),                                    -- The amount added or removed
+    reason           TEXT DEFAULT NULL,                                                    -- Optional reason for stock adjustment
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by       VARCHAR(255),
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by       VARCHAR(255),
     deleted_at       TIMESTAMP,
     deleted_by       VARCHAR(255),
-    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE
 );
+
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_stock_asset ON asset_stock (asset_id);
+CREATE INDEX idx_asset_stock_user ON asset_stock (user_client_id);
 
 CREATE TABLE asset_image
 (
@@ -198,6 +202,26 @@ CREATE TABLE asset_image
     CONSTRAINT fk_asset FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE
 );
 
+CREATE TABLE asset_stock_history
+(
+    stock_history_id  SERIAL PRIMARY KEY,
+    asset_id          INT         NOT NULL,
+    user_client_id    VARCHAR(50) NOT NULL,
+    stock_id          INT         NOT NULL,                                -- Reference to asset_stock
+    change_type       VARCHAR(50) NOT NULL CHECK (change_type IN ('INCREASE', 'DECREASE', 'ADJUSTMENT')),
+    previous_quantity INT         NOT NULL CHECK (previous_quantity >= 0), -- Before update
+    new_quantity      INT         NOT NULL CHECK (new_quantity >= 0),      -- After update
+    quantity_changed  INT         NOT NULL CHECK (quantity_changed > 0),   -- Change difference
+    reason            TEXT      DEFAULT NULL,                              -- Optional adjustment reason
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by        VARCHAR(255),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE,
+    FOREIGN KEY (stock_id) REFERENCES asset_stock (stock_id) ON DELETE CASCADE
+);
+
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_stock_history_asset ON asset_stock_history (asset_id);
+CREATE INDEX idx_asset_stock_history_user ON asset_stock_history (user_client_id);
 
 -- Table for Maintenance Type
 CREATE TABLE asset_maintenance_type

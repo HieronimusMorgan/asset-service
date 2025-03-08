@@ -176,7 +176,8 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 
 func (h assetController) AddStockAsset(context *gin.Context) {
 	var req struct {
-		Stock int `json:"stock" binding:"required"`
+		Stock  int     `json:"stock" binding:"required"`
+		Reason *string `json:"reason"`
 	}
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
@@ -193,7 +194,7 @@ func (h assetController) AddStockAsset(context *gin.Context) {
 		return
 	}
 
-	data, err := h.AssetService.UpdateStockAsset(true, uint(assetID), req.Stock, token.ClientID)
+	data, err := h.AssetService.UpdateStockAsset(true, uint(assetID), req, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
 		return
@@ -204,7 +205,8 @@ func (h assetController) AddStockAsset(context *gin.Context) {
 
 func (h assetController) ReduceStockAsset(context *gin.Context) {
 	var req struct {
-		Stock int `json:"stock" binding:"required"`
+		Stock  int     `json:"stock" binding:"required"`
+		Reason *string `json:"reason"`
 	}
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
@@ -221,7 +223,7 @@ func (h assetController) ReduceStockAsset(context *gin.Context) {
 		return
 	}
 
-	data, err := h.AssetService.UpdateStockAsset(false, uint(assetID), req.Stock, token.ClientID)
+	data, err := h.AssetService.UpdateStockAsset(false, uint(assetID), req, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
 		return

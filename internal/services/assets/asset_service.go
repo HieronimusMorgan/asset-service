@@ -9,13 +9,16 @@ import (
 	"asset-service/internal/utils"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"strconv"
+	"sync"
 )
 
 type AssetService interface {
 	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error)
 	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
-	UpdateStockAsset(isAdded bool, assetID uint, stock int, clientID string) (interface{}, error)
+	UpdateStockAsset(isAdded bool, assetID uint, stock struct {
+		Stock  int     `json:"stock" binding:"required"`
+		Reason *string `json:"reason"`
+	}, clientID string) (interface{}, error)
 	GetListAsset(clientID string) (interface{}, error)
 	GetAssetByID(clientID string, assetID uint) (interface{}, error)
 	UpdateAssetStatus(assetID uint, statusID uint, clientID string) error
@@ -24,36 +27,33 @@ type AssetService interface {
 }
 
 type assetService struct {
-	AssetRepository            repo.AssetRepository
-	AssetCategoryRepository    repo.AssetCategoryRepository
-	AssetStatusRepository      repo.AssetStatusRepository
-	AssetMaintenanceRepository repo.AssetMaintenanceRepository
-	AssetImageRepository       repo.AssetImageRepository
-	Redis                      utils.RedisService
-	AuditLogRepository         repo.AssetAuditLogRepository
-	AssetTransaction           transaction.AssetTransactionRepository
-	AssetStockRepository       repo.AssetStockRepository
+	AssetRepository         repo.AssetRepository
+	AssetCategoryRepository repo.AssetCategoryRepository
+	AssetStatusRepository   repo.AssetStatusRepository
+	AssetImageRepository    repo.AssetImageRepository
+	Redis                   utils.RedisService
+	AuditLogRepository      repo.AssetAuditLogRepository
+	AssetTransaction        transaction.AssetTransactionRepository
+	AssetStockRepository    repo.AssetStockRepository
 }
 
 func NewAssetService(assetRepository repo.AssetRepository,
 	assetCategoryRepository repo.AssetCategoryRepository,
 	assetStatusRepository repo.AssetStatusRepository,
-	assetMaintenanceRepository repo.AssetMaintenanceRepository,
 	assetImageRepository repo.AssetImageRepository,
 	log repo.AssetAuditLogRepository,
 	redis utils.RedisService,
 	assetTransaction transaction.AssetTransactionRepository,
 	assetStockRepository repo.AssetStockRepository) AssetService {
 	return assetService{
-		AssetRepository:            assetRepository,
-		AssetCategoryRepository:    assetCategoryRepository,
-		AssetStatusRepository:      assetStatusRepository,
-		AssetMaintenanceRepository: assetMaintenanceRepository,
-		AssetImageRepository:       assetImageRepository,
-		AuditLogRepository:         log,
-		Redis:                      redis,
-		AssetTransaction:           assetTransaction,
-		AssetStockRepository:       assetStockRepository}
+		AssetRepository:         assetRepository,
+		AssetCategoryRepository: assetCategoryRepository,
+		AssetStatusRepository:   assetStatusRepository,
+		AssetImageRepository:    assetImageRepository,
+		AuditLogRepository:      log,
+		Redis:                   redis,
+		AssetTransaction:        assetTransaction,
+		AssetStockRepository:    assetStockRepository}
 }
 
 func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error) {
@@ -104,16 +104,19 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		return logError("AddAsset", clientID, err, "Failed to add asset")
 	}
 
-	for _, image := range images {
-		assetImage := &assets.AssetImage{
-			UserClientID: clientID,
-			AssetID:      asset.AssetID,
-			ImageURL:     image.ImageURL,
-			CreatedBy:    data.ClientID,
-			UpdatedBy:    data.ClientID,
-		}
-		if err := s.AssetImageRepository.AddAssetImage(assetImage); err != nil {
-			return logError("AddAssetImage", clientID, err, "Failed to add asset image")
+	if len(images) > 0 {
+		var assetImages []assets.AssetImage
+		for _, image := range images {
+			assetImages := append(assetImages, assets.AssetImage{
+				UserClientID: clientID,
+				AssetID:      asset.AssetID,
+				ImageURL:     image.ImageURL,
+				CreatedBy:    data.ClientID,
+				UpdatedBy:    data.ClientID,
+			})
+			if err := s.AssetImageRepository.AddAssetImage(assetImages); err != nil {
+				return logError("AddAssetImage", clientID, err, "Failed to add asset image")
+			}
 		}
 	}
 
@@ -131,14 +134,22 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 	if err := s.AssetStockRepository.AddAssetStock(assetStock); err != nil {
 		return logError("AddAssetStock", clientID, err, "Failed to add asset stock")
 	}
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	if err := s.AuditLogRepository.AfterCreateAsset(asset); err != nil {
-		return logError("AfterCreateAsset", clientID, err, "Failed to create asset log")
-	}
+	go func() {
+		defer wg.Done()
+		if err := s.AuditLogRepository.AfterCreateAsset(asset); err != nil {
+			log.Error().Str("clientID", clientID).Err(err).Msg("Failed to create asset log")
+		}
+	}()
 
-	if err := s.AuditLogRepository.AfterCreateAssetStock(assetStock); err != nil {
-		return logError("AfterCreateAssetStock", clientID, err, "Failed to create asset stock log")
-	}
+	go func() {
+		defer wg.Done()
+		if err := s.AuditLogRepository.AfterCreateAssetStock(assetStock); err != nil {
+			log.Error().Str("clientID", clientID).Err(err).Msg("Failed to create asset stock log")
+		}
+	}()
 
 	result, err := s.AssetRepository.GetAssetResponseByID(clientID, asset.AssetID)
 	if err != nil {
@@ -208,12 +219,17 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 	return asset, nil
 }
 
-func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock int, clientID string) (interface{}, error) {
+func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct {
+	Stock  int     `json:"stock" binding:"required"`
+	Reason *string `json:"reason"`
+}, clientID string) (interface{}, error) {
+	// Step 1: Fetch user data from Redis
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
-		return logError("GetUserRedis", clientID, err, "Failed to get user redis")
+		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
 
+	// Step 2: Retrieve asset and stock data
 	asset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
 		return logError("GetAsset", clientID, err, "Failed to get asset by ID")
@@ -224,45 +240,57 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock int, cl
 		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset ID")
 	}
 
-	log.Info().Str("oldAssetStock", strconv.Itoa(int(oldAssetStock.StockID))).
-		Str("Latest Stock", strconv.Itoa(oldAssetStock.LatestQuantity)).
-		Msg("oldAssetStock")
+	log.Info().
+		Uint("assetID", assetID).
+		Int("Previous Stock", oldAssetStock.LatestQuantity).
+		Msg("Retrieved current stock")
 
+	// Step 3: Determine new stock quantity
 	var stockType string
 	var latestQuantity int
+
 	if isAdded {
 		stockType = "INCREASE"
-		latestQuantity = oldAssetStock.LatestQuantity + stock
+		latestQuantity = oldAssetStock.LatestQuantity + stock.Stock
 	} else {
 		stockType = "DECREASE"
-		latestQuantity = oldAssetStock.LatestQuantity - stock
+		if oldAssetStock.LatestQuantity < stock.Stock {
+			return logError("UpdateStockAsset", clientID, errors.New("insufficient stock"), "Stock cannot be negative")
+		}
+		latestQuantity = oldAssetStock.LatestQuantity - stock.Stock
 	}
 
-	var newAssetStock = &assets.AssetStock{
+	// Step 4: Create stock update struct
+	newAssetStock := &assets.AssetStock{
 		AssetID:         asset.AssetID,
 		UserClientID:    data.ClientID,
 		InitialQuantity: oldAssetStock.InitialQuantity,
 		LatestQuantity:  latestQuantity,
-		Quantity:        latestQuantity,
+		Quantity:        stock.Stock,
 		ChangeType:      stockType,
-		Reason:          nil,
+		Reason:          stock.Reason,
 		UpdatedBy:       data.ClientID,
 	}
 
+	// Step 5: Update stock in a transaction
 	err = s.AssetStockRepository.UpdateAssetStock(newAssetStock, clientID)
 	if err != nil {
 		return logError("UpdateAssetStock", clientID, err, "Failed to update asset stock")
 	}
 
-	log.Info().Str("newAssetStock", strconv.Itoa(int(newAssetStock.StockID))).
-		Str("Latest Stock", strconv.Itoa(newAssetStock.LatestQuantity)).
-		Msg("newAssetStock")
+	log.Info().
+		Uint("assetID", assetID).
+		Int("Updated Stock", latestQuantity).
+		Str("Change Type", stockType).
+		Msg("Stock updated successfully")
 
+	// Step 6: Log stock change in audit log
 	err = s.AuditLogRepository.AfterUpdateAssetStock(*oldAssetStock, newAssetStock)
 	if err != nil {
-		return logError("AfterUpdateAssetStock", clientID, err, "Failed to update asset stock")
+		return logError("AfterUpdateAssetStock", clientID, err, "Failed to update asset stock log")
 	}
 
+	// Step 7: Return updated stock response
 	return response.AssetStockResponse{
 		StockID:         newAssetStock.StockID,
 		AssetID:         newAssetStock.AssetID,

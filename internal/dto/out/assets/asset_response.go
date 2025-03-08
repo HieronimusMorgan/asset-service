@@ -69,9 +69,9 @@ type AssetImageResponse struct {
 type AssetStockResponse struct {
 	StockID         uint    `json:"stock_id,omitempty"`
 	AssetID         uint    `json:"asset_id,omitempty"`
-	InitialQuantity int     `json:"initial_quantity,omitempty"`
-	LatestQuantity  int     `json:"latest_quantity,omitempty"`
+	InitialQuantity int     `json:"initial_quantity"`
+	LatestQuantity  int     `json:"latest_quantity"`
 	ChangeType      string  `json:"change_type,omitempty"`
-	Quantity        int     `json:"quantity,omitempty"`
+	Quantity        int     `json:"quantity"`
 	Reason          *string `json:"reason,omitempty,omitempty"`
 }

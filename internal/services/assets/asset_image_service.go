@@ -44,18 +44,17 @@ func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageRespo
 	}
 
 	if len(assetRequest) != 0 {
+		var assetImages []assets.AssetImage
 		for _, image := range assetRequest {
-			var assetImage = &assets.AssetImage{
+			assetImages = append(assetImages, assets.AssetImage{
 				UserClientID: clientID,
 				AssetID:      assetID,
 				ImageURL:     image.ImageURL,
 				CreatedBy:    data.ClientID,
 				UpdatedBy:    data.ClientID,
-			}
-			err = s.AssetImageRepository.AddAssetImage(assetImage)
+			})
 		}
-
-		if err != nil {
+		if err := s.AssetImageRepository.AddAssetImage(assetImages); err != nil {
 			log.Error().
 				Str("key", "AddAssetImage").
 				Str("clientID", clientID).

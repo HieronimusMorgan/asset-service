@@ -4,8 +4,6 @@ import (
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
-	"errors"
-	"fmt"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 	"time"
@@ -13,7 +11,7 @@ import (
 
 // AssetImageRepository defines the interface
 type AssetImageRepository interface {
-	AddAssetImage(assetImage *assets.AssetImage) error
+	AddAssetImage(assetImage []assets.AssetImage) error
 	DeleteAssetImage(assetID uint, clientID string) error
 	Cleanup() error
 	GetAssetImageResponseByAssetID(assetID uint) (*[]response.AssetImageResponse, error)
@@ -34,27 +32,18 @@ func NewAssetImageRepository(db gorm.DB) AssetImageRepository {
 
 // AddAssetImage inserts a new asset image and logs audit
 
-func (r assetImageRepository) AddAssetImage(assetImage *assets.AssetImage) error {
-	if assetImage == nil {
-		return errors.New("assets cannot be nil")
+func (r assetImageRepository) AddAssetImage(assetImage []assets.AssetImage) error {
+	if len(assetImage) == 0 {
+		return nil // No images to insert
 	}
 
-	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Table(utils.TableAssetImageName).Create(&assetImage).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to create assets: %w", err)
+	err := r.db.Table(utils.TableAssetImageName).Create(&assetImage).Error
+	if err != nil {
+		log.Error().Err(err).Msg("❌ Failed to batch insert asset images")
+		return err
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
+	log.Info().Int("count", len(assetImage)).Msg("✅ Successfully batch inserted asset images")
 	return nil
 }
 

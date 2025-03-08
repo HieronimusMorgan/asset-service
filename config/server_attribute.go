@@ -108,13 +108,46 @@ func (s *ServerConfig) initRepository() {
 // initServices initializes the application services
 func (s *ServerConfig) initServices() {
 	s.Services = Services{
-		AssetCategory:        services.NewAssetCategoryService(s.Repository.AssetCategory, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
-		AssetMaintenance:     services.NewAssetMaintenanceService(s.Repository.AssetMaintenance, s.Repository.AssetRepository, s.Repository.AssetMaintenanceRecord, s.Repository.AssetAuditLog, s.Redis),
-		AssetMaintenanceType: services.NewAssetMaintenanceTypeService(s.Repository.AssetMaintenanceType, s.Repository.AssetMaintenance, s.Redis),
-		Asset:                services.NewAssetService(s.Repository.AssetRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetMaintenance, s.Repository.AssetImageRepository, s.Repository.AssetAuditLog, s.Redis, s.Transaction.AssetTransactionRepository, s.Repository.AssetStockRepository),
-		AssetStatus:          services.NewAssetStatusService(s.Repository.AssetStatusRepository, s.Repository.AssetAuditLog, s.Redis),
-		AssetWishlist:        services.NewAssetWishlistService(s.Repository.AssetWishlistRepository, s.Repository.AssetCategory, s.Repository.AssetStatusRepository, s.Repository.AssetRepository, s.Repository.AssetAuditLog, s.Redis),
-		AssetImage:           services.NewAssetImageService(s.Repository.AssetImageRepository, s.Repository.AssetRepository, s.Redis, s.Nats.NatsService),
+		AssetCategory: services.NewAssetCategoryService(
+			s.Repository.AssetCategory,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetMaintenance: services.NewAssetMaintenanceService(
+			s.Repository.AssetMaintenance,
+			s.Repository.AssetRepository,
+			s.Repository.AssetMaintenanceRecord,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetMaintenanceType: services.NewAssetMaintenanceTypeService(
+			s.Repository.AssetMaintenanceType,
+			s.Repository.AssetMaintenance,
+			s.Redis),
+		Asset: services.NewAssetService(
+			s.Repository.AssetRepository,
+			s.Repository.AssetCategory,
+			s.Repository.AssetStatusRepository,
+			s.Repository.AssetImageRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis,
+			s.Transaction.AssetTransactionRepository,
+			s.Repository.AssetStockRepository),
+		AssetStatus: services.NewAssetStatusService(
+			s.Repository.AssetStatusRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetWishlist: services.NewAssetWishlistService(
+			s.Repository.AssetWishlistRepository,
+			s.Repository.AssetCategory,
+			s.Repository.AssetStatusRepository,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetImage: services.NewAssetImageService(
+			s.Repository.AssetImageRepository,
+			s.Repository.AssetRepository,
+			s.Redis,
+			s.Nats.NatsService),
 	}
 }
 

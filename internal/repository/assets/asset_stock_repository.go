@@ -4,6 +4,7 @@ import (
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
+	"errors"
 	"gorm.io/gorm"
 	"time"
 )
@@ -69,23 +70,85 @@ func (r assetStockRepository) GetAssetStockByClientID(clientID string) (*[]asset
 	return &assetStocks, err
 }
 
-func (r assetStockRepository) UpdateAssetStock(assetStock *assets.AssetStock, clientID string) error {
+func (r *assetStockRepository) UpdateAssetStock(assetStock *assets.AssetStock, clientID string) error {
 	tx := r.db.Begin()
 
-	updateFields := map[string]interface{}{
-		"latest_quantity": assetStock.LatestQuantity,
-		"change_type":     assetStock.ChangeType,
-		"updated_by":      clientID,
+	var existingStock assets.AssetStock
+	if err := tx.Table(utils.TableAssetStockName).
+		Where("asset_id = ? AND user_client_id = ?", assetStock.AssetID, clientID).
+		First(&existingStock).Error; err != nil {
+		tx.Rollback()
+		return err
 	}
 
-	err := tx.Table(utils.TableAssetStockName).
-		Where("asset_id = ? AND user_client_id = ?", assetStock.AssetID, clientID).
-		Updates(updateFields).Error
+	previousQuantity := existingStock.LatestQuantity
+	newQuantity := previousQuantity
 
-	if err != nil {
+	switch assetStock.ChangeType {
+	case "INCREASE":
+		newQuantity += assetStock.Quantity
+	case "DECREASE":
+		if previousQuantity < assetStock.Quantity {
+			tx.Rollback()
+			return errors.New("not enough stock available")
+		}
+		newQuantity -= assetStock.Quantity
+	case "ADJUSTMENT":
+		newQuantity = assetStock.Quantity
+	default:
+		tx.Rollback()
+		return errors.New("invalid stock change type")
+	}
+
+	// If quantity has not changed, do not insert into history
+	if newQuantity == previousQuantity {
+		tx.Rollback()
+		return errors.New("no stock change detected")
+	}
+
+	// Update asset_stock table
+	updateFields := map[string]interface{}{
+		"latest_quantity": newQuantity,
+		"quantity":        newQuantity,
+		"change_type":     assetStock.ChangeType,
+		"reason":          assetStock.Reason,
+		"updated_by":      clientID,
+		"updated_at":      time.Now(),
+	}
+
+	if err := tx.Table(utils.TableAssetStockName).
+		Where("asset_id = ? AND user_client_id = ?", assetStock.AssetID, clientID).
+		Updates(updateFields).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Insert into asset_stock_history
+	stockHistory := assets.AssetStockHistory{
+		AssetID:          assetStock.AssetID,
+		UserClientID:     clientID,
+		StockID:          existingStock.StockID,
+		ChangeType:       assetStock.ChangeType,
+		PreviousQuantity: previousQuantity,
+		NewQuantity:      newQuantity,
+		QuantityChanged:  abs(newQuantity - previousQuantity), // Ensure this is always > 0
+		Reason:           assetStock.Reason,
+		CreatedBy:        clientID,
+		CreatedAt:        time.Now(),
+	}
+
+	if err := tx.Table(utils.TableAssetStockHistoryName).Create(&stockHistory).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	return tx.Commit().Error
+}
+
+// Helper function to ensure absolute values
+func abs(value int) int {
+	if value < 0 {
+		return -value
+	}
+	return value
 }

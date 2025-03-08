@@ -21,6 +21,7 @@ const (
 	TableAssetStatusName            = "asset-service.asset_status"
 	TableAssetImageName             = "asset-service.asset_image"
 	TableAssetStockName             = "asset-service.asset_stock"
+	TableAssetStockHistoryName      = "asset-service.asset_stock_history"
 )
 
 const (
