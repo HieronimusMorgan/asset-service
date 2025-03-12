@@ -182,3 +182,16 @@ func ExtractTokenClaims(c *gin.Context) (*TokenClaims, bool) {
 
 	return tokenClaims, true
 }
+
+func HasAssetResource(t []string) bool {
+	for _, res := range t {
+		if res == "asset" {
+			return true
+		}
+	}
+	return false
+}
+
+func GetCurrentTime() int64 {
+	return time.Now().Unix()
+}
