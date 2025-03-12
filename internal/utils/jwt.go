@@ -151,12 +151,13 @@ func (j jwtService) ValidateInternalToken(tokenString string) (*InternalClaims, 
 
 // TokenClaims represents the claims extracted from a JWT token
 type TokenClaims struct {
-	Authorized bool   `json:"authorized"`
-	AccessUUID string `json:"access_uuid"`
-	UserID     uint   `json:"user_id"`
-	ClientID   string `json:"client_id"`
-	RoleID     uint   `json:"role_id"`
-	Exp        int64  `json:"exp"`
+	Authorized bool     `json:"authorized"`
+	AccessUUID string   `json:"access_uuid"`
+	UserID     uint     `json:"user_id"`
+	ClientID   string   `json:"client_id"`
+	RoleID     uint     `json:"role_id"`
+	Resource   []string `json:"resource"`
+	Exp        int64    `json:"exp"`
 }
 
 // InternalClaims represents the claims used for service-to-service authentication
