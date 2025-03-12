@@ -4,7 +4,10 @@ import (
 	"time"
 )
 
-const User = "user"
+const (
+	User      = "user"
+	PinVerify = "pin_verify"
+)
 const ClientID = "client_id"
 
 const (

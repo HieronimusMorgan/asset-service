@@ -20,3 +20,9 @@ type TokenDetails struct {
 	AtExpires    int64  `json:"at_expires"`
 	RtExpires    int64  `json:"rt_expires"`
 }
+
+type VerifyPinCode struct {
+	ClientID  string `json:"client_id"`
+	RequestID string `json:"request_id"`
+	Valid     bool   `json:"valid"`
+}

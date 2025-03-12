@@ -4,6 +4,7 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
+	"asset-service/internal/models/user"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
 	"asset-service/internal/utils"
@@ -13,7 +14,7 @@ import (
 )
 
 type AssetService interface {
-	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error)
+	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, requestHeaderID string) (interface{}, error)
 	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
 	UpdateStockAsset(isAdded bool, assetID uint, stock struct {
 		Stock  int     `json:"stock" binding:"required"`
@@ -56,11 +57,24 @@ func NewAssetService(assetRepository repo.AssetRepository,
 		AssetStockRepository:    assetStockRepository}
 }
 
-func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string) (interface{}, error) {
+func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, requestID string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
+
+	verifyPinCode := &user.VerifyPinCode{}
+
+	err = s.Redis.GetData(utils.PinVerify, requestID, verifyPinCode)
+	if err != nil {
+		return logError("GetRedisData", clientID, err, "Your pin code is invalid")
+	}
+
+	if !verifyPinCode.Valid {
+		return logError("GetRedisData", clientID, errors.New("pin code expired"), "Your pin code is expired")
+	}
+
+	_ = s.Redis.DeleteData(utils.PinVerify, requestID)
 
 	if exists, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID); err != nil {
 		return logError("AssetNameExists", clientID, err, "Failed to check asset name exists")

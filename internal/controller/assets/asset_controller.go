@@ -70,6 +70,8 @@ func (h assetController) AddAsset(context *gin.Context) {
 		return
 	}
 
+	requestHeaderID := context.GetHeader("X-REQUEST-ID")
+
 	// Extract files
 	files := context.Request.MultipartForm.File["images"]
 	if len(files) == 0 {
@@ -82,7 +84,7 @@ func (h assetController) AddAsset(context *gin.Context) {
 		imageMetadata, err = uploadImagesToCDN(h.IpCDN, files, token.ClientID, context.GetHeader(utils.Authorization))
 	}
 
-	asset, err := h.AssetService.AddAsset(&req, imageMetadata, token.ClientID)
+	asset, err := h.AssetService.AddAsset(&req, imageMetadata, token.ClientID, requestHeaderID)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to add asset", nil, err.Error())
 		return
