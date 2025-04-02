@@ -207,7 +207,7 @@ func (r assetMaintenanceRecordRepository) Update(maintenance *model.AssetMainten
 
 func (r assetMaintenanceRecordRepository) Delete(assetID uint, fullName string) error {
 	if assetID != 0 { // Ensure it exists before deleting
-		if err := r.db.Table("asset-service.asset_maintenance_record").Model(&model.AssetMaintenanceRecord{}).
+		if err := r.db.Table("asset_maintenance_record").Model(&model.AssetMaintenanceRecord{}).
 			Where("asset_id = ?", assetID).
 			Updates(map[string]interface{}{"deleted_by": fullName, "deleted_at": time.Now()}).
 			Delete(&model.AssetMaintenanceRecord{}).Error; err != nil {

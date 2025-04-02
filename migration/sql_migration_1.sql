@@ -402,7 +402,6 @@ VALUES ('asset_maintenance', '0 5 * * *', true, 'Check and schedule maintenance 
        ('asset_image_cleanup', '*/1 * * * *', true, 'Cleanup old and unused asset images', 'system'),
        ('image_cleanup_unused', '*/1 * * * *', true, 'Remove unused images from asset storage', 'system');
 
-
 -- Triggers to update `update_at`
 CREATE TRIGGER trigger_update_cron_jobs
     BEFORE UPDATE
@@ -434,3 +433,119 @@ CREATE TRIGGER trigger_update_asset_maintenance
     ON asset_maintenance
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
+
+--  PostgreSQL Foreign Data Wrapper
+
+-- CREATE EXTENSION IF NOT EXISTS postgres_fdw;
+
+-- users
+-- CREATE SERVER user_server
+--     FOREIGN DATA WRAPPER postgres_fdw
+--     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
+--
+-- CREATE USER MAPPING FOR postgres
+--     SERVER user_server
+--     OPTIONS (user 'replicator', password 'admin');
+--
+-- CREATE FOREIGN TABLE users (
+--     user_id          SERIAL ,
+--     client_id        VARCHAR(255) NOT NULL,
+--     username         VARCHAR(255) NOT NULL,
+--     password         TEXT                NOT NULL,
+--     email            VARCHAR(255) NOT NULL,
+--     pin_code         TEXT      DEFAULT NULL,
+--     pin_attempts     INT       DEFAULT 0 CHECK (pin_attempts >= 0),
+--     pin_last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     first_name       VARCHAR(255),
+--     last_name        VARCHAR(255),
+--     full_name        VARCHAR(255),
+--     phone_number     VARCHAR(50),
+--     profile_picture  TEXT,
+--     role_id          INT                 NOT NULL,
+--     device_id        VARCHAR(100),
+--     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     created_by       VARCHAR(255),
+--     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_by       VARCHAR(255),
+--     deleted_at       TIMESTAMP NULL,
+--     deleted_by       VARCHAR(255)
+--     )
+--     SERVER user_server
+--     OPTIONS (schema_name 'public', table_name 'users');
+--
+-- ALTER FOREIGN TABLE users OPTIONS (add updatable 'true');
+--
+-- -- family permission
+-- CREATE SERVER family_permission_server
+--     FOREIGN DATA WRAPPER postgres_fdw
+--     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
+--
+-- CREATE USER MAPPING FOR postgres
+--     SERVER family_permission_server
+--     OPTIONS (user 'replicator', password 'admin');
+--
+-- CREATE FOREIGN TABLE family_permission (
+--     permission_id   SERIAL,
+--     permission_name VARCHAR(100) NOT NULL,
+--     description     TEXT,
+--     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     created_by      VARCHAR(255),
+--     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_by      VARCHAR(255),
+--     deleted_at      TIMESTAMP NULL,
+--     deleted_by      VARCHAR(255)
+--     )
+--     SERVER family_permission_server
+--     OPTIONS (schema_name 'public', table_name 'family_permission');
+--
+--
+-- ALTER FOREIGN TABLE family_permission OPTIONS (add updatable 'true');
+--
+--
+-- -- family member permission
+-- CREATE SERVER family_member_permission_server
+--     FOREIGN DATA WRAPPER postgres_fdw
+--     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
+--
+-- CREATE USER MAPPING FOR postgres
+--     SERVER family_member_permission_server
+--     OPTIONS (user 'replicator', password 'admin');
+--
+-- CREATE FOREIGN TABLE family_member_permission (
+--     family_id     INT,
+--     user_id       INT,
+--     permission_id INT,
+--     created_at    TIMESTAMP,
+--     created_by    VARCHAR(255)
+--     )
+--     SERVER family_member_permission_server
+--     OPTIONS (schema_name 'public', table_name 'family_member_permission');
+--
+--
+-- ALTER FOREIGN TABLE family_member_permission OPTIONS (add updatable 'true');
+--
+-- -- family member
+-- CREATE SERVER family_member_server
+--     FOREIGN DATA WRAPPER postgres_fdw
+--     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
+--
+-- CREATE USER MAPPING FOR postgres
+--     SERVER family_member_server
+--     OPTIONS (user 'replicator', password 'admin');
+--
+-- CREATE FOREIGN TABLE family_member (
+--     family_id  INT,
+--     user_id    INT,
+--     joined_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     created_by VARCHAR(255),
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_by VARCHAR(255),
+--     deleted_at TIMESTAMP NULL,
+--     deleted_by VARCHAR(255)
+--     )
+--     SERVER family_member_server
+--     OPTIONS (schema_name 'public', table_name 'family_member');
+--
+--
+-- ALTER FOREIGN TABLE family_member OPTIONS (add updatable 'true');

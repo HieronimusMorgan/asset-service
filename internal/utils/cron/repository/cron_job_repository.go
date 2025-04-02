@@ -50,7 +50,7 @@ func (r cronRepository) CreateCronJob(cronJob *model.CronJob) error {
 }
 
 func (r cronRepository) UpdateCronJob(cronJob *model.CronJob) error {
-	err := r.db.Table("asset-service.cron_job").Save(&cronJob).Error
+	err := r.db.Table("cron_job").Save(&cronJob).Error
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (r cronRepository) UpdateCronJob(cronJob *model.CronJob) error {
 }
 
 func (r cronRepository) DeleteCronJob(id uint) error {
-	err := r.db.Table("asset-service.cron_job").Delete(&model.CronJob{}, id).Error
+	err := r.db.Table("cron_job").Delete(&model.CronJob{}, id).Error
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (r cronRepository) DeleteCronJob(id uint) error {
 
 func (r cronRepository) GetCronJobByJobName(jobName string) (model.CronJob, error) {
 	var cronJob model.CronJob
-	err := r.db.Table("asset-service.cron_job").Where("job_name = ?", jobName).First(&cronJob).Error
+	err := r.db.Table("cron_job").Where("job_name = ?", jobName).First(&cronJob).Error
 	if err != nil {
 		return model.CronJob{}, err
 	}
@@ -75,7 +75,7 @@ func (r cronRepository) GetCronJobByJobName(jobName string) (model.CronJob, erro
 }
 
 func (r cronRepository) deleteCronJobByID(id uint) error {
-	err := r.db.Table("asset-service.cron_job").Delete(&model.CronJob{}, id).Error
+	err := r.db.Table("cron_job").Delete(&model.CronJob{}, id).Error
 	if err != nil {
 		return err
 	}

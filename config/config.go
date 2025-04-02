@@ -28,7 +28,7 @@ type Config struct {
 	DBUser     string `envconfig:"DB_USER" default:"postgres"`
 	DBPassword string `envconfig:"DB_PASSWORD" default:"admin"`
 	DBName     string `envconfig:"DB_NAME" default:"asset"`
-	DBSchema   string `envconfig:"DB_SCHEMA" default:"asset-service"`
+	DBSchema   string `envconfig:"DB_SCHEMA" default:"public"`
 	DBSSLMode  string `envconfig:"DB_SSLMODE" default:"disable"`
 	CdnUrl     string `envconfig:"CDN_URL"  default:"http://localhost:8181"`
 	NatsUrl    string `envconfig:"NATS_URL" default:"nats://localhost:4222"`

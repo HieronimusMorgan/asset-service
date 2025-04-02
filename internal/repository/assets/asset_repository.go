@@ -413,7 +413,7 @@ func (r assetRepository) UpdateAssetStatus(assetID uint, statusID uint, clientID
 
 	// Verify the existence of the status
 	var status assets.AssetStatus
-	if err := tx.Table("asset-service.asset_status").Where("asset_status_id = ?", statusID).
+	if err := tx.Table("asset_status").Where("asset_status_id = ?", statusID).
 		First(&status).Error; err != nil {
 		return nil, fmt.Errorf("failed to find status: %w", err)
 	}
@@ -456,7 +456,7 @@ func (r assetRepository) UpdateAssetCategory(assetID uint, categoryID uint, clie
 
 	// Verify the existence of the category
 	var category assets.AssetCategory
-	if err := tx.Table("asset-service.asset_category").Where("asset_category_id = ?", categoryID).
+	if err := tx.Table("asset_category").Where("asset_category_id = ?", categoryID).
 		First(&category).Error; err != nil {
 		return nil, fmt.Errorf("failed to find category: %w", err)
 	}

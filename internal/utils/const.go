@@ -15,16 +15,16 @@ const (
 )
 
 const (
-	TableAssetAuditLogName          = "asset-service.asset_audit_log"
-	TableAssetCategoryName          = "asset-service.asset_category"
-	TableAssetMaintenanceRecordName = "asset-service.asset_maintenance_record"
-	TableAssetMaintenanceName       = "asset-service.asset_maintenance"
-	TableAssetMaintenanceTypeName   = "asset-service.asset_maintenance_type"
-	TableAssetName                  = "asset-service.asset"
-	TableAssetStatusName            = "asset-service.asset_status"
-	TableAssetImageName             = "asset-service.asset_image"
-	TableAssetStockName             = "asset-service.asset_stock"
-	TableAssetStockHistoryName      = "asset-service.asset_stock_history"
+	TableAssetAuditLogName          = "asset_audit_log"
+	TableAssetCategoryName          = "asset_category"
+	TableAssetMaintenanceRecordName = "asset_maintenance_record"
+	TableAssetMaintenanceName       = "asset_maintenance"
+	TableAssetMaintenanceTypeName   = "asset_maintenance_type"
+	TableAssetName                  = "asset"
+	TableAssetStatusName            = "asset_status"
+	TableAssetImageName             = "asset_image"
+	TableAssetStockName             = "asset_stock"
+	TableAssetStockHistoryName      = "asset_stock_history"
 )
 
 const (
