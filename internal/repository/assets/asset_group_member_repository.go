@@ -11,7 +11,7 @@ type AssetGroupMemberRepository interface {
 	UpdateAssetGroupMember(asset *assets.AssetGroupMember) error
 	GetAssetGroupMemberByID(assetGroupID uint) (*assets.AssetGroupMember, error)
 	DeleteAssetGroupMember(assetGroupID, userID uint) error
-	GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (interface{}, error)
+	GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (assets.AssetGroupMember, error)
 }
 
 type assetGroupMemberRepository struct {
@@ -85,14 +85,25 @@ func (r assetGroupMemberRepository) GetAssetGroupMemberByID(assetGroupID uint) (
 }
 
 func (r assetGroupMemberRepository) DeleteAssetGroupMember(assetGroupID, userID uint) error {
-	return r.db.Table(utils.TableAssetGroupMemberName).Where("asset_group_id = ? AND user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroupMember{}).Error
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Unscoped().Table(utils.TableAssetGroupMemberPermissionName).Where("asset_group_id = ? AND user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroupMemberPermission{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Table(utils.TableAssetGroupMemberName).Where("asset_group_id = ? AND user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroupMember{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Table(utils.TableAssetGroupAssetName).Where("asset_group_id = ? AND user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroupAsset{}).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 }
 
-func (r assetGroupMemberRepository) GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (interface{}, error) {
+func (r assetGroupMemberRepository) GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (assets.AssetGroupMember, error) {
 	var assetGroupMember assets.AssetGroupMember
 	err := r.db.Table(utils.TableAssetGroupMemberName).Where("user_id = ? AND asset_group_id = ?", userID, groupID).First(&assetGroupMember).Error
 	if err != nil {
-		return nil, err
+		return assets.AssetGroupMember{}, err
 	}
 	return assetGroupMember, nil
 }

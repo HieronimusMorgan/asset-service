@@ -29,7 +29,7 @@ func NewAssetGroupRepository(db gorm.DB, audit AssetAuditLogRepository) AssetGro
 
 func (r assetGroupRepository) AddAssetGroup(assetGroup *assets.AssetGroup, clientID string, user *user.Users) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(utils.TableAssetGroupName).Create(assetGroup).Error; err != nil {
+		if err := tx.Table(utils.TableAssetGroupName).Create(&assetGroup).Error; err != nil {
 			return err
 		}
 
@@ -98,23 +98,37 @@ func (r assetGroupRepository) GetAssetGroupByID(assetGroupID uint) (*assets.Asse
 }
 
 func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.AssetGroupDetailResponse, error) {
-	var group response.AssetGroupDetailResponse
 
 	var groupRow struct {
-		AssetGroupID uint
-		GroupName    string
-		Description  string
+		AssetGroupID   uint
+		AssetGroupName string
+		Description    string
+		OwnerUserID    uint
+		OwnerName      string
 	}
 
-	if err := r.db.Table("asset_group").
-		Where("asset_group_id = ?", groupID).
-		First(&groupRow).Error; err != nil {
+	query := `
+	SELECT 
+		ag.asset_group_id,
+		ag.asset_group_name,
+		ag.description,
+		ag.owner_user_id AS owner_user_id,
+		u.full_name AS owner_name
+	FROM asset_group ag
+	LEFT JOIN users u ON ag.owner_user_id = u.user_id
+	WHERE ag.asset_group_id = ?
+`
+
+	if err := r.db.Raw(query, groupID).Scan(&groupRow).Error; err != nil {
 		return nil, fmt.Errorf("failed to get asset group info: %w", err)
 	}
+	var group response.AssetGroupDetailResponse
 
 	group.AssetGroupID = groupRow.AssetGroupID
-	group.GroupName = groupRow.GroupName
+	group.AssetGroupName = groupRow.AssetGroupName
 	group.Description = groupRow.Description
+	group.OwnerUserID = groupRow.OwnerUserID
+	group.OwnerName = groupRow.OwnerName
 	group.Member = []response.AssetGroupMemberResponse{}
 
 	type memberRow struct {
@@ -198,19 +212,19 @@ func (r assetGroupRepository) GetAssetGroupByUserID(id uint) ([]assets.AssetGrou
 
 func (r assetGroupRepository) DeleteAssetGroup(assetGroupID uint, userID uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupMemberPermission{}).Error; err != nil {
+		if err := tx.Unscoped().Table(utils.TableAssetGroupMemberPermissionName).Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupMemberPermission{}).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupMember{}).Error; err != nil {
+		if err := tx.Unscoped().Table(utils.TableAssetGroupMemberName).Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupMember{}).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupAsset{}).Error; err != nil {
+		if err := tx.Unscoped().Table(utils.TableAssetGroupAssetName).Where("asset_group_id = ?", assetGroupID).Delete(&assets.AssetGroupAsset{}).Error; err != nil {
 			return err
 		}
 
-		if err := tx.Where("asset_group_id = ? AND owner_user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroup{}).Error; err != nil {
+		if err := tx.Unscoped().Table(utils.TableAssetGroupName).Where("asset_group_id = ? AND owner_user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroup{}).Error; err != nil {
 			return err
 		}
 		return nil

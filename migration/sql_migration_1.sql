@@ -356,16 +356,16 @@ CREATE INDEX idx_maintenance_record_type ON asset_maintenance_record (type_id);
 
 CREATE TABLE asset_group
 (
-    asset_group_id SERIAL PRIMARY KEY,
-    group_name     VARCHAR(255) NOT NULL,
-    description    TEXT,
-    owner_user_id  INT          NOT NULL,
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by     VARCHAR(255),
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by     VARCHAR(255),
-    deleted_at     TIMESTAMP,
-    deleted_by     VARCHAR(255)
+    asset_group_id   SERIAL PRIMARY KEY,
+    asset_group_name VARCHAR(255) NOT NULL,
+    description      TEXT,
+    owner_user_id    INT          NOT NULL,
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by       VARCHAR(255),
+    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by       VARCHAR(255),
+    deleted_at       TIMESTAMP,
+    deleted_by       VARCHAR(255)
 );
 
 CREATE TABLE asset_group_member

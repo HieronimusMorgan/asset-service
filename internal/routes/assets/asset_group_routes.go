@@ -7,14 +7,27 @@ import (
 )
 
 func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, assetGroupController assets.AssetGroupController, assetGroupPermission assets.AssetGroupPermissionController) {
-
-	routerGroup := r.Group("/v1/asset-group")
-	routerGroup.Use(middleware.AuthMiddleware.Handler())
+	assetGroup := r.Group("/v1/asset-group")
+	assetGroup.Use(middleware.AuthMiddleware.Handler())
 	{
-		routerGroup.POST("", assetGroupController.AddAssetGroup)
-		routerGroup.PUT("/:id", assetGroupController.UpdateAssetGroup)
-		routerGroup.GET("/:id", assetGroupController.GetAssetGroupByID)
-		routerGroup.POST("/member", assetGroupController.AddMemberAssetGroup)
+		assetGroup.POST("", assetGroupController.AddAssetGroup)
+		assetGroup.PUT("/:id", assetGroupController.UpdateAssetGroup)
+		assetGroup.GET("/:id", assetGroupController.GetAssetGroupByID)
+		assetGroup.DELETE("/:id", assetGroupController.DeleteAssetGroup)
+	}
+
+	assetPermission := r.Group("/v1/asset-group/permission")
+	assetPermission.Use(middleware.AuthMiddleware.Handler())
+	{
+		assetPermission.POST("/add", assetGroupController.AddPermissionMemberAssetGroup)
+		assetPermission.POST("/remove", assetGroupController.RemovePermissionMemberAssetGroup)
+	}
+
+	assetGroupMember := r.Group("/v1/asset-group/member")
+	assetGroupMember.Use(middleware.AuthMiddleware.Handler())
+	{
+		assetGroupMember.POST("/add", assetGroupController.AddMemberAssetGroup)
+		assetGroupMember.POST("/remove", assetGroupController.RemoveMemberAssetGroup)
 	}
 
 	adminGroup := r.Group("/v1/admin/asset-group")

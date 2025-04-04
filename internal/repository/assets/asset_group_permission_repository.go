@@ -10,6 +10,7 @@ type AssetGroupPermissionRepository interface {
 	AddAssetGroupPermission(asset *assets.AssetGroupPermission) error
 	UpdateAssetGroupPermission(asset *assets.AssetGroupPermission) error
 	GetAssetGroupPermissionByID(permissionID uint) (*assets.AssetGroupPermission, error)
+	GetAssetGroupPermissionByUserID(userID uint) ([]assets.AssetGroupPermission, error)
 	GetListAssetGroupPermission() (*[]assets.AssetGroupPermission, error)
 	DeleteAssetGroupPermission(asset *assets.AssetGroupPermission) error
 }
@@ -45,6 +46,14 @@ func (r assetGroupPermissionRepository) GetAssetGroupPermissionByID(permissionID
 		return nil, err
 	}
 	return &asset, nil
+}
+
+func (r assetGroupPermissionRepository) GetAssetGroupPermissionByUserID(userID uint) ([]assets.AssetGroupPermission, error) {
+	var permissions []assets.AssetGroupPermission
+	if err := r.db.Table(utils.TableAssetGroupPermissionName).Where("user_id = ?", userID).Find(&permissions).Error; err != nil {
+		return nil, err
+	}
+	return permissions, nil
 }
 
 func (r assetGroupPermissionRepository) GetListAssetGroupPermission() (*[]assets.AssetGroupPermission, error) {

@@ -13,7 +13,11 @@ type AssetGroupController interface {
 	AddAssetGroup(context *gin.Context)
 	UpdateAssetGroup(context *gin.Context)
 	GetAssetGroupByID(context *gin.Context)
+	DeleteAssetGroup(context *gin.Context)
 	AddMemberAssetGroup(context *gin.Context)
+	RemoveMemberAssetGroup(context *gin.Context)
+	AddPermissionMemberAssetGroup(context *gin.Context)
+	RemovePermissionMemberAssetGroup(context *gin.Context)
 }
 
 type assetGroupController struct {
@@ -38,13 +42,13 @@ func (a assetGroupController) AddAssetGroup(context *gin.Context) {
 		return
 	}
 
-	err := a.AssetGroupService.AddAssetGroup(&req, token.ClientID)
+	data, err := a.AssetGroupService.AddAssetGroup(&req, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
 		return
 	}
 
-	response.SendResponse(context, http.StatusOK, "Success", nil, "Asset group created successfully")
+	response.SendResponse(context, http.StatusOK, "Asset group created successfully", data, nil)
 }
 
 func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
@@ -95,6 +99,28 @@ func (a assetGroupController) GetAssetGroupByID(context *gin.Context) {
 	response.SendResponse(context, http.StatusOK, "Success", data, nil)
 }
 
+func (a assetGroupController) DeleteAssetGroup(context *gin.Context) {
+	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
+	if err != nil {
+		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err = a.AssetGroupService.DeleteAssetGroup(assetGroupID, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Asset group deleted successfully", nil, nil)
+}
+
 func (a assetGroupController) AddMemberAssetGroup(context *gin.Context) {
 	var req request.AssetGroupMemberRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
@@ -114,5 +140,70 @@ func (a assetGroupController) AddMemberAssetGroup(context *gin.Context) {
 		return
 	}
 
-	response.SendResponse(context, http.StatusOK, "Success", nil, "Member added to asset group successfully")
+	response.SendResponse(context, http.StatusOK, "Member added to asset group successfully", nil, nil)
+}
+
+func (a assetGroupController) RemoveMemberAssetGroup(context *gin.Context) {
+	var req request.AssetGroupMemberRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err := a.AssetGroupService.RemoveMemberAssetGroup(req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Member removed from asset group successfully", nil, nil)
+}
+
+func (a assetGroupController) AddPermissionMemberAssetGroup(context *gin.Context) {
+	var req request.ChangeAssetGroupPermissionRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err := a.AssetGroupService.AddPermissionMemberAssetGroup(&req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Permission added to member successfully", nil, nil)
+}
+
+func (a assetGroupController) RemovePermissionMemberAssetGroup(context *gin.Context) {
+	var req request.ChangeAssetGroupPermissionRequest
+	if err := context.ShouldBindJSON(&req); err != nil {
+		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err := a.AssetGroupService.RemovePermissionMemberAssetGroup(&req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+	response.SendResponse(context, http.StatusOK, "Permission removed from member successfully", nil, nil)
 }

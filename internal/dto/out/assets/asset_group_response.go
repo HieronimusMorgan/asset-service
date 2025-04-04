@@ -1,16 +1,18 @@
 package assets
 
 type AssetGroupResponse struct {
-	AssetGroupID uint   `gorm:"primaryKey;column:asset_group_id"  json:"asset_group_id,omitempty"`
-	GroupName    string `gorm:"type:varchar(100);not null"  json:"group_name,omitempty"`
-	Description  string `gorm:"type:text" json:"description,omitempty"`
+	AssetGroupID   uint   `gorm:"primaryKey;column:asset_group_id"  json:"asset_group_id,omitempty"`
+	AssetGroupName string `gorm:"type:varchar(100);not null"  json:"asset_group_name,omitempty"`
+	Description    string `gorm:"type:text" json:"description,omitempty"`
 }
 
 type AssetGroupDetailResponse struct {
-	AssetGroupID uint                       `gorm:"primaryKey;column:asset_group_id"  json:"asset_group_id,omitempty"`
-	GroupName    string                     `gorm:"type:varchar(100);not null"  json:"group_name,omitempty"`
-	Description  string                     `gorm:"type:text" json:"description,omitempty"`
-	Member       []AssetGroupMemberResponse `json:"member,omitempty"`
+	AssetGroupID   uint                       `gorm:"primaryKey;column:asset_group_id"  json:"asset_group_id,omitempty"`
+	AssetGroupName string                     `gorm:"type:varchar(100);not null"  json:"asset_group_name,omitempty"`
+	Description    string                     `gorm:"type:text" json:"description,omitempty"`
+	OwnerUserID    uint                       `json:"owner_user_id,omitempty"`
+	OwnerName      string                     `json:"owner_name,omitempty"`
+	Member         []AssetGroupMemberResponse `json:"member,omitempty"`
 }
 
 type AssetGroupMemberResponse struct {
