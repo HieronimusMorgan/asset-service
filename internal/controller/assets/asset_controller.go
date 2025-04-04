@@ -117,7 +117,6 @@ func (h assetController) UpdateAsset(context *gin.Context) {
 		return
 	}
 	response.SendResponse(context, 201, "Asset update successfully", asset, nil)
-
 }
 
 func (h assetController) UpdateAssetStatus(context *gin.Context) {

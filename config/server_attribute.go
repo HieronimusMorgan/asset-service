@@ -179,6 +179,7 @@ func (s *ServerConfig) initServices() {
 			s.Repository.AssetGroupMemberRepository,
 			s.Repository.AssetGroupAssetRepository,
 			s.Repository.AssetRepository,
+			s.Repository.AssetStockRepository,
 			s.Repository.AssetAuditLog,
 			s.Redis),
 	}

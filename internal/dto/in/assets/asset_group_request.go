@@ -24,6 +24,14 @@ type ChangeAssetGroupPermissionRequest struct {
 	PermissionID uint `json:"permission_id" validate:"required"`
 }
 
+type ChangeAssetStockRequest struct {
+	AssetGroupID uint    `json:"asset_group_id" validate:"required"`
+	AssetID      uint    `json:"asset_id" validate:"required"`
+	UserID       uint    `json:"user_id" validate:"required"`
+	Stock        int     `json:"stock" validate:"required"`
+	Reason       *string `json:"reason" validate:"optional"`
+}
+
 type AssetGroupAssetRequest struct {
 	AssetID      uint `json:"asset_id" validate:"required"`
 	AssetGroupID uint `json:"asset_group_id" validate:"required"`

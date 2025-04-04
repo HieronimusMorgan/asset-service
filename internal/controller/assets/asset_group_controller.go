@@ -18,6 +18,9 @@ type AssetGroupController interface {
 	RemoveMemberAssetGroup(context *gin.Context)
 	AddPermissionMemberAssetGroup(context *gin.Context)
 	RemovePermissionMemberAssetGroup(context *gin.Context)
+	GetListAssetGroupAsset(context *gin.Context)
+	AddStockAssetGroupAsset(context *gin.Context)
+	ReduceStockAssetGroupAsset(context *gin.Context)
 }
 
 type assetGroupController struct {
@@ -206,4 +209,69 @@ func (a assetGroupController) RemovePermissionMemberAssetGroup(context *gin.Cont
 		return
 	}
 	response.SendResponse(context, http.StatusOK, "Permission removed from member successfully", nil, nil)
+}
+
+func (a assetGroupController) GetListAssetGroupAsset(context *gin.Context) {
+	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
+	if err != nil {
+		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	data, err := a.AssetGroupService.GetListAssetGroupAsset(assetGroupID, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Success", data, nil)
+}
+
+func (a assetGroupController) AddStockAssetGroupAsset(context *gin.Context) {
+	var req request.ChangeAssetStockRequest
+
+	if err := context.ShouldBindJSON(&req); err != nil {
+		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
+		return
+	}
+	token, err := a.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	if err != nil {
+		return
+	}
+
+	data, err := a.AssetGroupService.UpdateStockAssetGroupAsset(true, req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Stock asset updated successfully", data, nil)
+}
+
+func (a assetGroupController) ReduceStockAssetGroupAsset(context *gin.Context) {
+	var req request.ChangeAssetStockRequest
+
+	if err := context.ShouldBindJSON(&req); err != nil {
+		response.SendResponse(context, 400, "Invalid request", nil, err.Error())
+		return
+	}
+
+	token, err := a.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	if err != nil {
+		return
+	}
+
+	data, err := a.AssetGroupService.UpdateStockAssetGroupAsset(false, req, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to update stock asset", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Stock asset updated successfully", data, nil)
 }

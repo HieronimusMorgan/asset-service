@@ -16,6 +16,14 @@ func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, assetGroupCon
 		assetGroup.DELETE("/:id", assetGroupController.DeleteAssetGroup)
 	}
 
+	assetGroupAsset := r.Group("/v1/asset-group/asset")
+	assetGroupAsset.Use(middleware.AuthMiddleware.Handler())
+	{
+		assetGroupAsset.GET("/:id", assetGroupController.GetListAssetGroupAsset)
+		assetGroupAsset.POST("/add-stock", assetGroupController.AddStockAssetGroupAsset)
+		assetGroupAsset.POST("/reduce-stock", assetGroupController.ReduceStockAssetGroupAsset)
+	}
+
 	assetPermission := r.Group("/v1/asset-group/permission")
 	assetPermission.Use(middleware.AuthMiddleware.Handler())
 	{

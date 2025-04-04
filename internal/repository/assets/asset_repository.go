@@ -17,7 +17,9 @@ type AssetRepository interface {
 	GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error)
 	AssetNameExists(name string, clientID string) (bool, error)
 	GetAsset(assetID uint, clientID string) (*assets.Asset, error)
+	GetAssetByAssetGroupID(assetID, assetGroupID uint) (*assets.Asset, error)
 	GetListAssets(clientID string) ([]response.AssetResponse, error)
+	GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error)
 	GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error)
 	GetAssetByID(clientID string, id uint) (*assets.Asset, error)
 	UpdateAsset(asset *assets.Asset, clientID string) error
@@ -87,6 +89,21 @@ func (r assetRepository) GetAsset(assetID uint, clientID string) (*assets.Asset,
 	var asset assets.Asset
 	err := r.db.Table(utils.TableAssetName).
 		Where("asset_id = ? AND user_client_id = ?", assetID, clientID).First(&asset).Error
+	if err != nil {
+		return nil, err
+	}
+	return &asset, nil
+}
+
+func (r assetRepository) GetAssetByAssetGroupID(assetID, assetGroupID uint) (*assets.Asset, error) {
+	var asset assets.Asset
+	query := `
+		SELECT a.*
+		FROM "asset" a
+		LEFT JOIN "asset_group_asset" aga ON a.asset_id = aga.asset_id
+		WHERE a.asset_id = ? AND aga.asset_group_id = ?;
+	`
+	err := r.db.Raw(query, assetID, assetGroupID).First(&asset).Error
 	if err != nil {
 		return nil, err
 	}
@@ -172,6 +189,152 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 
 		if err != nil {
 			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset row")
+			return nil, err
+		}
+
+		// Convert NULL SQL values to Go `nil`
+		if serialNumber.Valid {
+			asset.SerialNumber = &serialNumber.String
+		}
+		if barcode.Valid {
+			asset.Barcode = &barcode.String
+		}
+		if description.Valid {
+			asset.Description = description.String
+		}
+		if price.Valid {
+			asset.Price = price.Float64
+		}
+		if notes.Valid {
+			asset.Notes = &notes.String
+		}
+		if purchaseDate.Valid {
+			asset.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
+		}
+		if expiryDate.Valid {
+			asset.ExpiryDate = (*response.DateOnly)(&expiryDate.Time)
+		}
+		if warrantyExpiryDate.Valid {
+			asset.WarrantyExpiryDate = (*response.DateOnly)(&warrantyExpiryDate.Time)
+		}
+
+		// Assign category and status details
+		asset.Category = category
+		asset.Status = status
+		asset.Stock = stock
+
+		// Fetch asset images separately (handling multiple images)
+		imageQuery := `
+        SELECT image.image_url
+        FROM "asset_image" image
+        WHERE image.asset_id = ? AND user_client_id = ? AND image.deleted_at IS NULL;
+    `
+		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID, clientID).Rows()
+		if err != nil {
+			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset images")
+			return nil, err
+		}
+
+		var images []response.AssetImageResponse
+		for imagesRows.Next() {
+			var img response.AssetImageResponse
+			if err := imagesRows.Scan(&img.ImageURL); err != nil {
+				log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset image row")
+				return nil, err
+			}
+			images = append(images, img)
+		}
+
+		asset.Images = images
+
+		// Append to result slice
+		assetsList = append(assetsList, asset)
+	}
+
+	log.Info().Str("clientID", clientID).Int("assets_count", len(assetsList)).Msg("✅ Successfully fetched asset list")
+	return assetsList, nil
+}
+
+func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error) {
+	selectQuery := `
+       SELECT 
+           asset.asset_id,
+           asset.user_client_id,
+           asset.serial_number,
+           asset.name,
+           asset.description,
+           asset.barcode,
+           asset.purchase_date,
+           asset.expiry_date,
+           asset.warranty_expiry_date,
+           asset.price,
+           asset.notes,
+           category.asset_category_id,
+           category.category_name,
+           category.description AS category_description,
+           status.asset_status_id,
+           status.status_name,
+           status.description AS status_description,
+           stock.stock_id,
+           stock.initial_quantity,
+           stock.latest_quantity           
+       FROM "asset" asset
+       LEFT JOIN "asset_group_asset" aga ON aga.asset_id = asset.asset_id
+       INNER JOIN "asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "asset_status" status ON asset.status_id = status.asset_status_id
+       INNER JOIN "asset_stock" stock ON asset.asset_id = stock.asset_id
+       WHERE aga.asset_group_id = ? AND asset.deleted_at IS NULL
+       ORDER BY asset.created_at ASC;
+   `
+
+	rows, err := r.db.Raw(selectQuery, assetGroupID).Rows()
+	if err != nil {
+		log.Error().Str("assetGroupID", fmt.Sprintf("%d", assetGroupID)).Err(err).Msg("❌ Failed to fetch asset list by asset group")
+		return nil, err
+	}
+
+	var assetsList []response.AssetResponse
+	for rows.Next() {
+		var asset response.AssetResponse
+		var category response.AssetCategoryResponse
+		var status response.AssetStatusResponse
+		var stock response.AssetStockResponse
+
+		// Handling NULL values from SQL
+		var serialNumber sql.NullString
+		var barcode sql.NullString
+		var description sql.NullString
+		var purchaseDate sql.NullTime
+		var expiryDate sql.NullTime
+		var warrantyExpiryDate sql.NullTime
+		var price sql.NullFloat64
+		var notes sql.NullString
+
+		err := rows.Scan(
+			&asset.AssetID,
+			&asset.UserClientID,
+			&serialNumber,
+			&asset.Name,
+			&description,
+			&barcode,
+			&purchaseDate,
+			&expiryDate,
+			&warrantyExpiryDate,
+			&price,
+			&notes,
+			&category.AssetCategoryID,
+			&category.CategoryName,
+			&category.Description,
+			&status.AssetStatusID,
+			&status.StatusName,
+			&status.Description,
+			&stock.StockID,
+			&stock.InitialQuantity,
+			&stock.LatestQuantity,
+		)
+
+		if err != nil {
+			log.Error().Str("assetGroupID", fmt.Sprintf("%d", assetGroupID)).Err(err).Msg("❌ Failed to scan asset row")
 			return nil, err
 		}
 

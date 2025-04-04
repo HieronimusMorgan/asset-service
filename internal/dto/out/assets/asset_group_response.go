@@ -27,3 +27,21 @@ type AssetGroupMemberWithPermissionResponse struct {
 	PermissionID   *uint   `json:"permission_id"`
 	PermissionName *string `json:"permission_name"`
 }
+
+type AssetGroupAssetResponse struct {
+	AssetID            uint                  `json:"asset_id,omitempty"`
+	UserClientID       string                `json:"user_client_id,omitempty"`
+	SerialNumber       *string               `json:"serial_number,omitempty"`
+	Name               string                `json:"name,omitempty"`
+	Description        string                `json:"description,omitempty"`
+	Barcode            *string               `json:"barcode,omitempty"`
+	Status             AssetStatusResponse   `json:"status,omitempty"`
+	Category           AssetCategoryResponse `json:"category,omitempty"`
+	Images             []AssetImageResponse  `json:"images,omitempty"`
+	PurchaseDate       *DateOnly             `json:"purchase_date,omitempty"`
+	ExpiryDate         *DateOnly             `json:"expiry_date,omitempty"`
+	WarrantyExpiryDate *DateOnly             `json:"warranty_expiry_date,omitempty"`
+	Price              float64               `json:"price,omitempty"`
+	Stock              AssetStockResponse    `json:"stock,omitempty"`
+	Notes              *string               `json:"notes,omitempty"`
+}

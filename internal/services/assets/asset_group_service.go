@@ -2,22 +2,26 @@ package assets
 
 import (
 	request "asset-service/internal/dto/in/assets"
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	repository "asset-service/internal/repository/assets"
 	users "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
+	"errors"
+	"github.com/rs/zerolog/log"
 )
 
 type AssetGroupService interface {
 	AddAssetGroup(assetRequest *request.AssetGroupRequest, clientID string) (interface{}, error)
 	UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string) (interface{}, error)
-	GetListAssetGroup(clientID string) (interface{}, error)
 	GetAssetGroupDetailByID(assetGroupID uint, clientID string) (interface{}, error)
 	DeleteAssetGroup(assetGroupID uint, clientID string) error
 	AddMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error
 	RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error
 	AddPermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
 	RemovePermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
+	GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error)
+	UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error)
 }
 
 type assetGroupService struct {
@@ -28,11 +32,12 @@ type assetGroupService struct {
 	memberRepository           repository.AssetGroupMemberRepository
 	assetGroupAssetRepository  repository.AssetGroupAssetRepository
 	AssetRepository            repository.AssetRepository
+	AssetStockRepository       repository.AssetStockRepository
 	AssetAuditLogRepository    repository.AssetAuditLogRepository
 	Redis                      utils.RedisService
 }
 
-func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupRepository repository.AssetGroupRepository, permissionRepository repository.AssetGroupPermissionRepository, memberPermissionRepository repository.AssetGroupMemberPermissionRepository, memberRepository repository.AssetGroupMemberRepository, assetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis utils.RedisService) AssetGroupService {
+func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupRepository repository.AssetGroupRepository, permissionRepository repository.AssetGroupPermissionRepository, memberPermissionRepository repository.AssetGroupMemberPermissionRepository, memberRepository repository.AssetGroupMemberRepository, assetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetStockRepository repository.AssetStockRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis utils.RedisService) AssetGroupService {
 	return &assetGroupService{
 		UserRepository:             UserRepository,
 		AssetGroupRepository:       AssetGroupRepository,
@@ -41,6 +46,7 @@ func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupReposit
 		memberRepository:           memberRepository,
 		assetGroupAssetRepository:  assetGroupAssetRepository,
 		AssetRepository:            AssetRepository,
+		AssetStockRepository:       AssetStockRepository,
 		AssetAuditLogRepository:    AssetAuditLogRepository,
 		Redis:                      redis,
 	}
@@ -152,10 +158,6 @@ func (s *assetGroupService) UpdateAssetGroup(assetGroupID uint, req *request.Ass
 		AssetGroupName: assetGroup.AssetGroupName,
 		Description:    assetGroup.Description,
 	}, nil
-}
-
-func (s *assetGroupService) GetListAssetGroup(clientID string) (interface{}, error) {
-	return nil, nil
 }
 
 func (s *assetGroupService) GetAssetGroupDetailByID(assetGroupID uint, clientID string) (interface{}, error) {
@@ -564,4 +566,135 @@ func (s *assetGroupService) RemovePermissionMemberAssetGroup(req *request.Change
 	}
 
 	return nil
+}
+
+func (s *assetGroupService) GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
+	}
+
+	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
+	}
+
+	// Check if the asset group exists
+	assetGroup, err := s.AssetGroupRepository.GetAssetGroupByID(assetGroupID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupDetailByID", clientID, err, "Failed to get asset group")
+	}
+
+	if assetGroup == nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupDetailByID", clientID, nil, "Asset group not found")
+	}
+
+	// Check if the user is a member of the asset group
+	member, err := s.memberRepository.GetAssetGroupMemberByUserIDAndGroupID(user.UserID, assetGroupID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group member")
+	}
+
+	if member.AssetGroupID == 0 {
+		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
+	}
+
+	asset, err := s.AssetRepository.GetListAssetsByAssetGroup(user.ClientID, assetGroupID)
+
+	return asset, nil
+}
+
+func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error) {
+	// Step 1: Fetch user data from Redis
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
+	}
+
+	// Step 1: Fetch user data from database
+	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
+	if err != nil {
+		return logError("GetUserByClientID", clientID, err, "Failed to get user by client ID")
+	}
+
+	// Step 1: Check if user is a member of the asset group
+	member, err := s.memberRepository.GetAssetGroupMemberByUserIDAndGroupID(user.UserID, req.AssetGroupID)
+	if err != nil {
+		return logError("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group member")
+	}
+
+	if member.AssetGroupID == 0 {
+		return logError("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
+	}
+
+	// Step 2: Retrieve asset and stock data
+	asset, err := s.AssetRepository.GetAssetByAssetGroupID(req.AssetID, req.AssetGroupID)
+	if err != nil {
+		return logError("GetAsset", clientID, err, "Failed to get asset by ID")
+	}
+
+	oldAssetStock, err := s.AssetStockRepository.GetAssetStockByAssetIDAndAssetGroupID(asset.AssetID, req.AssetGroupID)
+	if err != nil {
+		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset ID")
+	}
+
+	log.Info().
+		Uint("assetID", req.AssetID).
+		Int("Previous Stock", oldAssetStock.LatestQuantity).
+		Msg("Retrieved current stock")
+
+	// Step 3: Determine new stock quantity
+	var stockType string
+	var latestQuantity int
+
+	if isAdded {
+		stockType = "INCREASE"
+		latestQuantity = oldAssetStock.LatestQuantity + req.Stock
+	} else {
+		stockType = "DECREASE"
+		if oldAssetStock.LatestQuantity < req.Stock {
+			return logError("UpdateStockAsset", clientID, errors.New("insufficient stock"), "Stock cannot be negative")
+		}
+		latestQuantity = oldAssetStock.LatestQuantity - req.Stock
+	}
+
+	// Step 4: Create stock update struct
+	newAssetStock := &assets.AssetStock{
+		AssetID:         asset.AssetID,
+		UserClientID:    data.ClientID,
+		InitialQuantity: oldAssetStock.InitialQuantity,
+		LatestQuantity:  latestQuantity,
+		Quantity:        req.Stock,
+		ChangeType:      stockType,
+		Reason:          req.Reason,
+		UpdatedBy:       data.ClientID,
+	}
+
+	// Step 5: Update stock in a transaction
+	err = s.AssetStockRepository.UpdateAssetStockByAssetGroupID(newAssetStock, req.AssetGroupID, clientID)
+	if err != nil {
+		return logError("UpdateAssetStock", clientID, err, "Failed to update asset stock")
+	}
+
+	log.Info().
+		Uint("assetID", req.AssetID).
+		Int("Updated Stock", latestQuantity).
+		Str("Change Type", stockType).
+		Msg("Stock updated successfully")
+
+	// Step 6: Log stock change in audit log
+	err = s.AssetAuditLogRepository.AfterUpdateAssetStock(*oldAssetStock, newAssetStock)
+	if err != nil {
+		return logError("AfterUpdateAssetStock", clientID, err, "Failed to update asset stock log")
+	}
+
+	// Step 7: Return updated stock response
+	return response.AssetStockResponse{
+		StockID:         newAssetStock.StockID,
+		AssetID:         newAssetStock.AssetID,
+		InitialQuantity: newAssetStock.InitialQuantity,
+		LatestQuantity:  newAssetStock.LatestQuantity,
+		ChangeType:      newAssetStock.ChangeType,
+		Quantity:        newAssetStock.Quantity,
+	}, nil
 }

@@ -49,3 +49,10 @@ func GetToday() time.Time {
 	location := now.Location()
 	return time.Date(year, month, day, 0, 0, 0, 0, location)
 }
+
+func NilIfEmpty(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
