@@ -11,7 +11,7 @@ import (
 type AssetCategoryRepository interface {
 	AddAssetCategory(assetCategory *assets.AssetCategory) error
 	UpdateAssetCategory(assetCategory *assets.AssetCategory, clientID string) error
-	GetAssetCategoryByName(name string) (*assets.AssetCategory, error)
+	GetAssetCategoryByNameAndClientID(name, clientID string) (*assets.AssetCategory, error)
 	GetAssetCategoryById(assetCategoryID uint, clientID string) (*assets.AssetCategory, error)
 	GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error)
 	GetListAssetCategory(clientID string) ([]assets.AssetCategory, error)
@@ -74,14 +74,15 @@ func (r *assetCategoryRepository) UpdateAssetCategory(assetCategory *assets.Asse
 }
 
 // GetAssetCategoryByName fetches a category by name
-func (r *assetCategoryRepository) GetAssetCategoryByName(name string) (*assets.AssetCategory, error) {
+func (r *assetCategoryRepository) GetAssetCategoryByNameAndClientID(name, clientID string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
-		Where("category_name = ?", name).
+		Where("category_name = ? AND user_client_id = ?", name, clientID).
 		First(&assetCategory).Error
 	if err != nil {
 		log.Warn().
 			Str("category_name", name).
+			Str("user_client_id", clientID).
 			Msg("⚠ Asset category not found")
 		return nil, err
 	}

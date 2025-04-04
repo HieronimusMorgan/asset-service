@@ -109,6 +109,12 @@ func (j jwtService) ExtractClaims(tokenString string) (*TokenClaims, error) {
 		tc.RoleID = uint(role)
 	}
 
+	if resource, ok := (*claims)["resource"].([]interface{}); ok {
+		for _, r := range resource {
+			tc.Resource = append(tc.Resource, r.(string))
+		}
+	}
+
 	return tc, nil
 }
 

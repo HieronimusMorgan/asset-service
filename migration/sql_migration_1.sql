@@ -238,6 +238,8 @@ CREATE TABLE asset_maintenance_type
     deleted_by     VARCHAR(255)
 );
 
+
+
 -- INSERT INTO asset_maintenance_type (type_name, description, created_by, updated_by)
 -- VALUES
 --     -- ✅ General Maintenance Types
@@ -351,6 +353,84 @@ CREATE TABLE asset_maintenance_record
 
 CREATE INDEX idx_maintenance_record_asset ON asset_maintenance_record (asset_id);
 CREATE INDEX idx_maintenance_record_type ON asset_maintenance_record (type_id);
+
+CREATE TABLE asset_group
+(
+    asset_group_id SERIAL PRIMARY KEY,
+    group_name     VARCHAR(255) NOT NULL,
+    description    TEXT,
+    owner_user_id  INT          NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255)
+);
+
+CREATE TABLE asset_group_member
+(
+    asset_group_id INT NOT NULL,
+    user_id        INT NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255),
+    PRIMARY KEY (user_id, asset_group_id),
+    FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
+);
+
+CREATE TABLE asset_group_asset
+(
+    asset_group_id INT NOT NULL,
+    asset_id       INT NOT NULL,
+    user_id        INT NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255),
+    PRIMARY KEY (asset_id, asset_group_id, user_id),
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
+    FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
+);
+
+
+CREATE TABLE asset_group_permission
+(
+    permission_id   SERIAL PRIMARY KEY,
+    permission_name VARCHAR(100) UNIQUE NOT NULL,
+    description     TEXT,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by      VARCHAR(255),
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by      VARCHAR(255),
+    deleted_at      TIMESTAMP,
+    deleted_by      VARCHAR(255)
+);
+-- Insert default family_permission
+INSERT INTO asset_group_permission (permission_name, description)
+VALUES ('Admin', 'Full control over family members and assets'),
+       ('Manage', 'Manage family members and permissions'),
+       ('Read-Write', 'Read and Write access to assets'),
+       ('Read', 'Read/View assets');
+
+CREATE TABLE asset_group_member_permission
+(
+    asset_group_id INT NOT NULL,
+    user_id        INT NOT NULL,
+    permission_id  INT NOT NULL,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255),
+    PRIMARY KEY (user_id, asset_group_id, permission_id)
+);
 
 CREATE TABLE asset_tags
 (

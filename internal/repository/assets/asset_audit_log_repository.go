@@ -27,6 +27,9 @@ type AssetAuditLogRepository interface {
 	AfterCreateAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
 	AfterUpdateAssetMaintenanceRecord(old assets.AssetMaintenanceRecord, assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
 	AfterDeleteAssetMaintenanceRecord(assetMaintenanceRecord *assets.AssetMaintenanceRecord) error
+	AfterCreateAssetGroupPermission(tx *gorm.DB, asset *assets.AssetGroupPermission) error
+	AfterUpdateAssetGroupPermission(old assets.AssetGroupPermission, asset *assets.AssetGroupPermission) error
+	AfterDeleteAssetGroupPermission(tx *gorm.DB, asset *assets.AssetGroupPermission) error
 }
 
 type assetAuditLogRepository struct {
@@ -457,6 +460,79 @@ func (a assetAuditLogRepository) AfterDeleteAssetMaintenanceRecord(assetMaintena
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterCreateAssetGroupPermission(tx *gorm.DB, asset *assets.AssetGroupPermission) error {
+	newDataBytes, err := json.Marshal(asset)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_group",
+		Action:      "CREATE",
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &asset.CreatedBy,
+	}
+
+	if err := tx.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterUpdateAssetGroupPermission(old assets.AssetGroupPermission, asset *assets.AssetGroupPermission) error {
+	oldDataBytes, err := json.Marshal(old)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	newDataBytes, err := json.Marshal(asset)
+	if err != nil {
+		return err
+	}
+	newData := string(newDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_group",
+		Action:      "UPDATE",
+		OldData:     &oldData,
+		NewData:     &newData,
+		PerformedAt: time.Now(),
+		PerformedBy: &asset.UpdatedBy,
+	}
+
+	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a assetAuditLogRepository) AfterDeleteAssetGroupPermission(tx *gorm.DB, asset *assets.AssetGroupPermission) error {
+	oldDataBytes, err := json.Marshal(asset)
+	if err != nil {
+		return err
+	}
+	oldData := string(oldDataBytes)
+
+	log := assets.AssetAuditLog{
+		TableName:   "asset_group",
+		Action:      "DELETE",
+		OldData:     &oldData,
+		PerformedAt: time.Now(),
+		PerformedBy: asset.DeletedBy,
+	}
+
+	if err := tx.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
 		return err
 	}
 

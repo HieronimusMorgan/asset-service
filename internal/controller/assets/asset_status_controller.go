@@ -1,7 +1,7 @@
 package assets
 
 import (
-	assets2 "asset-service/internal/dto/in/assets"
+	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	"asset-service/package/response"
@@ -27,7 +27,7 @@ func NewAssetStatusController(AssetStatusService assets.AssetStatusService, JWTS
 }
 
 func (h assetStatusController) AddAssetStatus(context *gin.Context) {
-	var req assets2.AssetStatusRequest
+	var req request.AssetStatusRequest
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
@@ -72,7 +72,7 @@ func (h assetStatusController) GetAssetStatusByID(context *gin.Context) {
 }
 
 func (h assetStatusController) UpdateAssetStatus(context *gin.Context) {
-	var req assets2.AssetStatusRequest
+	var req request.AssetStatusRequest
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)

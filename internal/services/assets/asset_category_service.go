@@ -47,7 +47,7 @@ func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCateg
 		return nil, err
 	}
 
-	existingCategory, err := s.AssetCategoryRepository.GetAssetCategoryByName(assetRequest.CategoryName)
+	existingCategory, err := s.AssetCategoryRepository.GetAssetCategoryByNameAndClientID(assetRequest.CategoryName, data.ClientID)
 	if existingCategory != nil {
 		log.Warn().Str("category_name", assetRequest.CategoryName).Msg("Asset category already exists")
 		return nil, errors.New("asset category already exists")

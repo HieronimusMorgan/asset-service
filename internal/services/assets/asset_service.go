@@ -4,7 +4,6 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
-	"asset-service/internal/models/user"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
 	"asset-service/internal/utils"
@@ -63,18 +62,18 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
 
-	verifyPinCode := &user.VerifyPinCode{}
-
-	err = s.Redis.GetData(utils.PinVerify, requestID, verifyPinCode)
-	if err != nil {
-		return logError("GetRedisData", clientID, err, "Your pin code is invalid")
-	}
-
-	if !verifyPinCode.Valid {
-		return logError("GetRedisData", clientID, errors.New("pin code expired"), "Your pin code is expired")
-	}
-
-	_ = s.Redis.DeleteData(utils.PinVerify, requestID)
+	//verifyPinCode := &user.VerifyPinCode{}
+	//
+	//err = s.Redis.GetData(utils.PinVerify, requestID, verifyPinCode)
+	//if err != nil {
+	//	return logError("GetRedisData", clientID, err, "Your pin code is invalid")
+	//}
+	//
+	//if !verifyPinCode.Valid {
+	//	return logError("GetRedisData", clientID, errors.New("pin code expired"), "Your pin code is expired")
+	//}
+	//
+	//_ = s.Redis.DeleteData(utils.PinVerify, requestID)
 
 	if exists, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID); err != nil {
 		return logError("AssetNameExists", clientID, err, "Failed to check asset name exists")

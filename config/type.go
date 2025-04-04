@@ -5,6 +5,7 @@ import (
 	"asset-service/internal/middleware"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
+	users "asset-service/internal/repository/users"
 	services "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	controllercron "asset-service/internal/utils/cron/controller"
@@ -33,36 +34,48 @@ type ServerConfig struct {
 
 // Services holds all service dependencies
 type Services struct {
-	AssetCategory        services.AssetCategoryService
-	AssetMaintenance     services.AssetMaintenanceService
-	AssetMaintenanceType services.AssetMaintenanceTypeService
-	Asset                services.AssetService
-	AssetStatus          services.AssetStatusService
-	AssetWishlist        services.AssetWishlistService
-	AssetImage           services.AssetImageService
+	AssetCategory               services.AssetCategoryService
+	AssetMaintenance            services.AssetMaintenanceService
+	AssetMaintenanceType        services.AssetMaintenanceTypeService
+	Asset                       services.AssetService
+	AssetStatus                 services.AssetStatusService
+	AssetWishlist               services.AssetWishlistService
+	AssetImage                  services.AssetImageService
+	AssetGroupAssetService      services.AssetGroupAssetService
+	AssetGroupMemberService     services.AssetGroupMemberService
+	AssetGroupPermissionService services.AssetGroupPermissionService
+	AssetGroupService           services.AssetGroupService
 }
 
 // Repository contains repository (database access objects)
 type Repository struct {
-	AssetAuditLog           repository.AssetAuditLogRepository
-	AssetCategory           repository.AssetCategoryRepository
-	AssetMaintenance        repository.AssetMaintenanceRepository
-	AssetMaintenanceType    repository.AssetMaintenanceTypeRepository
-	AssetRepository         repository.AssetRepository
-	AssetStatusRepository   repository.AssetStatusRepository
-	AssetWishlistRepository repository.AssetWishlistRepository
-	AssetMaintenanceRecord  repository.AssetMaintenanceRecordRepository
-	AssetImageRepository    repository.AssetImageRepository
-	AssetStockRepository    repository.AssetStockRepository
+	UserRepository                       users.UserRepository
+	AssetAuditLog                        repository.AssetAuditLogRepository
+	AssetCategory                        repository.AssetCategoryRepository
+	AssetMaintenance                     repository.AssetMaintenanceRepository
+	AssetMaintenanceType                 repository.AssetMaintenanceTypeRepository
+	AssetRepository                      repository.AssetRepository
+	AssetStatusRepository                repository.AssetStatusRepository
+	AssetWishlistRepository              repository.AssetWishlistRepository
+	AssetMaintenanceRecord               repository.AssetMaintenanceRecordRepository
+	AssetImageRepository                 repository.AssetImageRepository
+	AssetStockRepository                 repository.AssetStockRepository
+	AssetGroupRepository                 repository.AssetGroupRepository
+	AssetGroupAssetRepository            repository.AssetGroupAssetRepository
+	AssetGroupMemberRepository           repository.AssetGroupMemberRepository
+	AssetGroupMemberPermissionRepository repository.AssetGroupMemberPermissionRepository
+	AssetGroupPermissionRepository       repository.AssetGroupPermissionRepository
 }
 
 type Controller struct {
-	AssetCategory        controller.AssetCategoryController
-	AssetMaintenance     controller.AssetMaintenanceController
-	AssetMaintenanceType controller.AssetMaintenanceTypeController
-	Asset                controller.AssetController
-	AssetStatus          controller.AssetStatusController
-	AssetWishlist        controller.AssetWishlistController
+	AssetCategory                  controller.AssetCategoryController
+	AssetMaintenance               controller.AssetMaintenanceController
+	AssetMaintenanceType           controller.AssetMaintenanceTypeController
+	Asset                          controller.AssetController
+	AssetStatus                    controller.AssetStatusController
+	AssetWishlist                  controller.AssetWishlistController
+	AssetGroupPermissionController controller.AssetGroupPermissionController
+	AssetGroupController           controller.AssetGroupController
 }
 
 type Middleware struct {

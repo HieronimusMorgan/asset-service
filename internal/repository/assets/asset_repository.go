@@ -116,10 +116,10 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
            stock.stock_id,
            stock.initial_quantity,
            stock.latest_quantity           
-       FROM "asset-service"."asset" asset
-       INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-       INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-       INNER JOIN "asset-service"."asset_stock" stock ON asset.asset_id = stock.asset_id
+       FROM "asset" asset
+       INNER JOIN "asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "asset_status" status ON asset.status_id = status.asset_status_id
+       INNER JOIN "asset_stock" stock ON asset.asset_id = stock.asset_id
        WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
        ORDER BY asset.created_at ASC;
    `
@@ -209,7 +209,7 @@ func (r assetRepository) GetListAssets(clientID string) ([]response.AssetRespons
 		// Fetch asset images separately (handling multiple images)
 		imageQuery := `
         SELECT image.image_url
-        FROM "asset-service"."asset_image" image
+        FROM "asset_image" image
         WHERE image.asset_id = ? AND user_client_id = ? AND image.deleted_at IS NULL;
     `
 		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID, clientID).Rows()
@@ -261,10 +261,10 @@ func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*respon
            stock.stock_id,
            stock.initial_quantity,
            stock.latest_quantity           
-       FROM "asset-service"."asset" asset
-       INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-       INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-       INNER JOIN "asset-service"."asset_stock" stock ON asset.asset_id = stock.asset_id
+       FROM "asset" asset
+       INNER JOIN "asset_category" category ON asset.category_id = category.asset_category_id
+       INNER JOIN "asset_status" status ON asset.status_id = status.asset_status_id
+       INNER JOIN "asset_stock" stock ON asset.asset_id = stock.asset_id
        WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL
        ORDER BY asset.created_at ASC;
    `

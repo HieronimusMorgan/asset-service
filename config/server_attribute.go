@@ -5,6 +5,7 @@ import (
 	"asset-service/internal/middleware"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
+	users "asset-service/internal/repository/users"
 	services "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
 	controllercron "asset-service/internal/utils/cron/controller"
@@ -92,16 +93,22 @@ func InitGin() *gin.Engine {
 // initRepository initializes database access objects (Repository)
 func (s *ServerConfig) initRepository() {
 	s.Repository = Repository{
-		AssetAuditLog:           repository.NewAssetAuditLogRepository(*s.DB),
-		AssetCategory:           repository.NewAssetCategoryRepository(*s.DB, s.Repository.AssetAuditLog),
-		AssetMaintenanceType:    repository.NewAssetMaintenanceTypeRepository(*s.DB),
-		AssetRepository:         repository.NewAssetRepository(*s.DB, s.Repository.AssetAuditLog),
-		AssetStatusRepository:   repository.NewAssetStatusRepository(*s.DB),
-		AssetWishlistRepository: repository.NewAssetWishlistRepository(*s.DB, s.Repository.AssetAuditLog, s.Repository.AssetRepository),
-		AssetMaintenance:        repository.NewAssetMaintenanceRepository(*s.DB),
-		AssetMaintenanceRecord:  repository.NewAssetMaintenanceRecordRepository(*s.DB),
-		AssetImageRepository:    repository.NewAssetImageRepository(*s.DB),
-		AssetStockRepository:    repository.NewAssetStockRepository(*s.DB),
+		UserRepository:                       users.NewUserRepository(*s.DB),
+		AssetAuditLog:                        repository.NewAssetAuditLogRepository(*s.DB),
+		AssetCategory:                        repository.NewAssetCategoryRepository(*s.DB, s.Repository.AssetAuditLog),
+		AssetMaintenanceType:                 repository.NewAssetMaintenanceTypeRepository(*s.DB),
+		AssetRepository:                      repository.NewAssetRepository(*s.DB, s.Repository.AssetAuditLog),
+		AssetStatusRepository:                repository.NewAssetStatusRepository(*s.DB),
+		AssetWishlistRepository:              repository.NewAssetWishlistRepository(*s.DB, s.Repository.AssetAuditLog, s.Repository.AssetRepository),
+		AssetMaintenance:                     repository.NewAssetMaintenanceRepository(*s.DB),
+		AssetMaintenanceRecord:               repository.NewAssetMaintenanceRecordRepository(*s.DB),
+		AssetImageRepository:                 repository.NewAssetImageRepository(*s.DB),
+		AssetStockRepository:                 repository.NewAssetStockRepository(*s.DB),
+		AssetGroupRepository:                 repository.NewAssetGroupRepository(*s.DB, s.Repository.AssetAuditLog),
+		AssetGroupAssetRepository:            repository.NewAssetGroupAssetRepository(*s.DB, s.Repository.AssetAuditLog),
+		AssetGroupMemberRepository:           repository.NewAssetGroupMemberRepository(*s.DB, s.Repository.AssetAuditLog),
+		AssetGroupMemberPermissionRepository: repository.NewAssetGroupMemberPermissionRepository(*s.DB, repository.NewAssetAuditLogRepository(*s.DB)),
+		AssetGroupPermissionRepository:       repository.NewAssetGroupPermissionRepository(*s.DB, repository.NewAssetAuditLogRepository(*s.DB)),
 	}
 }
 
@@ -148,6 +155,32 @@ func (s *ServerConfig) initServices() {
 			s.Repository.AssetRepository,
 			s.Redis,
 			s.Nats.NatsService),
+		AssetGroupAssetService: services.NewAssetGroupAssetService(
+			s.Repository.AssetGroupAssetRepository,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis,
+		),
+		AssetGroupPermissionService: services.NewAssetGroupPermissionService(
+			s.Repository.AssetGroupPermissionRepository,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetGroupMemberService: services.NewAssetGroupMemberService(
+			s.Repository.AssetGroupMemberRepository,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
+		AssetGroupService: services.NewAssetGroupService(
+			s.Repository.UserRepository,
+			s.Repository.AssetGroupRepository,
+			s.Repository.AssetGroupPermissionRepository,
+			s.Repository.AssetGroupMemberPermissionRepository,
+			s.Repository.AssetGroupMemberRepository,
+			s.Repository.AssetGroupAssetRepository,
+			s.Repository.AssetRepository,
+			s.Repository.AssetAuditLog,
+			s.Redis),
 	}
 }
 
@@ -166,12 +199,14 @@ func (s *ServerConfig) Start() error {
 
 func (s *ServerConfig) initController() {
 	s.Controller = Controller{
-		AssetCategory:        controller.NewAssetCategoryController(s.Services.AssetCategory, s.JWTService),
-		AssetMaintenance:     controller.NewAssetMaintenanceController(s.Services.AssetMaintenance, s.JWTService),
-		AssetMaintenanceType: controller.NewAssetMaintenanceTypeController(s.Services.AssetMaintenanceType, s.JWTService),
-		Asset:                controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.CdnUrl),
-		AssetStatus:          controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
-		AssetWishlist:        controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),
+		AssetCategory:                  controller.NewAssetCategoryController(s.Services.AssetCategory, s.JWTService),
+		AssetMaintenance:               controller.NewAssetMaintenanceController(s.Services.AssetMaintenance, s.JWTService),
+		AssetMaintenanceType:           controller.NewAssetMaintenanceTypeController(s.Services.AssetMaintenanceType, s.JWTService),
+		Asset:                          controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.CdnUrl),
+		AssetStatus:                    controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
+		AssetWishlist:                  controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),
+		AssetGroupController:           controller.NewAssetGroupController(s.Services.AssetGroupService, s.JWTService),
+		AssetGroupPermissionController: controller.NewAssetGroupPermissionController(s.Services.AssetGroupPermissionService, s.JWTService),
 	}
 }
 
