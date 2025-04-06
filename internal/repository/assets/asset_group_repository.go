@@ -11,11 +11,15 @@ import (
 
 type AssetGroupRepository interface {
 	AddAssetGroup(assetGroup *assets.AssetGroup, clientID string, user *user.Users) error
+	AddInvitationToken(assetGroupID uint, token string, clientID string) error
+	RemoveInvitationToken(assetGroupID uint, clientID string) error
+	UpdateCurrentUsesInvitationToken(assetGroupID uint, clientID string) error
 	UpdateAssetGroup(asset *assets.AssetGroup, userID uint) error
 	GetAssetGroupByID(assetGroupID uint) (*assets.AssetGroup, error)
 	GetAssetGroupDetailByID(groupID uint) (*response.AssetGroupDetailResponse, error)
 	GetAssetGroupByUserID(id uint) ([]assets.AssetGroup, error)
 	DeleteAssetGroup(assetGroupID uint, userID uint) error
+	GetAssetGroupByInvitationToken(invitationToken string) (*assets.AssetGroup, error)
 }
 
 type assetGroupRepository struct {
@@ -83,6 +87,68 @@ func (r assetGroupRepository) AddAssetGroup(assetGroup *assets.AssetGroup, clien
 		return nil
 	})
 
+}
+
+func (r assetGroupRepository) AddInvitationToken(assetGroupID uint, token string, clientID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var assetGroup assets.AssetGroup
+		if err := tx.Table(utils.TableAssetGroupName).Where("asset_group_id = ?", assetGroupID).First(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		invitationToken := token
+		maxUses := 10
+		currentUses := 0
+		assetGroup.InvitationToken = &invitationToken
+		assetGroup.MaxUses = &maxUses
+		assetGroup.CurrentUses = &currentUses
+		assetGroup.UpdatedBy = clientID
+
+		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (r assetGroupRepository) RemoveInvitationToken(assetGroupID uint, clientID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var assetGroup assets.AssetGroup
+		if err := tx.Table(utils.TableAssetGroupName).Where("asset_group_id = ?", assetGroupID).First(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		assetGroup.InvitationToken = nil
+		assetGroup.MaxUses = nil
+		assetGroup.CurrentUses = nil
+		assetGroup.UpdatedBy = clientID
+
+		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (r assetGroupRepository) UpdateCurrentUsesInvitationToken(assetGroupID uint, clientID string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var assetGroup assets.AssetGroup
+		if err := tx.Table(utils.TableAssetGroupName).Where("asset_group_id = ?", assetGroupID).First(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		currentUses := *assetGroup.CurrentUses + 1
+		assetGroup.CurrentUses = &currentUses
+		assetGroup.UpdatedBy = clientID
+
+		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 func (r assetGroupRepository) UpdateAssetGroup(asset *assets.AssetGroup, userID uint) error {
@@ -229,4 +295,12 @@ func (r assetGroupRepository) DeleteAssetGroup(assetGroupID uint, userID uint) e
 		}
 		return nil
 	})
+}
+
+func (r assetGroupRepository) GetAssetGroupByInvitationToken(invitationToken string) (*assets.AssetGroup, error) {
+	var assetGroup assets.AssetGroup
+	if err := r.db.Table(utils.TableAssetGroupName).Where("invitation_token = ?", invitationToken).First(&assetGroup).Error; err != nil {
+		return nil, err
+	}
+	return &assetGroup, nil
 }

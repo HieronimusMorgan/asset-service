@@ -12,6 +12,7 @@ type AssetGroupMemberRepository interface {
 	GetAssetGroupMemberByID(assetGroupID uint) (*assets.AssetGroupMember, error)
 	DeleteAssetGroupMember(assetGroupID, userID uint) error
 	GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (assets.AssetGroupMember, error)
+	GetAssetGroupMemberByUserID(userID uint) (*assets.AssetGroupMember, error)
 }
 
 type assetGroupMemberRepository struct {
@@ -104,6 +105,15 @@ func (r assetGroupMemberRepository) GetAssetGroupMemberByUserIDAndGroupID(userID
 	err := r.db.Table(utils.TableAssetGroupMemberName).Where("user_id = ? AND asset_group_id = ?", userID, groupID).First(&assetGroupMember).Error
 	if err != nil {
 		return assets.AssetGroupMember{}, err
+	}
+	return assetGroupMember, nil
+}
+
+func (r assetGroupMemberRepository) GetAssetGroupMemberByUserID(userID uint) (*assets.AssetGroupMember, error) {
+	var assetGroupMember *assets.AssetGroupMember
+	err := r.db.Table(utils.TableAssetGroupMemberName).Where("user_id = ?", userID).First(&assetGroupMember).Error
+	if err != nil {
+		return nil, err
 	}
 	return assetGroupMember, nil
 }

@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -48,6 +50,14 @@ func GetToday() time.Time {
 	year, month, day := now.Date()
 	location := now.Location()
 	return time.Date(year, month, day, 0, 0, 0, 0, location)
+}
+
+func GenerateInviteToken() (string, error) {
+	bytes := make([]byte, 16) // 16 bytes = 32-character hex string
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 func NilIfEmpty(s string) *string {

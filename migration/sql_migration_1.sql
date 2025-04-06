@@ -360,6 +360,9 @@ CREATE TABLE asset_group
     asset_group_name VARCHAR(255) NOT NULL,
     description      TEXT,
     owner_user_id    INT          NOT NULL,
+    invitation_token VARCHAR(100) UNIQUE DEFAULT NULL,
+    max_uses         INT                 DEFAULT NULL,
+    current_uses     INT                 DEFAULT 0,
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by       VARCHAR(255),
     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -367,6 +370,10 @@ CREATE TABLE asset_group
     deleted_at       TIMESTAMP,
     deleted_by       VARCHAR(255)
 );
+
+ALTER TABLE asset_group
+    ADD CONSTRAINT chk_usage_valid
+        CHECK (current_uses >= 0 AND (max_uses IS NULL OR max_uses >= current_uses));
 
 CREATE TABLE asset_group_member
 (
@@ -431,6 +438,31 @@ CREATE TABLE asset_group_member_permission
     deleted_by     VARCHAR(255),
     PRIMARY KEY (user_id, asset_group_id, permission_id)
 );
+
+CREATE TABLE asset_group_invitation
+(
+    invitation_id      SERIAL PRIMARY KEY,
+    asset_group_id     INT         NOT NULL,
+    invited_user_id    INT         NOT NULL,                   -- user being invited
+    invited_user_token VARCHAR(100) UNIQUE,
+    invited_by_user_id INT         NOT NULL,                   -- user who sent the invitation
+    status             VARCHAR(50) NOT NULL DEFAULT 'pending', -- 'pending', 'accepted', 'rejected', 'expired'
+    message            TEXT,                                   -- optional message included in the invitation
+    invited_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    responded_at       TIMESTAMP,                              -- when accepted/rejected
+    created_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    created_by         VARCHAR(255),
+    updated_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
+    updated_by         VARCHAR(255),
+    deleted_at         TIMESTAMP,
+    deleted_by         VARCHAR(255),
+
+    FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
+);
+
+ALTER TABLE asset_group_invitation
+    ADD CONSTRAINT chk_invite_status
+        CHECK (status IN ('pending', 'accepted', 'rejected', 'expired'));
 
 CREATE TABLE asset_tags
 (

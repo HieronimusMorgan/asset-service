@@ -11,10 +11,13 @@ import (
 
 type AssetGroupController interface {
 	AddAssetGroup(context *gin.Context)
+	AddInvitationTokenAssetGroup(context *gin.Context)
+	RemoveInvitationTokenAssetGroup(context *gin.Context)
 	UpdateAssetGroup(context *gin.Context)
 	GetAssetGroupByID(context *gin.Context)
 	DeleteAssetGroup(context *gin.Context)
 	AddMemberAssetGroup(context *gin.Context)
+	InviteMemberByCodeAssetGroup(context *gin.Context)
 	RemoveMemberAssetGroup(context *gin.Context)
 	AddPermissionMemberAssetGroup(context *gin.Context)
 	RemovePermissionMemberAssetGroup(context *gin.Context)
@@ -52,6 +55,40 @@ func (a assetGroupController) AddAssetGroup(context *gin.Context) {
 	}
 
 	response.SendResponse(context, http.StatusOK, "Asset group created successfully", data, nil)
+}
+
+func (a assetGroupController) AddInvitationTokenAssetGroup(context *gin.Context) {
+	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	data, err := a.AssetGroupService.AddInvitationAssetGroup(assetGroupID, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Invitation created successfully", data, nil)
+}
+
+func (a assetGroupController) RemoveInvitationTokenAssetGroup(context *gin.Context) {
+	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err = a.AssetGroupService.RemoveInvitationAssetGroup(assetGroupID, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Invitation created successfully", nil, nil)
 }
 
 func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
@@ -144,6 +181,24 @@ func (a assetGroupController) AddMemberAssetGroup(context *gin.Context) {
 	}
 
 	response.SendResponse(context, http.StatusOK, "Member added to asset group successfully", nil, nil)
+}
+
+func (a assetGroupController) InviteMemberByCodeAssetGroup(context *gin.Context) {
+	invitationToken := context.Param("id")
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	err := a.AssetGroupService.InviteMemberByCodeAssetGroup(invitationToken, token.ClientID)
+	if err != nil {
+		response.SendResponse(context, http.StatusInternalServerError, "Error", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, http.StatusOK, "Member invited successfully", nil, nil)
 }
 
 func (a assetGroupController) RemoveMemberAssetGroup(context *gin.Context) {
