@@ -6,10 +6,10 @@ import (
 	"asset-service/internal/models/assets"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/repository/transaction"
+	repouser "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
 	"errors"
 	"github.com/rs/zerolog/log"
-	"sync"
 )
 
 type AssetService interface {
@@ -27,39 +27,53 @@ type AssetService interface {
 }
 
 type assetService struct {
-	AssetRepository         repo.AssetRepository
-	AssetCategoryRepository repo.AssetCategoryRepository
-	AssetStatusRepository   repo.AssetStatusRepository
-	AssetImageRepository    repo.AssetImageRepository
-	Redis                   utils.RedisService
-	AuditLogRepository      repo.AssetAuditLogRepository
-	AssetTransaction        transaction.AssetTransactionRepository
-	AssetStockRepository    repo.AssetStockRepository
+	UserRepository             repouser.UserRepository
+	AssetRepository            repo.AssetRepository
+	AssetCategoryRepository    repo.AssetCategoryRepository
+	AssetStatusRepository      repo.AssetStatusRepository
+	AssetImageRepository       repo.AssetImageRepository
+	Redis                      utils.RedisService
+	AuditLogRepository         repo.AssetAuditLogRepository
+	AssetGroupMemberRepository repo.AssetGroupMemberRepository
+	AssetGroupAssetRepository  repo.AssetGroupAssetRepository
+	AssetTransaction           transaction.AssetTransactionRepository
+	AssetStockRepository       repo.AssetStockRepository
 }
 
-func NewAssetService(assetRepository repo.AssetRepository,
+func NewAssetService(userRepository repouser.UserRepository,
+	assetRepository repo.AssetRepository,
 	assetCategoryRepository repo.AssetCategoryRepository,
 	assetStatusRepository repo.AssetStatusRepository,
 	assetImageRepository repo.AssetImageRepository,
 	log repo.AssetAuditLogRepository,
+	assetGroupMemberRepository repo.AssetGroupMemberRepository,
+	assetGroupAssetRepository repo.AssetGroupAssetRepository,
 	redis utils.RedisService,
 	assetTransaction transaction.AssetTransactionRepository,
 	assetStockRepository repo.AssetStockRepository) AssetService {
 	return assetService{
-		AssetRepository:         assetRepository,
-		AssetCategoryRepository: assetCategoryRepository,
-		AssetStatusRepository:   assetStatusRepository,
-		AssetImageRepository:    assetImageRepository,
-		AuditLogRepository:      log,
-		Redis:                   redis,
-		AssetTransaction:        assetTransaction,
-		AssetStockRepository:    assetStockRepository}
+		UserRepository:             userRepository,
+		AssetRepository:            assetRepository,
+		AssetCategoryRepository:    assetCategoryRepository,
+		AssetStatusRepository:      assetStatusRepository,
+		AssetImageRepository:       assetImageRepository,
+		AuditLogRepository:         log,
+		AssetGroupMemberRepository: assetGroupMemberRepository,
+		AssetGroupAssetRepository:  assetGroupAssetRepository,
+		Redis:                      redis,
+		AssetTransaction:           assetTransaction,
+		AssetStockRepository:       assetStockRepository}
 }
 
 func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, requestID string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
+	}
+
+	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
+	if err != nil {
+		return logError("GetUserByClientID", clientID, err, "Failed to get user by client ID")
 	}
 
 	//verifyPinCode := &user.VerifyPinCode{}
@@ -113,77 +127,36 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		UpdatedBy:          data.ClientID,
 	}
 
-	if err := s.AssetRepository.AddAsset(asset); err != nil {
+	if err := s.AssetRepository.AddAsset(asset, images); err != nil {
 		return logError("AddAsset", clientID, err, "Failed to add asset")
 	}
 
-	if len(images) > 0 {
-		var assetImages []assets.AssetImage
-		for _, image := range images {
-			assetImages := append(assetImages, assets.AssetImage{
-				UserClientID: clientID,
-				AssetID:      asset.AssetID,
-				ImageURL:     image.ImageURL,
-				CreatedBy:    data.ClientID,
-				UpdatedBy:    data.ClientID,
-			})
-			if err := s.AssetImageRepository.AddAssetImage(assetImages); err != nil {
-				return logError("AddAssetImage", clientID, err, "Failed to add asset image")
-			}
+	// check user have asset group
+	assetGroupMember, _ := s.AssetGroupMemberRepository.GetAssetGroupMemberByUserID(user.UserID)
+	if assetGroupMember != nil && assetGroupMember.UserID != 0 {
+		assetGroupAsset := &assets.AssetGroupAsset{
+			AssetID:      asset.AssetID,
+			AssetGroupID: assetGroupMember.AssetGroupID,
+			UserID:       user.UserID,
+			CreatedBy:    data.ClientID,
+		}
+
+		if err := s.AssetGroupAssetRepository.AddAssetGroupAsset(assetGroupAsset); err != nil {
+			return logError("AddAssetGroupAsset", clientID, err, "Failed to add asset group asset")
 		}
 	}
 
-	assetStock := &assets.AssetStock{
-		AssetID:         asset.AssetID,
-		UserClientID:    clientID,
-		InitialQuantity: asset.Stock,
-		LatestQuantity:  asset.Stock,
-		ChangeType:      "INCREASE",
-		Quantity:        asset.Stock,
-		Reason:          nil,
-		CreatedBy:       clientID,
+	assetImage, err := s.AssetImageRepository.GetAssetImageResponseByAssetID(asset.AssetID)
+	if err != nil {
+		return logError("GetAssetImageResponseByAssetID", clientID, err, "Failed to get asset image by ID")
 	}
-
-	if err := s.AssetStockRepository.AddAssetStock(assetStock); err != nil {
-		return logError("AddAssetStock", clientID, err, "Failed to add asset stock")
-	}
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		if err := s.AuditLogRepository.AfterCreateAsset(asset); err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("Failed to create asset log")
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		if err := s.AuditLogRepository.AfterCreateAssetStock(assetStock); err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("Failed to create asset stock log")
-		}
-	}()
 
 	result, err := s.AssetRepository.GetAssetResponseByID(clientID, asset.AssetID)
 	if err != nil {
 		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by ID")
 	}
 
-	assetImage, err := s.AssetImageRepository.GetAssetImageResponseByAssetID(asset.AssetID)
-	if err != nil {
-		return logError("GetAssetImageByAssetID", clientID, err, "Failed to get asset image by asset ID")
-	}
-
 	result.Images = *assetImage
-	result.Stock = response.AssetStockResponse{
-		StockID:         assetStock.StockID,
-		AssetID:         assetStock.AssetID,
-		InitialQuantity: assetStock.InitialQuantity,
-		LatestQuantity:  assetStock.LatestQuantity,
-		ChangeType:      assetStock.ChangeType,
-		Quantity:        assetStock.Quantity,
-		Reason:          nil,
-	}
 
 	log.Info().Str("key", "GetAssetResponseByID").Str("clientID", clientID).Fields(asset).Msg("Success to get asset by ID")
 	return result, nil
@@ -404,10 +377,16 @@ func (s assetService) DeleteAsset(assetID uint, clientID string) error {
 
 func logError(key, clientID string, err error, msg string) (interface{}, error) {
 	log.Error().Str("key", key).Str("clientID", clientID).Err(err).Msg(msg)
+	if err == nil {
+		err = errors.New(msg)
+	}
 	return nil, err
 }
 
 func logErrorWithNoReturn(key, clientID string, err error, msg string) error {
 	log.Error().Str("key", key).Str("clientID", clientID).Err(err).Msg(msg)
+	if err == nil {
+		err = errors.New(msg)
+	}
 	return err
 }

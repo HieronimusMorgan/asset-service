@@ -17,14 +17,14 @@ type AssetGroupService interface {
 	RemoveInvitationAssetGroup(assetGroupID uint, clientID string) error
 	UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string) (interface{}, error)
 	GetAssetGroupDetailByID(assetGroupID uint, clientID string) (interface{}, error)
+	GetAssetGroupAssetByAssetGroupID(assetGroupID uint, clientID string) (interface{}, error)
 	DeleteAssetGroup(assetGroupID uint, clientID string) error
-	AddMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error
+	InviteMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error
 	RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error
 	AddPermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
 	RemovePermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
 	GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error)
 	UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error)
-	InviteMemberByCodeAssetGroup(invitationToken string, clientID string) error
 }
 
 type assetGroupService struct {
@@ -328,6 +328,46 @@ func (s *assetGroupService) GetAssetGroupDetailByID(assetGroupID uint, clientID 
 	return assetGroup, nil
 }
 
+func (s *assetGroupService) GetAssetGroupAssetByAssetGroupID(assetGroupID uint, clientID string) (interface{}, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
+	}
+
+	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
+	}
+
+	// Check if the asset group exists
+	assetGroup, err := s.AssetGroupRepository.GetAssetGroupDetailByID(assetGroupID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupDetailByID", clientID, err, "Failed to get asset group")
+	}
+
+	if assetGroup == nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupDetailByID", clientID, nil, "Asset group not found")
+	}
+
+	// Check if the user is a member of the asset group
+	member, err := s.memberRepository.GetAssetGroupMemberByUserIDAndGroupID(user.UserID, assetGroupID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group member")
+	}
+
+	if member.AssetGroupID == 0 {
+		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
+	}
+
+	// Get asset group assets
+	assetsList, err := s.assetGroupAssetRepository.GetAssetGroupAssetByID(assetGroup.AssetGroupID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("GetAssetsByAssetGroup", clientID, err, "Failed to get assets by asset group")
+	}
+
+	return assetsList, nil
+}
+
 func (s *assetGroupService) DeleteAssetGroup(assetGroupID uint, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
@@ -389,7 +429,7 @@ func (s *assetGroupService) DeleteAssetGroup(assetGroupID uint, clientID string)
 	return nil
 }
 
-func (s *assetGroupService) AddMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error {
+func (s *assetGroupService) InviteMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
@@ -521,7 +561,7 @@ func (s *assetGroupService) RemoveMemberAssetGroup(memberRequest request.AssetGr
 		return logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
 	}
 
-	err = s.memberRepository.DeleteAssetGroupMember(memberRequest.AssetGroupID, memberRequest.UserID)
+	err = s.memberRepository.RemoveAssetGroupMember(memberRequest.AssetGroupID, memberRequest.UserID)
 	if err != nil {
 		return logErrorWithNoReturn("RemoveAssetGroupMember", clientID, err, "Failed to remove asset group member")
 	}
@@ -830,56 +870,4 @@ func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request
 		ChangeType:      newAssetStock.ChangeType,
 		Quantity:        newAssetStock.Quantity,
 	}, nil
-}
-
-func (s *assetGroupService) InviteMemberByCodeAssetGroup(invitationToken string, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
-	if err != nil {
-		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
-	}
-
-	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
-	if err != nil {
-		return logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
-	}
-
-	// check user is already a member of the asset group
-	existingMember, err := s.memberRepository.GetAssetGroupMemberByUserID(user.UserID)
-
-	if existingMember != nil {
-		return errors.New("user is already a member of the asset group")
-	}
-
-	// Check if the user is a member of the asset group
-	assetGroup, err := s.AssetGroupRepository.GetAssetGroupByInvitationToken(invitationToken)
-	if err != nil {
-		return logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group")
-	}
-
-	if assetGroup == nil {
-		return logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "Asset group not found")
-	}
-
-	if *assetGroup.CurrentUses >= *assetGroup.MaxUses {
-		return errors.New("invitation token has reached its limit")
-
-	}
-
-	groupMember := &assets.AssetGroupMember{
-		UserID:       user.UserID,
-		AssetGroupID: assetGroup.AssetGroupID,
-		CreatedBy:    user.ClientID,
-	}
-
-	err = s.memberRepository.AddAssetGroupMember(groupMember, user.ClientID, user.ClientID)
-	if err != nil {
-		return logErrorWithNoReturn("AddAssetGroupMember", clientID, err, "Failed to add asset group member")
-	}
-
-	err = s.AssetGroupRepository.UpdateCurrentUsesInvitationToken(assetGroup.AssetGroupID, user.ClientID)
-	if err != nil {
-		return logErrorWithNoReturn("UpdateCurrentUsesInvitationToken", clientID, err, "Failed to update current uses invitation token")
-	}
-
-	return nil
 }

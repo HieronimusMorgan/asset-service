@@ -450,6 +450,7 @@ CREATE TABLE asset_group_invitation
     message            TEXT,                                   -- optional message included in the invitation
     invited_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
     responded_at       TIMESTAMP,                              -- when accepted/rejected
+    expired_at TIMESTAMP,                                      -- when the invitation expires
     created_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,
     created_by         VARCHAR(255),
     updated_at         TIMESTAMP            DEFAULT CURRENT_TIMESTAMP,

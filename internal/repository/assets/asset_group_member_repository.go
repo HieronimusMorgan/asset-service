@@ -1,16 +1,18 @@
 package assets
 
 import (
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
+	"fmt"
 	"gorm.io/gorm"
 )
 
 type AssetGroupMemberRepository interface {
 	AddAssetGroupMember(asset *assets.AssetGroupMember, userClientID string, memberClientID string) error
 	UpdateAssetGroupMember(asset *assets.AssetGroupMember) error
-	GetAssetGroupMemberByID(assetGroupID uint) (*assets.AssetGroupMember, error)
-	DeleteAssetGroupMember(assetGroupID, userID uint) error
+	GetAssetGroupMemberByID(assetGroupID uint) (*[]response.AssetGroupMemberResponse, error)
+	RemoveAssetGroupMember(assetGroupID, userID uint) error
 	GetAssetGroupMemberByUserIDAndGroupID(userID uint, groupID uint) (assets.AssetGroupMember, error)
 	GetAssetGroupMemberByUserID(userID uint) (*assets.AssetGroupMember, error)
 }
@@ -76,16 +78,79 @@ func (r assetGroupMemberRepository) UpdateAssetGroupMember(asset *assets.AssetGr
 	return r.db.Table(utils.TableAssetGroupMemberName).Save(asset).Error
 }
 
-func (r assetGroupMemberRepository) GetAssetGroupMemberByID(assetGroupID uint) (*assets.AssetGroupMember, error) {
-	var asset *assets.AssetGroupMember
-	err := r.db.Table(utils.TableAssetGroupMemberName).Where("asset_group_id = ?", assetGroupID).First(&asset).Error
-	if err != nil {
-		return nil, err
+func (r assetGroupMemberRepository) GetAssetGroupMemberByID(groupID uint) (*[]response.AssetGroupMemberResponse, error) {
+
+	type memberRow struct {
+		UserID         uint
+		Username       string
+		FullName       string
+		ProfilePicture string
 	}
-	return asset, nil
+
+	var memberRows []memberRow
+	memberQuery := `
+		SELECT 
+			u.user_id,
+			u.username,
+			u.full_name,
+			u.profile_picture
+		FROM asset_group_member AS agm
+		LEFT JOIN users AS u ON agm.user_id = u.user_id
+		WHERE u.deleted_at IS NULL AND agm.asset_group_id = ?
+	`
+	if err := r.db.Raw(memberQuery, groupID).Scan(&memberRows).Error; err != nil {
+		return nil, fmt.Errorf("failed to get group members: %w", err)
+	}
+
+	var members []response.AssetGroupMemberResponse
+	for _, row := range memberRows {
+		members = append(members, response.AssetGroupMemberResponse{
+			UserID:         row.UserID,
+			Username:       row.Username,
+			FullName:       row.FullName,
+			ProfilePicture: row.ProfilePicture,
+			Permission:     []response.AssetGroupMemberWithPermissionResponse{},
+		})
+	}
+
+	type tempPerm struct {
+		UserID         uint
+		PermissionID   *uint
+		PermissionName *string
+	}
+	var allPermissions []tempPerm
+	permQuery := `
+		SELECT 
+			agm.user_id,
+			agp.permission_id,
+			agp.permission_name
+		FROM asset_group_member AS agm
+		LEFT JOIN asset_group_member_permission AS agmp 
+			ON agm.user_id = agmp.user_id AND agm.asset_group_id = agmp.asset_group_id
+		LEFT JOIN asset_group_permission AS agp 
+			ON agp.permission_id = agmp.permission_id
+		WHERE agm.asset_group_id = ?
+	`
+	if err := r.db.Raw(permQuery, groupID).Scan(&allPermissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get member permissions: %w", err)
+	}
+
+	permissionMap := make(map[uint][]response.AssetGroupMemberWithPermissionResponse)
+	for _, p := range allPermissions {
+		permissionMap[p.UserID] = append(permissionMap[p.UserID], response.AssetGroupMemberWithPermissionResponse{
+			PermissionID:   p.PermissionID,
+			PermissionName: p.PermissionName,
+		})
+	}
+
+	for i := range members {
+		members[i].Permission = permissionMap[members[i].UserID]
+	}
+
+	return &members, nil
 }
 
-func (r assetGroupMemberRepository) DeleteAssetGroupMember(assetGroupID, userID uint) error {
+func (r assetGroupMemberRepository) RemoveAssetGroupMember(assetGroupID, userID uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Unscoped().Table(utils.TableAssetGroupMemberPermissionName).Where("asset_group_id = ? AND user_id = ?", assetGroupID, userID).Delete(&assets.AssetGroupMemberPermission{}).Error; err != nil {
 			return err

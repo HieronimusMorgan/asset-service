@@ -17,7 +17,7 @@ type AssetGroupRepository interface {
 	UpdateAssetGroup(asset *assets.AssetGroup, userID uint) error
 	GetAssetGroupByID(assetGroupID uint) (*assets.AssetGroup, error)
 	GetAssetGroupDetailByID(groupID uint) (*response.AssetGroupDetailResponse, error)
-	GetAssetGroupByUserID(id uint) ([]assets.AssetGroup, error)
+	GetAssetGroupByOwnerUserID(id uint) ([]assets.AssetGroup, error)
 	DeleteAssetGroup(assetGroupID uint, userID uint) error
 	GetAssetGroupByInvitationToken(invitationToken string) (*assets.AssetGroup, error)
 }
@@ -268,7 +268,7 @@ func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.A
 	return &group, nil
 }
 
-func (r assetGroupRepository) GetAssetGroupByUserID(id uint) ([]assets.AssetGroup, error) {
+func (r assetGroupRepository) GetAssetGroupByOwnerUserID(id uint) ([]assets.AssetGroup, error) {
 	var assetGroups []assets.AssetGroup
 	if err := r.db.Table(utils.TableAssetGroupName).Where("owner_user_id = ?", id).Find(&assetGroups).Error; err != nil {
 		return nil, err

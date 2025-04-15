@@ -10,6 +10,7 @@ type AssetGroupAssetRepository interface {
 	AddAssetGroupAsset(asset *assets.AssetGroupAsset) error
 	UpdateAssetGroupAsset(asset *assets.AssetGroupAsset) error
 	GetAssetGroupAssetByID(assetGroupID uint) (*assets.AssetGroupAsset, error)
+	GetListAssetGroupAssetByID(assetGroupID uint) ([]assets.AssetGroupAsset, error)
 	DeleteAssetGroupAsset(assetGroupID uint) error
 }
 
@@ -36,6 +37,14 @@ func (r assetGroupAssetRepository) GetAssetGroupAssetByID(assetGroupID uint) (*a
 		return nil, err
 	}
 	return &asset, nil
+}
+
+func (r assetGroupAssetRepository) GetListAssetGroupAssetByID(assetGroupID uint) ([]assets.AssetGroupAsset, error) {
+	var assets []assets.AssetGroupAsset
+	if err := r.db.Table(utils.TableAssetGroupAssetName).Where("asset_group_id = ?", assetGroupID).Find(&assets).Error; err != nil {
+		return nil, err
+	}
+	return assets, nil
 }
 
 func (r assetGroupAssetRepository) DeleteAssetGroupAsset(assetGroupID uint) error {

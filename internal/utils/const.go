@@ -1,9 +1,5 @@
 package utils
 
-import (
-	"time"
-)
-
 const (
 	User      = "user"
 	PinVerify = "pin_verify"
@@ -30,28 +26,19 @@ const (
 	TableAssetGroupMemberName           = "asset_group_member"
 	TableAssetGroupMemberPermissionName = "asset_group_member_permission"
 	TableAssetGroupAssetName            = "asset_group_asset"
+	TableAssetGroupInvitationName       = "asset_group_invitation"
+
+	TableUserSettingName = "user_settings"
+)
+
+const (
+	InvitationStatusPending  = "pending"
+	InvitationStatusAccepted = "accepted"
+	InvitationStatusRejected = "rejected"
+	InvitationStatusExpired  = "expired"
 )
 
 const (
 	NatsAssetImageDelete = "asset.image.delete"
 	NatsAssetImageUsage  = "asset.image.usage"
 )
-
-func ParseOptionalDate(str *string) (*time.Time, error) {
-	if str == nil {
-		return nil, nil
-	}
-	parsedDate, err := time.Parse("2006-01-02", *str)
-	if err != nil {
-		return nil, err
-	}
-	return &parsedDate, nil
-}
-
-func CalculateNextDueDate(date *time.Time, days *int) (*time.Time, error) {
-	if date == nil || days == nil {
-		return nil, nil
-	}
-	nextDueDate := date.AddDate(0, 0, *days)
-	return &nextDueDate, nil
-}

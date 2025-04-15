@@ -50,6 +50,7 @@ type Services struct {
 // Repository contains repository (database access objects)
 type Repository struct {
 	UserRepository                       users.UserRepository
+	UserSettingRepository                users.UserSettingRepository
 	AssetAuditLog                        repository.AssetAuditLogRepository
 	AssetCategory                        repository.AssetCategoryRepository
 	AssetMaintenance                     repository.AssetMaintenanceRepository
@@ -65,6 +66,7 @@ type Repository struct {
 	AssetGroupMemberRepository           repository.AssetGroupMemberRepository
 	AssetGroupMemberPermissionRepository repository.AssetGroupMemberPermissionRepository
 	AssetGroupPermissionRepository       repository.AssetGroupPermissionRepository
+	AssetGroupInvitation                 repository.AssetGroupInvitationRepository
 }
 
 type Controller struct {
@@ -74,8 +76,9 @@ type Controller struct {
 	Asset                          controller.AssetController
 	AssetStatus                    controller.AssetStatusController
 	AssetWishlist                  controller.AssetWishlistController
-	AssetGroupPermissionController controller.AssetGroupPermissionController
 	AssetGroupController           controller.AssetGroupController
+	AssetGroupMemberController     controller.AssetGroupMemberController
+	AssetGroupPermissionController controller.AssetGroupPermissionController
 }
 
 type Middleware struct {

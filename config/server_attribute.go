@@ -94,6 +94,7 @@ func InitGin() *gin.Engine {
 func (s *ServerConfig) initRepository() {
 	s.Repository = Repository{
 		UserRepository:                       users.NewUserRepository(*s.DB),
+		UserSettingRepository:                users.NewUserSettingRepository(*s.DB),
 		AssetAuditLog:                        repository.NewAssetAuditLogRepository(*s.DB),
 		AssetCategory:                        repository.NewAssetCategoryRepository(*s.DB, s.Repository.AssetAuditLog),
 		AssetMaintenanceType:                 repository.NewAssetMaintenanceTypeRepository(*s.DB),
@@ -109,6 +110,7 @@ func (s *ServerConfig) initRepository() {
 		AssetGroupMemberRepository:           repository.NewAssetGroupMemberRepository(*s.DB, s.Repository.AssetAuditLog),
 		AssetGroupMemberPermissionRepository: repository.NewAssetGroupMemberPermissionRepository(*s.DB, repository.NewAssetAuditLogRepository(*s.DB)),
 		AssetGroupPermissionRepository:       repository.NewAssetGroupPermissionRepository(*s.DB, repository.NewAssetAuditLogRepository(*s.DB)),
+		AssetGroupInvitation:                 repository.NewAssetGroupInvitationRepository(*s.DB),
 	}
 }
 
@@ -131,11 +133,14 @@ func (s *ServerConfig) initServices() {
 			s.Repository.AssetMaintenance,
 			s.Redis),
 		Asset: services.NewAssetService(
+			s.Repository.UserRepository,
 			s.Repository.AssetRepository,
 			s.Repository.AssetCategory,
 			s.Repository.AssetStatusRepository,
 			s.Repository.AssetImageRepository,
 			s.Repository.AssetAuditLog,
+			s.Repository.AssetGroupMemberRepository,
+			s.Repository.AssetGroupAssetRepository,
 			s.Redis,
 			s.Transaction.AssetTransactionRepository,
 			s.Repository.AssetStockRepository),
@@ -167,8 +172,13 @@ func (s *ServerConfig) initServices() {
 			s.Repository.AssetAuditLog,
 			s.Redis),
 		AssetGroupMemberService: services.NewAssetGroupMemberService(
+			s.Repository.UserRepository,
+			s.Repository.UserSettingRepository,
+			s.Repository.AssetGroupRepository,
+			s.Repository.AssetGroupMemberPermissionRepository,
 			s.Repository.AssetGroupMemberRepository,
 			s.Repository.AssetRepository,
+			s.Repository.AssetGroupInvitation,
 			s.Repository.AssetAuditLog,
 			s.Redis),
 		AssetGroupService: services.NewAssetGroupService(
@@ -207,6 +217,7 @@ func (s *ServerConfig) initController() {
 		AssetStatus:                    controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
 		AssetWishlist:                  controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),
 		AssetGroupController:           controller.NewAssetGroupController(s.Services.AssetGroupService, s.JWTService),
+		AssetGroupMemberController:     controller.NewAssetGroupMemberController(s.Services.AssetGroupMemberService, s.JWTService),
 		AssetGroupPermissionController: controller.NewAssetGroupPermissionController(s.Services.AssetGroupPermissionService, s.JWTService),
 	}
 }

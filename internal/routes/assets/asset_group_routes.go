@@ -2,52 +2,61 @@ package assets
 
 import (
 	"asset-service/config"
-	"asset-service/internal/controller/assets"
 	"github.com/gin-gonic/gin"
 )
 
-func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, assetGroupController assets.AssetGroupController, assetGroupPermission assets.AssetGroupPermissionController) {
+func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, controller config.Controller) {
 	assetGroup := r.Group("/v1/asset-group")
 	assetGroup.Use(middleware.AuthMiddleware.Handler())
 	{
-		assetGroup.POST("", assetGroupController.AddAssetGroup)
-		assetGroup.GET("/add-invitation-token/:id", assetGroupController.AddInvitationTokenAssetGroup)
-		assetGroup.GET("/remove-invitation-token/:id", assetGroupController.RemoveInvitationTokenAssetGroup)
-		assetGroup.PUT("/:id", assetGroupController.UpdateAssetGroup)
-		assetGroup.GET("/:id", assetGroupController.GetAssetGroupByID)
-		assetGroup.DELETE("/:id", assetGroupController.DeleteAssetGroup)
+		assetGroup.POST("", controller.AssetGroupController.AddAssetGroup)
+		assetGroup.GET("/add-invitation-token/:id", controller.AssetGroupController.AddInvitationTokenAssetGroup)
+		assetGroup.GET("/remove-invitation-token/:id", controller.AssetGroupController.RemoveInvitationTokenAssetGroup)
+		assetGroup.PUT("/:id", controller.AssetGroupController.UpdateAssetGroup)
+		assetGroup.GET("/:id", controller.AssetGroupController.GetAssetGroupByID)
+		assetGroup.DELETE("/:id", controller.AssetGroupController.DeleteAssetGroup)
 	}
 
 	assetGroupAsset := r.Group("/v1/asset-group/asset")
 	assetGroupAsset.Use(middleware.AuthMiddleware.Handler())
 	{
-		assetGroupAsset.GET("/:id", assetGroupController.GetListAssetGroupAsset)
-		assetGroupAsset.POST("/add-stock", assetGroupController.AddStockAssetGroupAsset)
-		assetGroupAsset.POST("/reduce-stock", assetGroupController.ReduceStockAssetGroupAsset)
+		assetGroupAsset.GET("/:id", controller.AssetGroupController.GetListAssetGroupAsset)
+		assetGroupAsset.POST("/add-stock", controller.AssetGroupController.AddStockAssetGroupAsset)
+		assetGroupAsset.POST("/reduce-stock", controller.AssetGroupController.ReduceStockAssetGroupAsset)
 	}
 
 	assetPermission := r.Group("/v1/asset-group/permission")
 	assetPermission.Use(middleware.AuthMiddleware.Handler())
 	{
-		assetPermission.POST("/add", assetGroupController.AddPermissionMemberAssetGroup)
-		assetPermission.POST("/remove", assetGroupController.RemovePermissionMemberAssetGroup)
+		assetPermission.POST("/add", controller.AssetGroupController.AddPermissionMemberAssetGroup)
+		assetPermission.POST("/remove", controller.AssetGroupController.RemovePermissionMemberAssetGroup)
 	}
 
 	assetGroupMember := r.Group("/v1/asset-group/member")
 	assetGroupMember.Use(middleware.AuthMiddleware.Handler())
 	{
-		assetGroupMember.POST("/add", assetGroupController.AddMemberAssetGroup)
-		assetGroupMember.GET("/invite-group/:id", assetGroupController.InviteMemberByCodeAssetGroup)
-		assetGroupMember.POST("/remove", assetGroupController.RemoveMemberAssetGroup)
+		assetGroupMember.POST("/add", controller.AssetGroupMemberController.InviteMemberAssetGroup)
+		assetGroupMember.POST("/remove", controller.AssetGroupMemberController.RemoveMemberAssetGroup)
+		assetGroupMember.GET("/:id", controller.AssetGroupMemberController.GetListMemberAssetGroup)
+		assetGroupMember.DELETE("/:id", controller.AssetGroupMemberController.LeaveMemberAssetGroup)
+	}
+	assetGroupInvitation := r.Group("/v1/asset-group/invitation")
+	assetGroupInvitation.Use(middleware.AuthMiddleware.Handler())
+	{
+		assetGroupInvitation.GET("/add-invitation-token/:id", controller.AssetGroupController.AddInvitationTokenAssetGroup)
+		assetGroupInvitation.GET("/remove-invitation-token/:id", controller.AssetGroupController.RemoveInvitationTokenAssetGroup)
+		assetGroupInvitation.PUT("/:id", controller.AssetGroupController.UpdateAssetGroup)
+		assetGroupInvitation.GET("/:id", controller.AssetGroupController.GetAssetGroupByID)
+		assetGroupInvitation.DELETE("/:id", controller.AssetGroupController.DeleteAssetGroup)
 	}
 
 	adminGroup := r.Group("/v1/admin/asset-group")
 	adminGroup.Use(middleware.AdminMiddleware.Handler())
 	{
-		adminGroup.GET("/permission", assetGroupPermission.GetListAssetGroupPermission)
-		adminGroup.GET("/permission/:id", assetGroupPermission.GetAssetGroupPermissionByID)
-		adminGroup.POST("/permission", assetGroupPermission.AddAssetGroupPermission)
-		adminGroup.PUT("/permission/:id", assetGroupPermission.UpdateAssetGroupPermission)
-		adminGroup.DELETE("/permission/:id", assetGroupPermission.DeleteAssetGroupPermission)
+		adminGroup.GET("/permission", controller.AssetGroupPermissionController.GetListAssetGroupPermission)
+		adminGroup.GET("/permission/:id", controller.AssetGroupPermissionController.GetAssetGroupPermissionByID)
+		adminGroup.POST("/permission", controller.AssetGroupPermissionController.AddAssetGroupPermission)
+		adminGroup.PUT("/permission/:id", controller.AssetGroupPermissionController.UpdateAssetGroupPermission)
+		adminGroup.DELETE("/permission/:id", controller.AssetGroupPermissionController.DeleteAssetGroupPermission)
 	}
 }

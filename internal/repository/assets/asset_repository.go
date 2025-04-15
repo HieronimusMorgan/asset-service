@@ -5,7 +5,6 @@ import (
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
 	"database/sql"
-	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -13,7 +12,7 @@ import (
 )
 
 type AssetRepository interface {
-	AddAsset(asset *assets.Asset) error
+	AddAsset(asset *assets.Asset, images []response.AssetImageResponse) error
 	GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error)
 	AssetNameExists(name string, clientID string) (bool, error)
 	GetAsset(assetID uint, clientID string) (*assets.Asset, error)
@@ -41,28 +40,47 @@ func NewAssetRepository(db gorm.DB, audit AssetAuditLogRepository) AssetReposito
 	return assetRepository{db: db, audit: audit}
 }
 
-func (r assetRepository) AddAsset(asset *assets.Asset) error {
-	if asset == nil {
-		return errors.New("assets cannot be nil")
-	}
-
-	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
+func (r assetRepository) AddAsset(asset *assets.Asset, images []response.AssetImageResponse) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Table(utils.TableAssetName).Create(&asset).Error; err != nil {
 			tx.Rollback()
+			return fmt.Errorf("failed to create assets: %w", err)
 		}
-	}()
 
-	if err := tx.Table(utils.TableAssetName).Create(&asset).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to create assets: %w", err)
-	}
+		if len(images) > 0 {
+			var assetImages []assets.AssetImage
+			for _, image := range images {
+				assetImages := append(assetImages, assets.AssetImage{
+					UserClientID: asset.UserClientID,
+					AssetID:      asset.AssetID,
+					ImageURL:     image.ImageURL,
+					CreatedBy:    asset.UserClientID,
+					UpdatedBy:    asset.UserClientID,
+				})
+				if err := tx.Table(utils.TableAssetImageName).Create(&assetImages).Error; err != nil {
+					tx.Rollback()
+					return fmt.Errorf("failed to create asset images: %w", err)
+				}
+			}
+		}
 
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
+		assetStock := &assets.AssetStock{
+			AssetID:         asset.AssetID,
+			UserClientID:    asset.UserClientID,
+			InitialQuantity: asset.Stock,
+			LatestQuantity:  asset.Stock,
+			ChangeType:      "INCREASE",
+			Quantity:        asset.Stock,
+			Reason:          nil,
+			CreatedBy:       asset.UserClientID,
+		}
+		if err := tx.Table(utils.TableAssetStockName).Create(&assetStock).Error; err != nil {
+			tx.Rollback()
+			return fmt.Errorf("failed to create asset stock: %w", err)
+		}
 
-	return nil
+		return nil
+	})
 }
 
 func (r assetRepository) GetAssetByNameAndClientID(name string, clientID string) (*assets.Asset, error) {

@@ -66,3 +66,22 @@ func NilIfEmpty(s string) *string {
 	}
 	return &s
 }
+
+func ParseOptionalDate(str *string) (*time.Time, error) {
+	if str == nil {
+		return nil, nil
+	}
+	parsedDate, err := time.Parse("2006-01-02", *str)
+	if err != nil {
+		return nil, err
+	}
+	return &parsedDate, nil
+}
+
+func CalculateNextDueDate(date *time.Time, days *int) (*time.Time, error) {
+	if date == nil || days == nil {
+		return nil, nil
+	}
+	nextDueDate := date.AddDate(0, 0, *days)
+	return &nextDueDate, nil
+}

@@ -15,6 +15,7 @@ type AssetGroupInvitation struct {
 	Message          string         `json:"message,omitempty"`
 	InvitedAt        string         `json:"invited_at,omitempty"`
 	RespondedAt      string         `json:"responded_at,omitempty"`
+	ExpiredAt        string         `json:"expired_at,omitempty"`
 	CreatedAt        time.Time      `gorm:"autoCreateTime" json:"created_at,omitempty"`
 	CreatedBy        string         `gorm:"type:varchar(255)" json:"created_by,omitempty"`
 	UpdatedAt        time.Time      `gorm:"autoUpdateTime" json:"updated_at,omitempty"`
