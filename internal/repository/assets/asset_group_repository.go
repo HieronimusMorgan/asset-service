@@ -14,9 +14,9 @@ type AssetGroupRepository interface {
 	AddInvitationToken(assetGroupID uint, token string, clientID string) error
 	RemoveInvitationToken(assetGroupID uint, clientID string) error
 	UpdateCurrentUsesInvitationToken(assetGroupID uint, clientID string) error
-	UpdateAssetGroup(asset *assets.AssetGroup, userID uint) error
+	UpdateAssetGroup(asset *assets.AssetGroup) error
 	GetAssetGroupByID(assetGroupID uint) (*assets.AssetGroup, error)
-	GetAssetGroupDetailByID(groupID uint) (*response.AssetGroupDetailResponse, error)
+	GetAssetGroupDetailByUserID(userID uint) (*response.AssetGroupDetailResponse, error)
 	GetAssetGroupByOwnerUserID(id uint) ([]assets.AssetGroup, error)
 	DeleteAssetGroup(assetGroupID uint, userID uint) error
 	GetAssetGroupByInvitationToken(invitationToken string) (*assets.AssetGroup, error)
@@ -151,7 +151,7 @@ func (r assetGroupRepository) UpdateCurrentUsesInvitationToken(assetGroupID uint
 	})
 }
 
-func (r assetGroupRepository) UpdateAssetGroup(asset *assets.AssetGroup, userID uint) error {
+func (r assetGroupRepository) UpdateAssetGroup(asset *assets.AssetGroup) error {
 	return r.db.Table(utils.TableAssetGroupName).Save(asset).Error
 }
 
@@ -163,7 +163,7 @@ func (r assetGroupRepository) GetAssetGroupByID(assetGroupID uint) (*assets.Asse
 	return &asset, nil
 }
 
-func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.AssetGroupDetailResponse, error) {
+func (r assetGroupRepository) GetAssetGroupDetailByUserID(userID uint) (*response.AssetGroupDetailResponse, error) {
 
 	var groupRow struct {
 		AssetGroupID   uint
@@ -182,10 +182,10 @@ func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.A
 		u.full_name AS owner_name
 	FROM asset_group ag
 	LEFT JOIN users u ON ag.owner_user_id = u.user_id
-	WHERE ag.asset_group_id = ?
+	WHERE u.user_id = ?
 `
 
-	if err := r.db.Raw(query, groupID).Scan(&groupRow).Error; err != nil {
+	if err := r.db.Raw(query, userID).Scan(&groupRow).Error; err != nil {
 		return nil, fmt.Errorf("failed to get asset group info: %w", err)
 	}
 	var group response.AssetGroupDetailResponse
@@ -215,7 +215,7 @@ func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.A
 		LEFT JOIN users AS u ON agm.user_id = u.user_id
 		WHERE u.deleted_at IS NULL AND agm.asset_group_id = ?
 	`
-	if err := r.db.Raw(memberQuery, groupID).Scan(&memberRows).Error; err != nil {
+	if err := r.db.Raw(memberQuery, group.AssetGroupID).Scan(&memberRows).Error; err != nil {
 		return nil, fmt.Errorf("failed to get group members: %w", err)
 	}
 
@@ -248,7 +248,7 @@ func (r assetGroupRepository) GetAssetGroupDetailByID(groupID uint) (*response.A
 			ON agp.permission_id = agmp.permission_id
 		WHERE agm.asset_group_id = ?
 	`
-	if err := r.db.Raw(permQuery, groupID).Scan(&allPermissions).Error; err != nil {
+	if err := r.db.Raw(permQuery, group.AssetGroupID).Scan(&allPermissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get member permissions: %w", err)
 	}
 

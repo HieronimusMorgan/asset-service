@@ -13,7 +13,7 @@ func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, controller co
 		assetGroup.GET("/add-invitation-token/:id", controller.AssetGroupController.AddInvitationTokenAssetGroup)
 		assetGroup.GET("/remove-invitation-token/:id", controller.AssetGroupController.RemoveInvitationTokenAssetGroup)
 		assetGroup.PUT("/:id", controller.AssetGroupController.UpdateAssetGroup)
-		assetGroup.GET("/:id", controller.AssetGroupController.GetAssetGroupByID)
+		assetGroup.GET("", controller.AssetGroupController.GetAssetGroup)
 		assetGroup.DELETE("/:id", controller.AssetGroupController.DeleteAssetGroup)
 	}
 
@@ -46,7 +46,7 @@ func AssetGroupRoutes(r *gin.Engine, middleware config.Middleware, controller co
 		assetGroupInvitation.GET("/add-invitation-token/:id", controller.AssetGroupController.AddInvitationTokenAssetGroup)
 		assetGroupInvitation.GET("/remove-invitation-token/:id", controller.AssetGroupController.RemoveInvitationTokenAssetGroup)
 		assetGroupInvitation.PUT("/:id", controller.AssetGroupController.UpdateAssetGroup)
-		assetGroupInvitation.GET("/:id", controller.AssetGroupController.GetAssetGroupByID)
+		assetGroupInvitation.GET("/:id", controller.AssetGroupController.GetAssetGroup)
 		assetGroupInvitation.DELETE("/:id", controller.AssetGroupController.DeleteAssetGroup)
 	}
 

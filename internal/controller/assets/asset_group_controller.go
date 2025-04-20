@@ -12,7 +12,7 @@ import (
 type AssetGroupController interface {
 	AddAssetGroup(context *gin.Context)
 	UpdateAssetGroup(context *gin.Context)
-	GetAssetGroupByID(context *gin.Context)
+	GetAssetGroup(context *gin.Context)
 	DeleteAssetGroup(context *gin.Context)
 
 	AddInvitationTokenAssetGroup(context *gin.Context)
@@ -120,22 +120,16 @@ func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
 
 	response.SendResponse(context, http.StatusOK, "Asset group name updated successfully", data, nil)
 }
-func (a assetGroupController) GetAssetGroupByID(context *gin.Context) {
-	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
-	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
-		return
-	}
-
+func (a assetGroupController) GetAssetGroup(context *gin.Context) {
 	token, exist := utils.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	data, err := a.AssetGroupService.GetAssetGroupDetailByID(assetGroupID, token.ClientID)
+	data, err := a.AssetGroupService.GetAssetGroupDetail(token.ClientID)
 	if err != nil {
-		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
 
