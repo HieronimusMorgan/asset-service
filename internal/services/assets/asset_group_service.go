@@ -66,6 +66,26 @@ func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupReques
 		return logError("GetUserByClientID", clientID, err, "Failed to get user data")
 	}
 
+	if user.UserID != assetRequest.OwnerUserID {
+		return logError("GetUserByClientID", clientID, nil, "User ID does not match the owner user ID")
+	}
+
+	//check if the user is already an owner or member of the asset group
+	group, _ := s.AssetGroupRepository.GetAssetGroupByOwnerUserID(assetRequest.OwnerUserID)
+	if len(group) != 0 {
+		return logError("GetAssetGroupByOwnerUserID", clientID, nil, "User is already an owner or member of this asset group")
+	}
+
+	assetGroupMember, _ := s.memberRepository.GetAssetGroupMemberByUserID(user.UserID)
+	if assetGroupMember != nil {
+		return logError("GetAssetGroupMemberByUserID", clientID, nil, "User is already a member of this asset group")
+	}
+
+	// Check if the asset group name is empty
+	if assetRequest.AssetGroupName == "" {
+		return logError("AddAssetGroup", clientID, nil, "Asset group name cannot be empty")
+	}
+
 	// Add asset group
 	assetGroup := &assets.AssetGroup{
 		AssetGroupName: assetRequest.AssetGroupName,

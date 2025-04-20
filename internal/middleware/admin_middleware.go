@@ -9,7 +9,7 @@ import (
 
 // AdminMiddleware defines the contract for authentication middleware
 type AdminMiddleware interface {
-	Handler() gin.HandlerFunc
+	HandlerAsset() gin.HandlerFunc
 }
 
 // adminMiddleware is the struct that implements AdminMiddleware
@@ -25,7 +25,7 @@ func NewAdminMiddleware(jwtService utils.JWTService) AdminMiddleware {
 }
 
 // Handler returns a middleware function for JWT validation
-func (a adminMiddleware) Handler() gin.HandlerFunc {
+func (a adminMiddleware) HandlerAsset() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		token := c.GetHeader("Authorization")
 		if token == "" {

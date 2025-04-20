@@ -224,7 +224,7 @@ func (s *ServerConfig) initController() {
 
 func (s *ServerConfig) initMiddleware() {
 	s.Middleware = Middleware{
-		AuthMiddleware:  middleware.NewAuthMiddleware(s.JWTService),
+		AssetMiddleware: middleware.NewAssetMiddleware(s.JWTService),
 		AdminMiddleware: middleware.NewAdminMiddleware(s.JWTService),
 	}
 }

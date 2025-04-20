@@ -9,7 +9,7 @@ import (
 func AssetMaintenanceTypeRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetMaintenanceTypeController) {
 
 	routerGroup := r.Group("/v1/asset-maintenance-type")
-	routerGroup.Use(middleware.AuthMiddleware.Handler())
+	routerGroup.Use(middleware.AssetMiddleware.HandlerAsset())
 	{
 		routerGroup.POST("/", controller.CreateMaintenanceType)
 		routerGroup.GET("/:id", controller.GetMaintenanceByID)

@@ -189,9 +189,18 @@ func ExtractTokenClaims(c *gin.Context) (*TokenClaims, bool) {
 	return tokenClaims, true
 }
 
-func HasAssetResource(t []string) bool {
-	for _, res := range t {
+func HasAssetResource(resource []string) bool {
+	for _, res := range resource {
 		if res == "asset" {
+			return true
+		}
+	}
+	return false
+}
+
+func HasAssetGroupResource(resource []string) bool {
+	for _, res := range resource {
+		if res == "asset-group" {
 			return true
 		}
 	}

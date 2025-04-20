@@ -82,7 +82,7 @@ type Controller struct {
 }
 
 type Middleware struct {
-	AuthMiddleware  middleware.AuthMiddleware
+	AssetMiddleware middleware.AssetMiddleware
 	AdminMiddleware middleware.AdminMiddleware
 }
 

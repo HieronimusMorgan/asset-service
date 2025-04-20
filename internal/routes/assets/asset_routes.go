@@ -9,7 +9,7 @@ import (
 func AssetRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetController) {
 
 	routerGroup := r.Group("/v1/asset")
-	routerGroup.Use(middleware.AuthMiddleware.Handler())
+	routerGroup.Use(middleware.AssetMiddleware.HandlerAsset())
 	{
 		routerGroup.POST("/add", controller.AddAsset)
 		routerGroup.POST("/update/:id", controller.UpdateAsset)

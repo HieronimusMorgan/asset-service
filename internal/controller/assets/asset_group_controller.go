@@ -53,7 +53,7 @@ func (a assetGroupController) AddAssetGroup(context *gin.Context) {
 
 	data, err := a.AssetGroupService.AddAssetGroup(&req, token.ClientID)
 	if err != nil {
-		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
 

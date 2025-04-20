@@ -9,7 +9,7 @@ import (
 func AssetWishlistRoutes(r *gin.Engine, middleware config.Middleware, controller assets.AssetWishlistController) {
 
 	public := r.Group("/v1/asset-wishlist")
-	public.Use(middleware.AuthMiddleware.Handler())
+	public.Use(middleware.AssetMiddleware.HandlerAsset())
 	{
 		public.POST("/add", controller.AddWishlistAsset)
 		public.POST("/update/:id", controller.UpdateWishlistAsset)
