@@ -60,6 +60,7 @@ func (r assetGroupMemberPermissionRepository) GetAdminOrManagePermissionsByUserI
 		Select("agp.*").
 		Joins("JOIN asset_group_permission AS agp ON agmp.permission_id = agp.permission_id").
 		Where("agmp.user_id = ? AND (agp.permission_name = ? OR agp.permission_name = ?)", userID, "Admin", "Manage").
+		Order("agmp.user_id ASC").
 		Find(&results).Error
 
 	if err != nil {
@@ -76,6 +77,7 @@ func (r assetGroupMemberPermissionRepository) GetAdminPermissionsByUserID(userID
 		Select("agp.*").
 		Joins("JOIN asset_group_permission AS agp ON agmp.permission_id = agp.permission_id").
 		Where("agmp.user_id = ? AND (agp.permission_name = ? )", userID, "Admin").
+		Order("agmp.user_id ASC").
 		Find(&results).Error
 
 	if err != nil {
@@ -88,6 +90,7 @@ func (r assetGroupMemberPermissionRepository) GetAssetGroupMemberPermissionByUse
 	var assetGroupMemberPermission []assets.AssetGroupMemberPermission
 	err := r.db.Table(utils.TableAssetGroupMemberPermissionName).
 		Where("user_id = ? AND asset_group_id = ?", userID, assetGroupID).
+		Order("user_id ASC").
 		Find(&assetGroupMemberPermission).Error
 	if err != nil {
 		return nil, err

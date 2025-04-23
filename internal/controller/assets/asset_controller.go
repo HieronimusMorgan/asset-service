@@ -70,7 +70,7 @@ func (h assetController) AddAsset(context *gin.Context) {
 		return
 	}
 
-	requestHeaderID := context.GetHeader("X-REQUEST-ID")
+	requestHeaderID := context.GetHeader("X-REQUEST-MaintenanceTypeID")
 
 	// Extract files
 	files := context.Request.MultipartForm.File["images"]
@@ -99,7 +99,7 @@ func (h assetController) UpdateAsset(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 	if err := context.ShouldBindJSON(&req); err != nil {
@@ -123,7 +123,7 @@ func (h assetController) UpdateAssetStatus(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 	var req struct {
@@ -154,7 +154,7 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(context, 400, "Invalid asset category ID", nil, err.Error())
+		response.SendResponse(context, 400, "Invalid asset category MaintenanceTypeID", nil, err.Error())
 		return
 	}
 	if err := context.ShouldBindJSON(&req); err != nil {
@@ -183,7 +183,7 @@ func (h assetController) AddStockAsset(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 	if err := context.ShouldBindJSON(&req); err != nil {
@@ -212,7 +212,7 @@ func (h assetController) ReduceStockAsset(context *gin.Context) {
 	assetIDStr := context.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(context, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 	if err := context.ShouldBindJSON(&req); err != nil {
@@ -240,12 +240,35 @@ func (h assetController) GetListAsset(context *gin.Context) {
 		return
 	}
 
-	asset, err := h.AssetService.GetListAsset(token.ClientID)
-	if err != nil {
-		response.SendResponse(context, 500, "Failed to get list assets", nil, err.Error())
+	// Get pagination parameters
+	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
+	if err != nil || pageSize <= 0 {
+		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
 		return
 	}
-	response.SendResponse(context, 200, "Get list assets successfully", asset, nil)
+
+	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
+	if err != nil || pageIndex <= 0 {
+		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
+		return
+	}
+
+	asset, total, err := h.AssetService.GetListAsset(token.ClientID, pageIndex, pageSize)
+	if err != nil {
+		response.SendResponseList(context, 500, "Failed to get list assets", response.PagedData{
+			Total:     total,
+			PageIndex: pageIndex,
+			PageSize:  pageSize,
+			Items:     nil,
+		}, err.Error())
+		return
+	}
+	response.SendResponseList(context, 200, "Get list assets successfully", response.PagedData{
+		Total:     total,
+		PageIndex: pageIndex,
+		PageSize:  pageSize,
+		Items:     asset,
+	}, nil)
 }
 
 func (h assetController) GetAssetById(context *gin.Context) {

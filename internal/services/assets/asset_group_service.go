@@ -67,7 +67,7 @@ func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupReques
 	}
 
 	if user.UserID != assetRequest.OwnerUserID {
-		return logError("GetUserByClientID", clientID, nil, "User ID does not match the owner user ID")
+		return logError("GetUserByClientID", clientID, nil, "User MaintenanceTypeID does not match the owner user MaintenanceTypeID")
 	}
 
 	//check if the user is already an owner or member of the asset group
@@ -807,7 +807,7 @@ func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request
 	// Step 1: Fetch user data from database
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
-		return logError("GetUserByClientID", clientID, err, "Failed to get user by client ID")
+		return logError("GetUserByClientID", clientID, err, "Failed to get user by client MaintenanceTypeID")
 	}
 
 	// Step 1: Check if user is a member of the asset group
@@ -823,12 +823,12 @@ func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request
 	// Step 2: Retrieve asset and stock data
 	asset, err := s.AssetRepository.GetAssetByAssetGroupID(req.AssetID, req.AssetGroupID)
 	if err != nil {
-		return logError("GetAsset", clientID, err, "Failed to get asset by ID")
+		return logError("GetAsset", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	oldAssetStock, err := s.AssetStockRepository.GetAssetStockByAssetIDAndAssetGroupID(asset.AssetID, req.AssetGroupID)
 	if err != nil {
-		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset ID")
+		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset MaintenanceTypeID")
 	}
 
 	log.Info().

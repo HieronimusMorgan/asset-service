@@ -10,7 +10,7 @@ type AssetMaintenance struct {
 	ID                 uint           `gorm:"primaryKey" json:"id"`
 	UserClientID       string         `gorm:"type:varchar(50);not null" json:"user_client_id,omitempty"`
 	AssetID            int            `gorm:"not null" json:"asset_id"`
-	TypeID             int            `gorm:"not null" json:"type_id"`
+	MaintenanceTypeID  int            `gorm:"not null" json:"maintenance_type_id"`
 	MaintenanceDate    *time.Time     `gorm:"type:date;not null" json:"maintenance_date"`
 	MaintenanceDetails *string        `gorm:"type:text" json:"maintenance_details,omitempty"`
 	MaintenanceCost    float64        `gorm:"type:decimal(15,2)" json:"maintenance_cost"`

@@ -34,6 +34,8 @@ func main() {
 	assets.AssetMaintenanceRoutes(engine, serverConfig.Middleware, serverConfig.Controller.AssetMaintenance)
 	assets.AssetMaintenanceTypeRoutes(engine, serverConfig.Middleware, serverConfig.Controller.AssetMaintenanceType)
 	assets.AssetGroupRoutes(engine, serverConfig.Middleware, serverConfig.Controller)
+	assets.AssetMaintenanceRecordRoutes(engine, serverConfig.Middleware, serverConfig.Controller.AssetMaintenanceRecord)
+
 	// Run server
 	log.Println("Starting server on :8081")
 	err = engine.Run(":8081")

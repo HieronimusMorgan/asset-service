@@ -79,7 +79,7 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 			Str("key", "ParseOptionalDate").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 	}
 
 	var asset = &assets.Asset{
@@ -111,7 +111,7 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset by ID")
+			Msg("Failed to get asset by MaintenanceTypeID")
 		return nil, err
 	}
 
@@ -157,7 +157,7 @@ func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest req
 			Str("key", "GetAssetCategoryById").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset category by ID")
+			Msg("Failed to get asset category by MaintenanceTypeID")
 		return nil, errors.New("category not found")
 	}
 
@@ -166,7 +166,7 @@ func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest req
 			Str("key", "GetAssetStatusByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 		return nil, errors.New("status not found")
 	}
 
@@ -182,7 +182,7 @@ func (s assetWishlistService) UpdateAssetWishlist(assetID uint, assetRequest req
 			Str("key", "ParseOptionalDate").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 	}
 
 	updateData := map[string]interface{}{

@@ -103,7 +103,7 @@ func (s assetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{},
 		log.Error().
 			Str("key", "GetAssetStatusByID").
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 		return nil, err
 	}
 	return response.AssetStatusResponse{
@@ -121,7 +121,7 @@ func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 		log.Error().
 			Str("key", "GetAssetStatusByID").
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 		return nil, err
 	}
 	var oldAsset = assetStatus
@@ -160,7 +160,7 @@ func (s assetStatusService) DeleteAssetStatus(assetStatusID uint, clientID strin
 		log.Error().
 			Str("key", "GetAssetStatusByID").
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 		return err
 	}
 

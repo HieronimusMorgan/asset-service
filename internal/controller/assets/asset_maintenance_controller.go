@@ -54,7 +54,7 @@ func (c assetMaintenanceController) AddAssetMaintenance(ctx *gin.Context) {
 func (c assetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	if err != nil {
-		response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance ID", nil, err.Error())
+		response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance MaintenanceTypeID", nil, err.Error())
 		return
 	}
 
@@ -81,7 +81,7 @@ func (c assetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 	assetID, err := strconv.ParseUint(ctx.Param("asset_id"), 10, 32)
 	if err != nil {
-		response.SendResponse(ctx, http.StatusBadRequest, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(ctx, http.StatusBadRequest, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 
@@ -141,7 +141,7 @@ func (c assetMaintenanceController) UpdateMaintenance(*gin.Context) {
 func (c assetMaintenanceController) DeleteMaintenance(*gin.Context) {
 	//id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
 	//if err != nil {
-	//	response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance ID", nil, err.Error())
+	//	response.SendResponse(ctx, http.StatusBadRequest, "Invalid maintenance MaintenanceTypeID", nil, err.Error())
 	//	return
 	//}
 	//if err := c.Service.DeleteMaintenance(uint(id)); err != nil {

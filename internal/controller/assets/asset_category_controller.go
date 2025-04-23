@@ -52,7 +52,7 @@ func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
 	var req request.AssetCategoryRequest
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 
@@ -98,7 +98,7 @@ func (h assetCategoryController) GetListAssetCategory(context *gin.Context) {
 func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 
@@ -119,7 +119,7 @@ func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {
 func (h assetCategoryController) DeleteAssetCategory(context *gin.Context) {
 	assetCategoryID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 

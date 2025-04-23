@@ -98,7 +98,7 @@ func (s *assetGroupPermissionService) GetAssetGroupPermissionById(permissionID u
 
 	permission, err := s.AssetGroupPermissionRepository.GetAssetGroupPermissionByID(permissionID)
 	if err != nil {
-		return logError("GetAssetGroupPermissionByID", clientID, err, "Failed to get asset group permission by ID")
+		return logError("GetAssetGroupPermissionByID", clientID, err, "Failed to get asset group permission by MaintenanceTypeID")
 	}
 
 	return permission, nil

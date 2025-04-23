@@ -44,10 +44,10 @@ func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request
 	}
 
 	maintenanceTypeRecord := &model.AssetMaintenanceType{
-		UserClientID: clientID,
-		TypeName:     maintenanceType.TypeName,
-		Description:  maintenanceType.Description,
-		CreatedBy:    data.ClientID,
+		UserClientID:        clientID,
+		MaintenanceTypeName: maintenanceType.MaintenanceTypeName,
+		Description:         maintenanceType.Description,
+		CreatedBy:           data.ClientID,
 	}
 
 	if err = s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceTypeRecord, clientID); err != nil {
@@ -68,7 +68,7 @@ func (s assetMaintenanceTypeService) GetMaintenanceTypeByID(maintenanceTypeID ui
 		return nil, err
 	}
 
-	if maintenanceType.ID == 0 {
+	if maintenanceType.MaintenanceTypeID == 0 {
 		return nil, gorm.ErrRecordNotFound
 	}
 
@@ -95,20 +95,20 @@ func (s assetMaintenanceTypeService) UpdateMaintenanceType(id uint, clientID str
 		return nil, err
 	}
 
-	exist, err := s.AssetMaintenanceTypeRepository.GetAssetMaintenanceTypeByName(maintenanceType.TypeName, clientID)
+	exist, err := s.AssetMaintenanceTypeRepository.GetAssetMaintenanceTypeByName(maintenanceType.MaintenanceTypeName, clientID)
 	if err != nil {
 		return nil, err
 	}
 
-	if exist.ID == 0 {
+	if exist.MaintenanceTypeID == 0 {
 		return nil, gorm.ErrRecordNotFound
 	}
 
 	maintenanceTypeRecord := &model.AssetMaintenanceType{
-		ID:          id,
-		TypeName:    maintenanceType.TypeName,
-		Description: maintenanceType.Description,
-		UpdatedBy:   data.ClientID,
+		MaintenanceTypeID:   id,
+		MaintenanceTypeName: maintenanceType.MaintenanceTypeName,
+		Description:         maintenanceType.Description,
+		UpdatedBy:           data.ClientID,
 	}
 
 	err = s.AssetMaintenanceTypeRepository.UpdateAssetMaintenanceType(maintenanceTypeRecord, clientID)

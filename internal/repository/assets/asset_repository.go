@@ -17,7 +17,8 @@ type AssetRepository interface {
 	AssetNameExists(name string, clientID string) (bool, error)
 	GetAsset(assetID uint, clientID string) (*assets.Asset, error)
 	GetAssetByAssetGroupID(assetID, assetGroupID uint) (*assets.Asset, error)
-	GetListAssets(clientID string) ([]response.AssetResponse, error)
+	GetCountAsset(clientID string) (int64, error)
+	GetListAssets(clientID string, index int, size int) ([]response.AssetResponse, error)
 	GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error)
 	GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error)
 	GetAssetByID(clientID string, id uint) (*assets.Asset, error)
@@ -128,149 +129,137 @@ func (r assetRepository) GetAssetByAssetGroupID(assetID, assetGroupID uint) (*as
 	return &asset, nil
 }
 
-func (r assetRepository) GetListAssets(clientID string) ([]response.AssetResponse, error) {
-	selectQuery := `
-       SELECT 
-           asset.asset_id,
-           asset.user_client_id,
-           asset.serial_number,
-           asset.name,
-           asset.description,
-           asset.barcode,
-           asset.purchase_date,
-           asset.expiry_date,
-           asset.warranty_expiry_date,
-           asset.price,
-           asset.notes,
-           category.asset_category_id,
-           category.category_name,
-           category.description AS category_description,
-           status.asset_status_id,
-           status.status_name,
-           status.description AS status_description,
-           stock.stock_id,
-           stock.initial_quantity,
-           stock.latest_quantity           
-       FROM "asset" asset
-       INNER JOIN "asset_category" category ON asset.category_id = category.asset_category_id
-       INNER JOIN "asset_status" status ON asset.status_id = status.asset_status_id
-       INNER JOIN "asset_stock" stock ON asset.asset_id = stock.asset_id
-       WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL
-       ORDER BY asset.created_at ASC;
-   `
+func (r assetRepository) GetCountAsset(clientID string) (int64, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetName).
+		Where("user_client_id = ? AND deleted_at IS NULL", clientID).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
 
-	rows, err := r.db.Raw(selectQuery, clientID).Rows()
+func (r assetRepository) GetListAssets(clientID string, index, size int) ([]response.AssetResponse, error) {
+	query := `
+		SELECT 
+			a.asset_id, a.user_client_id, a.serial_number, a.name, a.description, a.barcode,
+			a.purchase_date, a.expiry_date, a.warranty_expiry_date, a.price, a.notes,
+
+			c.asset_category_id, c.category_name, c.description AS category_description,
+			s.asset_status_id, s.status_name, s.description AS status_description,
+			st.stock_id, st.initial_quantity, st.latest_quantity
+
+		FROM asset a
+		JOIN asset_category c ON a.category_id = c.asset_category_id
+		JOIN asset_status s ON a.status_id = s.asset_status_id
+		JOIN asset_stock st ON a.asset_id = st.asset_id
+		WHERE a.user_client_id = ? AND a.deleted_at IS NULL
+		ORDER BY a.created_at ASC
+		LIMIT ? OFFSET ?
+	`
+	type assetRow struct {
+		AssetID           uint
+		UserClientID      string
+		SerialNumber      *string
+		Name              string
+		Description       string
+		Barcode           *string
+		PurchaseDateRaw   *time.Time
+		ExpiryDateRaw     *time.Time
+		WarrantyExpiryRaw *time.Time
+		Price             float64
+		Notes             *string
+
+		// Flattened status fields
+		AssetStatusID     uint
+		StatusName        string
+		StatusDescription string
+
+		// Flattened category fields
+		AssetCategoryID     uint
+		CategoryName        string
+		CategoryDescription string
+
+		// Flattened stock
+		StockID    uint
+		InitialQty int
+		LatestQty  int
+	}
+
+	var rows []assetRow
+	err := r.db.Raw(query, clientID, size, index*size).Scan(&rows).Error
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset list")
 		return nil, err
 	}
 
-	var assetsList []response.AssetResponse
-	for rows.Next() {
-		var asset response.AssetResponse
-		var category response.AssetCategoryResponse
-		var status response.AssetStatusResponse
-		var stock response.AssetStockResponse
+	// Build asset list
+	assetResponses := make([]response.AssetResponse, 0, len(rows))
+	assetIDs := make([]uint, 0, len(rows))
 
-		// Handling NULL values from SQL
-		var serialNumber sql.NullString
-		var barcode sql.NullString
-		var description sql.NullString
-		var purchaseDate sql.NullTime
-		var expiryDate sql.NullTime
-		var warrantyExpiryDate sql.NullTime
-		var price sql.NullFloat64
-		var notes sql.NullString
-
-		err := rows.Scan(
-			&asset.AssetID,
-			&asset.UserClientID,
-			&serialNumber,
-			&asset.Name,
-			&description,
-			&barcode,
-			&purchaseDate,
-			&expiryDate,
-			&warrantyExpiryDate,
-			&price,
-			&notes,
-			&category.AssetCategoryID,
-			&category.CategoryName,
-			&category.Description,
-			&status.AssetStatusID,
-			&status.StatusName,
-			&status.Description,
-			&stock.StockID,
-			&stock.InitialQuantity,
-			&stock.LatestQuantity,
-		)
-
-		if err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset row")
-			return nil, err
+	for _, row := range rows {
+		asset := response.AssetResponse{
+			AssetID:            row.AssetID,
+			UserClientID:       row.UserClientID,
+			SerialNumber:       row.SerialNumber,
+			Name:               row.Name,
+			Description:        row.Description,
+			Barcode:            row.Barcode,
+			PurchaseDate:       utils.ToDateOnly(row.PurchaseDateRaw),
+			ExpiryDate:         utils.ToDateOnly(row.ExpiryDateRaw),
+			WarrantyExpiryDate: utils.ToDateOnly(row.WarrantyExpiryRaw),
+			Price:              row.Price,
+			Notes:              row.Notes,
+			Status: response.AssetStatusResponse{
+				AssetStatusID: row.AssetStatusID,
+				StatusName:    row.StatusName,
+				Description:   row.StatusDescription,
+			},
+			Category: response.AssetCategoryResponse{
+				AssetCategoryID: row.AssetCategoryID,
+				CategoryName:    row.CategoryName,
+				Description:     row.CategoryDescription,
+			},
+			Stock: response.AssetStockResponse{
+				StockID:         row.StockID,
+				AssetID:         row.AssetID,
+				InitialQuantity: row.InitialQty,
+				LatestQuantity:  row.LatestQty,
+			},
 		}
-
-		// Convert NULL SQL values to Go `nil`
-		if serialNumber.Valid {
-			asset.SerialNumber = &serialNumber.String
-		}
-		if barcode.Valid {
-			asset.Barcode = &barcode.String
-		}
-		if description.Valid {
-			asset.Description = description.String
-		}
-		if price.Valid {
-			asset.Price = price.Float64
-		}
-		if notes.Valid {
-			asset.Notes = &notes.String
-		}
-		if purchaseDate.Valid {
-			asset.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
-		}
-		if expiryDate.Valid {
-			asset.ExpiryDate = (*response.DateOnly)(&expiryDate.Time)
-		}
-		if warrantyExpiryDate.Valid {
-			asset.WarrantyExpiryDate = (*response.DateOnly)(&warrantyExpiryDate.Time)
-		}
-
-		// Assign category and status details
-		asset.Category = category
-		asset.Status = status
-		asset.Stock = stock
-
-		// Fetch asset images separately (handling multiple images)
-		imageQuery := `
-        SELECT image.image_url
-        FROM "asset_image" image
-        WHERE image.asset_id = ? AND user_client_id = ? AND image.deleted_at IS NULL;
-    `
-		imagesRows, err := r.db.Raw(imageQuery, asset.AssetID, clientID).Rows()
-		if err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset images")
-			return nil, err
-		}
-
-		var images []response.AssetImageResponse
-		for imagesRows.Next() {
-			var img response.AssetImageResponse
-			if err := imagesRows.Scan(&img.ImageURL); err != nil {
-				log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset image row")
-				return nil, err
-			}
-			images = append(images, img)
-		}
-
-		asset.Images = images
-
-		// Append to result slice
-		assetsList = append(assetsList, asset)
+		assetResponses = append(assetResponses, asset)
+		assetIDs = append(assetIDs, row.AssetID)
 	}
 
-	log.Info().Str("clientID", clientID).Int("assets_count", len(assetsList)).Msg("✅ Successfully fetched asset list")
-	return assetsList, nil
+	// Batch load asset images
+	imageQuery := `
+		SELECT asset_id, image_url
+		FROM asset_image
+		WHERE user_client_id = ? AND deleted_at IS NULL AND asset_id IN ?
+	`
+	var imageRows []struct {
+		AssetID  uint
+		ImageURL string
+	}
+	if err := r.db.Raw(imageQuery, clientID, assetIDs).Scan(&imageRows).Error; err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset images")
+		return nil, err
+	}
+
+	// Group images by asset
+	imageMap := make(map[uint][]response.AssetImageResponse)
+	for _, img := range imageRows {
+		imageMap[img.AssetID] = append(imageMap[img.AssetID], response.AssetImageResponse{ImageURL: img.ImageURL})
+	}
+
+	// Assign images to assetResponses
+	for i, asset := range assetResponses {
+		assetResponses[i].Images = imageMap[asset.AssetID]
+	}
+
+	log.Info().Str("clientID", clientID).Int("assets_count", len(assetResponses)).Msg("✅ Successfully fetched asset list")
+	return assetResponses, nil
 }
 
 func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error) {

@@ -57,7 +57,7 @@ func (a assetGroupPermissionController) UpdateAssetGroupPermission(context *gin.
 	}
 	id, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 
@@ -79,7 +79,7 @@ func (a assetGroupPermissionController) UpdateAssetGroupPermission(context *gin.
 func (a assetGroupPermissionController) GetAssetGroupPermissionByID(context *gin.Context) {
 	id, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 
@@ -117,7 +117,7 @@ func (a assetGroupPermissionController) GetListAssetGroupPermission(context *gin
 func (a assetGroupPermissionController) DeleteAssetGroupPermission(context *gin.Context) {
 	id, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Resource ID must be a number", nil, err.Error())
+		response.SendResponse(context, http.StatusBadRequest, "Resource MaintenanceTypeID must be a number", nil, err.Error())
 		return
 	}
 

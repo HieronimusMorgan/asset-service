@@ -59,7 +59,7 @@ func (h assetStatusController) GetListAssetStatus(context *gin.Context) {
 func (h assetStatusController) GetAssetStatusByID(context *gin.Context) {
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 
@@ -75,7 +75,7 @@ func (h assetStatusController) UpdateAssetStatus(context *gin.Context) {
 	var req request.AssetStatusRequest
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (h assetStatusController) UpdateAssetStatus(context *gin.Context) {
 func (h assetStatusController) DeleteAssetStatus(context *gin.Context) {
 	assetStatusID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 

@@ -54,7 +54,10 @@ func (r assetGroupInvitationRepository) GetAssetGroupInvitationByID(invitationID
 
 func (r assetGroupInvitationRepository) GetAssetGroupInvitationByInvitedUserID(userID uint) ([]assets.AssetGroupInvitation, error) {
 	var permissions []assets.AssetGroupInvitation
-	if err := r.db.Table(utils.TableAssetGroupInvitationName).Where("invited_user_id = ?", userID).Find(&permissions).Error; err != nil {
+	if err := r.db.Table(utils.TableAssetGroupInvitationName).
+		Where("invited_user_id = ?", userID).
+		Order("invited_user_id ASC").
+		Find(&permissions).Error; err != nil {
 		return nil, err
 	}
 	return permissions, nil

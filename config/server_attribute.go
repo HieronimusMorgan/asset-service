@@ -132,6 +132,12 @@ func (s *ServerConfig) initServices() {
 			s.Repository.AssetMaintenanceType,
 			s.Repository.AssetMaintenance,
 			s.Redis),
+		AssetMaintenanceRecord: services.NewAssetMaintenanceRecordService(
+			s.Repository.AssetMaintenance,
+			s.Repository.AssetRepository,
+			s.Repository.AssetMaintenanceRecord,
+			s.Repository.AssetAuditLog,
+			s.Redis),
 		Asset: services.NewAssetService(
 			s.Repository.UserRepository,
 			s.Repository.AssetRepository,
@@ -213,6 +219,7 @@ func (s *ServerConfig) initController() {
 		AssetCategory:                  controller.NewAssetCategoryController(s.Services.AssetCategory, s.JWTService),
 		AssetMaintenance:               controller.NewAssetMaintenanceController(s.Services.AssetMaintenance, s.JWTService),
 		AssetMaintenanceType:           controller.NewAssetMaintenanceTypeController(s.Services.AssetMaintenanceType, s.JWTService),
+		AssetMaintenanceRecord:         controller.NewAssetMaintenanceRecordController(s.Services.AssetMaintenanceRecord, s.JWTService),
 		Asset:                          controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.CdnUrl),
 		AssetStatus:                    controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
 		AssetWishlist:                  controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),

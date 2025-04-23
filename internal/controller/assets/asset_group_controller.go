@@ -102,7 +102,7 @@ func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
 	}
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 
@@ -139,7 +139,7 @@ func (a assetGroupController) GetAssetGroup(context *gin.Context) {
 func (a assetGroupController) DeleteAssetGroup(context *gin.Context) {
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 
@@ -248,7 +248,7 @@ func (a assetGroupController) RemovePermissionMemberAssetGroup(context *gin.Cont
 func (a assetGroupController) GetListAssetGroupAsset(context *gin.Context) {
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
-		response.SendResponse(context, 400, "Resource ID must be a number", nil, err)
+		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 

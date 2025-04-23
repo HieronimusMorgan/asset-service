@@ -1,5 +1,7 @@
 package assets
 
+import "time"
+
 // AssetMaintenanceResponse is a struct that represents the response of asset maintenance
 type AssetMaintenanceResponse struct {
 	ID                 uint    `json:"id"`
@@ -10,19 +12,43 @@ type AssetMaintenanceResponse struct {
 }
 
 type AssetMaintenancesResponse struct {
-	ID                 uint                    `gorm:"primaryKey" json:"id"`
-	UserClientID       string                  `gorm:"type:varchar(50);not null" json:"user_client_id,omitempty"`
-	AssetID            int                     `gorm:"not null" json:"asset_id"`
-	Type               MaintenanceTypeResponse `gorm:"not null" json:"type"`
-	MaintenanceDate    *DateOnly               `gorm:"type:date;not null" json:"maintenance_date"`
-	MaintenanceDetails *string                 `gorm:"type:text" json:"maintenance_details,omitempty"`
-	MaintenanceCost    float64                 `gorm:"type:decimal(15,2)" json:"maintenance_cost"`
-	PerformedBy        *string                 `gorm:"type:text" json:"performed_by,omitempty"`
-	IntervalDays       *int                    `gorm:"type:int" json:"interval_days,omitempty"`
-	NextDueDate        *DateOnly               `gorm:"type:date" json:"next_due_date,omitempty"`
+	ID                 uint                    `json:"id"`
+	UserClientID       string                  `json:"user_client_id,omitempty"`
+	AssetID            int                     `json:"asset_id"`
+	Type               MaintenanceTypeResponse `json:"type"`
+	MaintenanceDate    *DateOnly               `json:"maintenance_date"`
+	MaintenanceDetails *string                 `json:"maintenance_details,omitempty"`
+	MaintenanceCost    float64                 `json:"maintenance_cost"`
+	PerformedBy        *string                 `json:"performed_by,omitempty"`
+	IntervalDays       *int                    `json:"interval_days,omitempty"`
+	NextDueDate        *DateOnly               `json:"next_due_date,omitempty"`
+}
+
+type AssetMaintenancesWithMaintenanceRecordResponse struct {
+	ID                 uint                              `json:"id"`
+	UserClientID       string                            `json:"user_client_id,omitempty"`
+	AssetID            int                               `json:"asset_id"`
+	MaintenanceDate    *DateOnly                         `json:"maintenance_date"`
+	MaintenanceDetails *string                           `json:"maintenance_details,omitempty"`
+	MaintenanceCost    float64                           `json:"maintenance_cost"`
+	PerformedBy        *string                           `json:"performed_by,omitempty"`
+	IntervalDays       *int                              `json:"interval_days,omitempty"`
+	NextDueDate        *DateOnly                         `json:"next_due_date,omitempty"`
+	MaintenanceRecord  *[]AssetMaintenanceRecordResponse `json:"maintenance_record,omitempty"`
 }
 
 type MaintenanceTypeResponse struct {
-	TypeID   int    `json:"type_id"`
-	TypeName string `json:"type_name"`
+	MaintenanceTypeID   int    `json:"maintenance_type_id"`
+	MaintenanceTypeName string `json:"maintenance_type_name"`
+}
+
+type AssetMaintenanceRecordResponse struct {
+	MaintenanceRecordID uint       `json:"maintenance_record_id"`
+	MaintenanceTypeName string     `json:"maintenance_type_name"`
+	MaintenanceDetails  *string    `json:"maintenance_details,omitempty"`
+	MaintenanceDate     *time.Time `json:"maintenance_date"`
+	MaintenanceCost     float64    `json:"maintenance_cost"`
+	PerformedBy         *string    `json:"performed_by,omitempty"`
+	IntervalDays        *int       `json:"interval_days,omitempty"`
+	NextDueDate         *time.Time `json:"next_due_date,omitempty"`
 }

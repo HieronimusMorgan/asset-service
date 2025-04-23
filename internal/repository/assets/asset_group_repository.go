@@ -270,7 +270,10 @@ func (r assetGroupRepository) GetAssetGroupDetailByUserID(userID uint) (*respons
 
 func (r assetGroupRepository) GetAssetGroupByOwnerUserID(id uint) ([]assets.AssetGroup, error) {
 	var assetGroups []assets.AssetGroup
-	if err := r.db.Table(utils.TableAssetGroupName).Where("owner_user_id = ?", id).Find(&assetGroups).Error; err != nil {
+	if err := r.db.Table(utils.TableAssetGroupName).
+		Where("owner_user_id = ?", id).
+		Order("asset_group_id ASC").
+		Find(&assetGroups).Error; err != nil {
 		return nil, err
 	}
 	return assetGroups, nil

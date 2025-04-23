@@ -47,7 +47,7 @@ func (r assetImageRepository) AddAssetImage(assetImage []assets.AssetImage) erro
 	return nil
 }
 
-// GetAssetImageResponseByAssetID retrieves asset image response by asset ID
+// GetAssetImageResponseByAssetID retrieves asset image response by asset MaintenanceTypeID
 func (r *assetImageRepository) GetAssetImageResponseByAssetID(assetID uint) (*[]response.AssetImageResponse, error) {
 	var assetImages []assets.AssetImage
 	err := r.db.Table(utils.TableAssetImageName).
@@ -56,7 +56,7 @@ func (r *assetImageRepository) GetAssetImageResponseByAssetID(assetID uint) (*[]
 	if err != nil {
 		log.Error().Err(err).
 			Uint("asset_id", assetID).
-			Msg("❌ Failed to get asset image response by asset ID")
+			Msg("❌ Failed to get asset image response by asset MaintenanceTypeID")
 		return nil, err
 	}
 
@@ -73,7 +73,7 @@ func (r *assetImageRepository) GetAssetImageResponseByAssetID(assetID uint) (*[]
 	return &assetImageResponse, nil
 }
 
-// GetAssetImageByAssetID retrieves asset image by asset ID
+// GetAssetImageByAssetID retrieves asset image by asset MaintenanceTypeID
 func (r *assetImageRepository) GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error) {
 	var assetImages []assets.AssetImage
 	err := r.db.Table(utils.TableAssetImageName).
@@ -82,7 +82,7 @@ func (r *assetImageRepository) GetAssetImageByAssetID(assetID uint) (*[]assets.A
 	if err != nil {
 		log.Error().Err(err).
 			Uint("asset_id", assetID).
-			Msg("❌ Failed to get asset image by asset ID")
+			Msg("❌ Failed to get asset image by asset MaintenanceTypeID")
 		return nil, err
 	}
 
@@ -114,7 +114,7 @@ func (r *assetImageRepository) GetAssetImageByClientID(clientID string) (*[]asse
 	if err != nil {
 		log.Error().Err(err).
 			Str("client_id", clientID).
-			Msg("❌ Failed to get asset images by client ID")
+			Msg("❌ Failed to get asset images by client MaintenanceTypeID")
 		return nil, err
 	}
 

@@ -82,7 +82,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 	}
 
 	// Check maintenance record existence (skip deletion if not found)
-	checkMaintenanceRecord, err := r.AssetMaintenanceRecordRepository.GetMaintenanceByAssetID(transactionID, clientID)
+	checkMaintenanceRecord, err := r.AssetMaintenanceRecordRepository.GetMaintenanceRecordByAssetID(transactionID, clientID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		tx.Rollback()
 		log.Error().
@@ -96,7 +96,7 @@ func (r assetTransactionRepository) DeleteAsset(transactionID uint, clientID, fu
 
 	// If maintenance record exists, delete it
 	if checkMaintenanceRecord.MaintenanceRecordID != 0 {
-		err = r.AssetMaintenanceRecordRepository.Delete(transactionID, fullName)
+		err = r.AssetMaintenanceRecordRepository.Delete(transactionID)
 		if err != nil {
 			tx.Rollback()
 			log.Error().

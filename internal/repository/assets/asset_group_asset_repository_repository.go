@@ -40,11 +40,15 @@ func (r assetGroupAssetRepository) GetAssetGroupAssetByID(assetGroupID uint) (*a
 }
 
 func (r assetGroupAssetRepository) GetListAssetGroupAssetByID(assetGroupID uint) ([]assets.AssetGroupAsset, error) {
-	var assets []assets.AssetGroupAsset
-	if err := r.db.Table(utils.TableAssetGroupAssetName).Where("asset_group_id = ?", assetGroupID).Find(&assets).Error; err != nil {
+	var groupAssets []assets.AssetGroupAsset
+	if err := r.db.Table(utils.TableAssetGroupAssetName).
+		Where("asset_group_id = ?", assetGroupID).
+		Order("asset_group_id ASC").
+		Find(&groupAssets).
+		Error; err != nil {
 		return nil, err
 	}
-	return assets, nil
+	return groupAssets, nil
 }
 
 func (r assetGroupAssetRepository) DeleteAssetGroupAsset(assetGroupID uint) error {

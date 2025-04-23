@@ -72,13 +72,13 @@ func (a assetGroupMemberController) RemoveMemberAssetGroup(context *gin.Context)
 func (a assetGroupMemberController) GetListMemberAssetGroup(context *gin.Context) {
 	id := context.Param("id")
 	if id == "" {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Asset group ID is required")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Asset group MaintenanceTypeID is required")
 		return
 	}
 
 	assetGroupID, err := utils.ConvertToUint(id)
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Invalid asset group ID")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Invalid asset group MaintenanceTypeID")
 		return
 	}
 	token, exist := utils.ExtractTokenClaims(context)
@@ -99,13 +99,13 @@ func (a assetGroupMemberController) GetListMemberAssetGroup(context *gin.Context
 func (a assetGroupMemberController) LeaveMemberAssetGroup(context *gin.Context) {
 	id := context.Param("id")
 	if id == "" {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Asset group ID is required")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Asset group MaintenanceTypeID is required")
 		return
 	}
 
 	assetGroupID, err := utils.ConvertToUint(id)
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Invalid asset group ID")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Invalid asset group MaintenanceTypeID")
 		return
 	}
 

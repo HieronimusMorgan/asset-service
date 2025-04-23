@@ -97,6 +97,7 @@ func (r assetGroupMemberRepository) GetAssetGroupMemberByID(groupID uint) (*[]re
 		FROM asset_group_member AS agm
 		LEFT JOIN users AS u ON agm.user_id = u.user_id
 		WHERE u.deleted_at IS NULL AND agm.asset_group_id = ?
+		ORDER BY u.user_id ASC
 	`
 	if err := r.db.Raw(memberQuery, groupID).Scan(&memberRows).Error; err != nil {
 		return nil, fmt.Errorf("failed to get group members: %w", err)
@@ -130,6 +131,7 @@ func (r assetGroupMemberRepository) GetAssetGroupMemberByID(groupID uint) (*[]re
 		LEFT JOIN asset_group_permission AS agp 
 			ON agp.permission_id = agmp.permission_id
 		WHERE agm.asset_group_id = ?
+		ORDER BY agm.user_id ASC
 	`
 	if err := r.db.Raw(permQuery, groupID).Scan(&allPermissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get member permissions: %w", err)

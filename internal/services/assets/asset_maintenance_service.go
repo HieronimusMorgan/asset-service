@@ -7,6 +7,7 @@ import (
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -57,13 +58,13 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 		return nil, err
 	}
 
-	if maintenance.TypeID == 0 {
+	if maintenance.MaintenanceTypeID == 0 {
 		log.Error().
 			Str("key", "maintenance type id").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("maintenance type ID is required")
-		return nil, fmt.Errorf("maintenance type ID is required")
+			Msg("maintenance type MaintenanceTypeID is required")
+		return nil, fmt.Errorf("maintenance type MaintenanceTypeID is required")
 	}
 
 	if asset, err := s.AssetRepository.GetAssetResponseByID(clientID, uint(maintenance.AssetID)); err != nil || asset.AssetID == 0 {
@@ -71,11 +72,11 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset by ID")
+			Msg("Failed to get asset by MaintenanceTypeID")
 		return nil, err
 	}
 
-	maintenanceExist, _ := s.AssetMaintenanceRepository.GetMaintenanceByTypeExist(clientID, maintenance.AssetID, maintenance.TypeID)
+	maintenanceExist, _ := s.AssetMaintenanceRepository.GetMaintenanceByTypeExist(clientID, maintenance.AssetID, maintenance.MaintenanceTypeID)
 	if maintenanceExist.ID != 0 {
 		log.Error().
 			Str("key", "GetMaintenanceByTypeExist").
@@ -91,7 +92,7 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 			Str("key", "ParseOptionalDate").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset status by ID")
+			Msg("Failed to get asset status by MaintenanceTypeID")
 	}
 
 	var nextDueDate *time.Time
@@ -101,7 +102,7 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 
 	maintenances := assets.AssetMaintenance{
 		AssetID:            maintenance.AssetID,
-		TypeID:             maintenance.TypeID,
+		MaintenanceTypeID:  maintenance.MaintenanceTypeID,
 		UserClientID:       clientID,
 		MaintenanceDetails: maintenance.MaintenanceDetails,
 		MaintenanceCost:    maintenance.MaintenanceCost,
@@ -145,16 +146,16 @@ func (s assetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientID
 			Str("key", "GetMaintenanceResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get maintenance by ID")
+			Msg("Failed to get maintenance by MaintenanceTypeID")
 		return nil, err
 	}
 
 	if maintenance.ID == 0 {
 		log.Error().
-			Str("key", "maintenance.ID").
+			Str("key", "maintenance.MaintenanceTypeID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("maintenance ID not found")
+			Msg("maintenance MaintenanceTypeID not found")
 		return nil, gorm.ErrRecordNotFound
 	}
 
@@ -172,13 +173,13 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 		return err
 	}
 
-	if maintenance.TypeID == 0 {
+	if maintenance.MaintenanceTypeID == 0 {
 		log.Error().
 			Str("key", "maintenance type id").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("maintenance type ID is required")
-		return fmt.Errorf("maintenance type ID is required")
+			Msg("maintenance type MaintenanceTypeID is required")
+		return fmt.Errorf("maintenance type MaintenanceTypeID is required")
 	}
 
 	if asset, err := s.AssetRepository.GetAssetResponseByID(clientID, uint(maintenance.AssetID)); err != nil || asset.AssetID == 0 {
@@ -186,11 +187,11 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset by ID")
+			Msg("Failed to get asset by MaintenanceTypeID")
 		return err
 	}
 
-	maintenanceExist, _ := s.AssetMaintenanceRepository.GetMaintenanceByTypeExist(clientID, maintenance.AssetID, maintenance.TypeID)
+	maintenanceExist, _ := s.AssetMaintenanceRepository.GetMaintenanceByTypeExist(clientID, maintenance.AssetID, maintenance.MaintenanceTypeID)
 	if maintenanceExist.ID != 0 {
 		log.Error().
 			Str("key", "GetMaintenanceByTypeExist").
@@ -216,7 +217,7 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 
 	maintenances := assets.AssetMaintenance{
 		AssetID:            maintenance.AssetID,
-		TypeID:             maintenance.TypeID,
+		MaintenanceTypeID:  maintenance.MaintenanceTypeID,
 		UserClientID:       clientID,
 		MaintenanceDetails: maintenance.MaintenanceDetails,
 		MaintenanceCost:    maintenance.MaintenanceCost,
@@ -262,23 +263,23 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		return nil, err
 	}
 
-	maintenance, err := s.AssetMaintenanceRepository.GetMaintenanceByID(uint(assetPerform.MaintenanceID), clientID)
+	maintenance, err := s.AssetMaintenanceRepository.GetMaintenanceByMaintenanceIDAndAssetID(uint(assetPerform.MaintenanceID), uint(assetPerform.AssetID), clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetMaintenanceResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get maintenance by ID")
-		return nil, err
+			Msg("Failed to get maintenance by MaintenanceTypeID")
+		return nil, errors.New("maintenance asset not found")
 	}
 
 	if maintenance.ID == 0 {
 		log.Error().
-			Str("key", "maintenance.ID").
+			Str("key", "maintenance.MaintenanceTypeID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("maintenance ID not found")
-		return nil, gorm.ErrRecordNotFound
+			Msg("maintenance MaintenanceTypeID not found")
+		return nil, errors.New("maintenance asset not found")
 	}
 
 	if asset, err := s.AssetRepository.GetAssetByID(clientID, uint(assetPerform.AssetID)); err != nil || asset.AssetID == 0 {
@@ -286,8 +287,8 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 			Str("key", "GetAssetResponseByID").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get asset by ID")
-		return nil, err
+			Msg("Failed to get asset by MaintenanceTypeID")
+		return nil, errors.New("asset not found")
 	}
 
 	var maintenanceDate = time.Now()
@@ -302,7 +303,7 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 	maintenances := assets.AssetMaintenance{
 		ID:                 maintenance.ID,
 		AssetID:            maintenance.AssetID,
-		TypeID:             maintenance.TypeID,
+		MaintenanceTypeID:  maintenance.MaintenanceTypeID,
 		UserClientID:       clientID,
 		MaintenanceDetails: maintenance.MaintenanceDetails,
 		MaintenanceCost:    maintenance.MaintenanceCost,
@@ -327,7 +328,8 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 
 	var assetMaintenanceRecord = assets.AssetMaintenanceRecord{
 		AssetID:            maintenance.AssetID,
-		TypeID:             maintenance.TypeID,
+		MaintenanceID:      int(maintenance.ID),
+		MaintenanceTypeID:  maintenance.MaintenanceTypeID,
 		UserClientID:       clientID,
 		MaintenanceDetails: maintenance.MaintenanceDetails,
 		MaintenanceCost:    maintenance.MaintenanceCost,
@@ -369,7 +371,7 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		UserClientID: maintenances.UserClientID,
 		AssetID:      maintenances.AssetID,
 		Type: response.MaintenanceTypeResponse{
-			TypeID: maintenances.TypeID,
+			MaintenanceTypeID: maintenances.MaintenanceTypeID,
 		},
 		MaintenanceDate:    (*response.DateOnly)(maintenances.MaintenanceDate),
 		MaintenanceDetails: maintenances.MaintenanceDetails,
@@ -396,17 +398,54 @@ func (s assetMaintenanceService) DeleteMaintenance(maintenanceID uint, clientID 
 }
 
 func (s assetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientID string) (interface{}, error) {
-	result, err := s.AssetMaintenanceRepository.GetListMaintenanceByAssetID(assetID, clientID)
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
-			Str("key", "GetListMaintenanceByAssetID").
+			Str("key", "GetUserRedis").
 			Str("clientID", clientID).
 			Err(err).
-			Msg("Failed to get maintenance by asset ID")
+			Msg("Failed to get user redis")
 		return nil, err
 	}
 
-	return result, nil
+	asset, err := s.AssetRepository.GetAssetResponseByID(data.ClientID, assetID)
+	if err != nil || asset.AssetID == 0 {
+		log.Error().
+			Str("key", "GetAssetByID").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get asset by MaintenanceTypeID")
+		return nil, errors.New("asset not found")
+	}
+
+	// Check if the asset belongs to the client
+	if asset.UserClientID != data.ClientID {
+		log.Error().
+			Str("key", "GetAssetByID").
+			Str("clientID", data.ClientID).
+			Err(err).
+			Msg("Asset does not belong to the client")
+		return nil, errors.New("asset does not belong to the client")
+	}
+	// Check if the asset belongs to the client
+
+	result, err := s.AssetMaintenanceRepository.GetListMaintenanceByAssetID(assetID, data.ClientID)
+	if err != nil {
+		log.Error().
+			Str("key", "GetListMaintenanceByAssetID").
+			Str("clientID", data.ClientID).
+			Err(err).
+			Msg("Failed to get maintenance by asset MaintenanceTypeID")
+		return nil, err
+	}
+
+	return struct {
+		Asset       response.AssetResponse               `json:"asset"`
+		Maintenance []response.AssetMaintenancesResponse `json:"maintenances"`
+	}{
+		Asset:       *asset,
+		Maintenance: result,
+	}, nil
 }
 
 func (s assetMaintenanceService) PerformMaintenanceCheck() error {

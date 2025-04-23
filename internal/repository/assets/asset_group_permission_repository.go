@@ -50,7 +50,10 @@ func (r assetGroupPermissionRepository) GetAssetGroupPermissionByID(permissionID
 
 func (r assetGroupPermissionRepository) GetAssetGroupPermissionByUserID(userID uint) ([]assets.AssetGroupPermission, error) {
 	var permissions []assets.AssetGroupPermission
-	if err := r.db.Table(utils.TableAssetGroupPermissionName).Where("user_id = ?", userID).Find(&permissions).Error; err != nil {
+	if err := r.db.Table(utils.TableAssetGroupPermissionName).
+		Where("user_id = ?", userID).
+		Order("user_id ASC").
+		Find(&permissions).Error; err != nil {
 		return nil, err
 	}
 	return permissions, nil
@@ -58,7 +61,9 @@ func (r assetGroupPermissionRepository) GetAssetGroupPermissionByUserID(userID u
 
 func (r assetGroupPermissionRepository) GetListAssetGroupPermission() (*[]assets.AssetGroupPermission, error) {
 	var permissions []assets.AssetGroupPermission
-	if err := r.db.Table(utils.TableAssetGroupPermissionName).Find(&permissions).Error; err != nil {
+	if err := r.db.Table(utils.TableAssetGroupPermissionName).
+		Order("permission_id ASC").
+		Find(&permissions).Error; err != nil {
 		return nil, err
 	}
 	return &permissions, nil

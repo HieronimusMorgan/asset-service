@@ -179,7 +179,7 @@ func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID str
 
 	asset, err := s.AssetRepository.GetAssetByCategoryID(assetCategory.AssetCategoryID, clientID)
 	if err != nil {
-		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to get asset by category ID")
+		log.Error().Err(err).Uint("asset_category_id", categoryID).Msg("Failed to get asset by category MaintenanceTypeID")
 		return err
 	}
 

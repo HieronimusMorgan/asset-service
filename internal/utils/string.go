@@ -1,6 +1,7 @@
 package utils
 
 import (
+	response "asset-service/internal/dto/out/assets"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -84,4 +85,17 @@ func CalculateNextDueDate(date *time.Time, days *int) (*time.Time, error) {
 	}
 	nextDueDate := date.AddDate(0, 0, *days)
 	return &nextDueDate, nil
+}
+func NullableStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+func ToDateOnly(t *time.Time) *response.DateOnly {
+	if t == nil {
+		return nil
+	}
+	return (*response.DateOnly)(t)
 }

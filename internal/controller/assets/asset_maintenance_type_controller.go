@@ -93,5 +93,9 @@ func (c assetMaintenanceTypeController) GetListMaintenanceType(context *gin.Cont
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
-	response.SendResponse(context, http.StatusOK, "Asset categories retrieved successfully", maintenanceTypes, nil)
+	if maintenanceTypes == nil {
+		response.SendResponse(context, http.StatusNotFound, "Maintenance types not found", nil, nil)
+		return
+	}
+	response.SendResponse(context, http.StatusOK, "Success", maintenanceTypes, nil)
 }

@@ -91,8 +91,8 @@ func (r redisService) DeleteToken(clientID string) error {
 	return err
 }
 
-func GetUserRedis(redis RedisService, key string, clientID string) (*user.User, error) {
-	var u = &user.User{}
+func GetUserRedis(redis RedisService, key string, clientID string) (*user.UserRedis, error) {
+	var u = &user.UserRedis{}
 	err := redis.GetData(key, clientID, u)
 	if err != nil {
 		return nil, err

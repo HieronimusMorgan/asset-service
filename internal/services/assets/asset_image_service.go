@@ -123,7 +123,7 @@ func (s assetImageService) Cleanup() error {
 
 		// **VALIDATION: If no images, return an error**
 		if len(images) == 0 {
-			errMsg := fmt.Sprintf("❌ No images found for asset ID %d, skipping deletion", asset.AssetID)
+			errMsg := fmt.Sprintf("❌ No images found for asset MaintenanceTypeID %d, skipping deletion", asset.AssetID)
 			log.Warn().Str("client_id", asset.UserClientID).Msg(errMsg)
 			return errors.New(errMsg)
 		}

@@ -24,6 +24,10 @@ CREATE TABLE asset_status
     deleted_at      TIMESTAMP,
     deleted_by      VARCHAR(255)
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_status_id ON asset_status (asset_status_id);
+CREATE INDEX idx_asset_status_name ON asset_status (status_name);
+
 -- Insert default asset statuses with better categorization
 INSERT INTO asset_status (status_name, description, created_by, updated_by)
 VALUES
@@ -71,66 +75,9 @@ CREATE TABLE asset_category
     deleted_at        TIMESTAMP,
     deleted_by        VARCHAR(255)
 );
--- INSERT INTO asset_category (category_name, description, created_by, updated_by)
--- VALUES
---     -- ✅ Electronics & IT Equipment
---     ('Electronics', 'Electronic devices, gadgets, and computing equipment', 'system', 'system'),
---     ('Computers & Laptops', 'Desktops, laptops, and tablets', 'system', 'system'),
---     ('Mobile Phones', 'Smartphones, feature phones, and accessories', 'system', 'system'),
---     ('Audio Equipment', 'Speakers, headphones, and microphones', 'system', 'system'),
---     ('Video Equipment', 'Cameras, camcorders, and video production gear', 'system', 'system'),
---     ('Networking Devices', 'Routers, switches, and access points', 'system', 'system'),
---     ('Storage Devices', 'Hard drives, SSDs, and NAS storage', 'system', 'system'),
---
---     -- ✅ Furniture & Office Equipment
---     ('Furniture', 'Office and home furniture', 'system', 'system'),
---     ('Office Desks', 'Workstations and office desks', 'system', 'system'),
---     ('Office Chairs', 'Ergonomic and standard chairs for workspace', 'system', 'system'),
---     ('Conference Tables', 'Tables used in meeting and conference rooms', 'system', 'system'),
---     ('Cabinets & Shelves', 'Storage units including file cabinets and shelves', 'system', 'system'),
---
---     -- ✅ Vehicles & Transport
---     ('Vehicles', 'Company-owned vehicles for transport and logistics', 'system', 'system'),
---     ('Company Cars', 'Sedans and SUVs used by employees', 'system', 'system'),
---     ('Trucks', 'Heavy-duty vehicles for transportation', 'system', 'system'),
---     ('Motorcycles', 'Two-wheeled vehicles for company use', 'system', 'system'),
---     ('Electric Vehicles', 'Battery-powered electric vehicles', 'system', 'system'),
---
---     -- ✅ Machinery & Tools
---     ('Machinery', 'Industrial machinery and large equipment', 'system', 'system'),
---     ('Hand Tools', 'Basic hand tools like hammers and screwdrivers', 'system', 'system'),
---     ('Power Tools', 'Electric drills, saws, grinders, and similar tools', 'system', 'system'),
---
---     -- ✅ Software & Hardware
---     ('Software', 'Licensed software, applications, and digital assets', 'system', 'system'),
---     ('Hardware', 'Computer peripherals and hardware components', 'system', 'system'),
---
---     -- ✅ Appliances & Home Equipment
---     ('Appliances', 'Electrical and non-electrical appliances for office or home use', 'system', 'system'),
---     ('Kitchen Appliances', 'Refrigerators, microwaves, and coffee machines', 'system', 'system'),
---     ('Cleaning Equipment', 'Vacuum cleaners, air purifiers, and sanitation devices', 'system', 'system'),
---
---     -- ✅ Medical & Laboratory Equipment
---     ('Medical Equipment', 'Healthcare and hospital equipment', 'system', 'system'),
---     ('Laboratory Equipment', 'Scientific research and testing instruments', 'system', 'system'),
---
---     -- ✅ Security & Surveillance
---     ('Security Equipment', 'Cameras, alarms, and surveillance devices', 'system', 'system'),
---     ('CCTV Cameras', 'Security cameras for surveillance', 'system', 'system'),
---     ('Alarm Systems', 'Intruder detection and emergency alarms', 'system', 'system'),
---
---     -- ✅ Office Supplies & Stationery
---     ('Stationery', 'Office supplies like pens, paper, and notebooks', 'system', 'system'),
---     ('Printers & Scanners', 'Devices for printing and scanning documents', 'system', 'system'),
---
---     -- ✅ Real Estate & Properties
---     ('Real Estate', 'Buildings, land, and company-owned properties', 'system', 'system'),
---
---     -- ✅ Other Miscellaneous Categories
---     ('Art', 'Paintings, sculptures, and decorative items', 'system', 'system'),
---     ('Books & Reference', 'Books, manuals, and reference materials', 'system', 'system'),
---     ('Clothing & Uniforms', 'Work uniforms and protective clothing', 'system', 'system'),
---     ('Miscellaneous', 'Other uncategorized assets', 'system', 'system');
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_category_id ON asset_category (asset_category_id);
+CREATE INDEX idx_asset_category_name ON asset_category (category_name);
 
 -- Table for Asset
 CREATE TABLE asset
@@ -159,6 +106,12 @@ CREATE TABLE asset
     FOREIGN KEY (category_id) REFERENCES asset_category (asset_category_id),
     FOREIGN KEY (status_id) REFERENCES asset_status (asset_status_id)
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_id ON asset (asset_id);
+CREATE INDEX idx_asset_user ON asset (user_client_id);
+CREATE INDEX idx_asset_serial ON asset (serial_number);
+CREATE INDEX idx_asset_name ON asset (name);
+CREATE INDEX idx_asset_barcode ON asset (barcode);
 CREATE INDEX idx_asset_category ON asset (category_id);
 CREATE INDEX idx_asset_status ON asset (status_id);
 
@@ -182,6 +135,7 @@ CREATE TABLE asset_stock
 );
 
 -- Indexes to speed up queries
+CREATE INDEX idx_asset_stock_id ON asset_stock (stock_id);
 CREATE INDEX idx_asset_stock_asset ON asset_stock (asset_id);
 CREATE INDEX idx_asset_stock_user ON asset_stock (user_client_id);
 
@@ -201,6 +155,10 @@ CREATE TABLE asset_image
     deleted_by     VARCHAR(255),
     CONSTRAINT fk_asset FOREIGN KEY (asset_id) REFERENCES asset (asset_id) ON DELETE CASCADE
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_image_id ON asset_image (image_id);
+CREATE INDEX idx_asset_image_user ON asset_image (user_client_id);
+CREATE INDEX idx_asset_image_asset ON asset_image (asset_id);
 
 CREATE TABLE asset_stock_history
 (
@@ -220,103 +178,43 @@ CREATE TABLE asset_stock_history
 );
 
 -- Indexes to speed up queries
+CREATE INDEX idx_asset_stock_history_id ON asset_stock_history (stock_history_id);
+CREATE INDEX idx_asset_stock_history_stock ON asset_stock_history (stock_id);
 CREATE INDEX idx_asset_stock_history_asset ON asset_stock_history (asset_id);
 CREATE INDEX idx_asset_stock_history_user ON asset_stock_history (user_client_id);
 
 -- Table for Maintenance Type
 CREATE TABLE asset_maintenance_type
 (
-    type_id        SERIAL PRIMARY KEY,           -- Unique ID for each type
-    user_client_id VARCHAR(50)         NOT NULL,
-    type_name      VARCHAR(100) UNIQUE NOT NULL, -- Name of maintenance type
-    description    TEXT,                         -- Description of what this maintenance involves
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by     VARCHAR(255),
-    updated_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_by     VARCHAR(255),
-    deleted_at     TIMESTAMP,
-    deleted_by     VARCHAR(255)
+    maintenance_type_id   SERIAL PRIMARY KEY,           -- Unique ID for each type
+    user_client_id        VARCHAR(50)         NOT NULL,
+    maintenance_type_name VARCHAR(100) UNIQUE NOT NULL, -- Name of maintenance type
+    description           TEXT,                         -- Description of what this maintenance involves
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by            VARCHAR(255),
+    updated_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by            VARCHAR(255),
+    deleted_at            TIMESTAMP,
+    deleted_by            VARCHAR(255)
 );
 
-
-
--- INSERT INTO asset_maintenance_type (type_name, description, created_by, updated_by)
--- VALUES
---     -- ✅ General Maintenance Types
---     ('Battery Replacement', 'Replace worn-out battery with a new one to maintain performance.', 'system', 'system'),
---     ('Software Update', 'Update firmware and OS for better performance and security.', 'system', 'system'),
---     ('Cleaning Service', 'Perform deep cleaning to remove dust and debris from components.', 'system', 'system'),
---     ('Hardware Repair', 'Fix or replace damaged hardware components of the asset.', 'system', 'system'),
---     ('Annual Inspection', 'General check-up and inspection to ensure the asset is in optimal condition.', 'system',
---      'system'),
---
---     -- ✅ IT & Network Maintenance
---     ('Firmware Upgrade', 'Upgrade device firmware to the latest version.', 'system', 'system'),
---     ('Networking Maintenance', 'Check and repair network connections, cables, and routers.', 'system', 'system'),
---     ('Security Patch Update', 'Apply the latest security updates and patches.', 'system', 'system'),
---     ('Cloud Backup Check', 'Ensure that cloud backup systems are properly configured and up to date.', 'system',
---      'system'),
---     ('General Diagnostics', 'Perform full system diagnostics to detect potential issues.', 'system', 'system'),
---     ('Performance Optimization', 'Optimize asset performance through software and hardware adjustments.', 'system',
---      'system'),
---
---     -- ✅ Electrical & Mechanical Maintenance
---     ('Cooling System Check', 'Inspect and clean cooling fans and heat sinks to prevent overheating.', 'system',
---      'system'),
---     ('Electrical Testing', 'Ensure safe electrical operation and check for voltage stability.', 'system', 'system'),
---     ('Oil & Lubrication', 'Apply lubrication to mechanical parts to prevent wear and tear.', 'system', 'system'),
---     ('Parts Replacement', 'Replace broken or worn-out components with new parts.', 'system', 'system'),
---     ('Sensor Calibration', 'Calibrate sensors to maintain accuracy and efficiency.', 'system', 'system'),
---     ('Motor Servicing', 'Check and maintain motors in mechanical and industrial assets.', 'system', 'system'),
---
---     -- ✅ Security & Surveillance Equipment Maintenance
---     ('CCTV Camera Maintenance', 'Inspect and clean surveillance cameras for optimal performance.', 'system', 'system'),
---     ('Alarm System Check', 'Test and verify the functionality of alarm systems.', 'system', 'system'),
---     ('Fire Safety Inspection', 'Ensure fire safety equipment is in working condition.', 'system', 'system'),
---
---     -- ✅ Vehicle & Transportation Maintenance
---     ('Engine Tuning', 'Fine-tune vehicle engines for better efficiency and performance.', 'system', 'system'),
---     ('Brake Inspection', 'Check and replace brake pads, fluids, and related components.', 'system', 'system'),
---     ('Tire Replacement', 'Inspect and replace tires for better safety and performance.', 'system', 'system'),
---     ('Fuel System Maintenance', 'Clean fuel injectors and ensure proper fuel flow.', 'system', 'system'),
---     ('Transmission Check', 'Inspect transmission systems to prevent failure.', 'system', 'system'),
---
---     -- ✅ Heavy Equipment & Industrial Machinery Maintenance
---     ('Hydraulic System Inspection', 'Check and maintain hydraulic systems in heavy machinery.', 'system', 'system'),
---     ('Welding & Structural Repair', 'Inspect and reinforce metal structures.', 'system', 'system'),
---     ('Conveyor Belt Maintenance', 'Check for misalignment and damage in conveyor belts.', 'system', 'system'),
---
---     -- ✅ Medical & Laboratory Equipment Maintenance
---     ('Medical Device Calibration', 'Ensure medical equipment provides accurate readings.', 'system', 'system'),
---     ('Sterilization Service', 'Sterilize medical and laboratory equipment to maintain hygiene.', 'system', 'system'),
---     ('Oxygen System Check', 'Inspect and maintain oxygen supply systems.', 'system', 'system'),
---
---     -- ✅ Office Equipment & Appliances Maintenance
---     ('Printer & Scanner Service', 'Clean and repair printers, scanners, and copiers.', 'system', 'system'),
---     ('Air Conditioner Service', 'Check and refill refrigerant, clean filters in AC systems.', 'system', 'system'),
---     ('Refrigerator Maintenance', 'Ensure proper cooling and clean condenser coils in refrigerators.', 'system',
---      'system'),
---
---     -- ✅ Miscellaneous & General Maintenance
---     ('Furniture Repair', 'Fix loose hinges, screws, and broken parts in furniture.', 'system', 'system'),
---     ('Painting & Coating', 'Repaint assets to maintain aesthetic appeal and prevent rust.', 'system', 'system'),
---
---     -- ✅ The "Other" Type (Must Always be the Last Entry)
---     ('Other', 'Any other maintenance not covered in predefined types.', 'system', 'system');
+CREATE INDEX idx_maintenance_type_id ON asset_maintenance_type (maintenance_type_id);
+CREATE INDEX idx_maintenance_type_name ON asset_maintenance_type (maintenance_type_name);
+CREATE INDEX idx_maintenance_type_user ON asset_maintenance_type (user_client_id);
 
 -- Table for Asset Maintenance
 CREATE TABLE asset_maintenance
 (
     id                  SERIAL PRIMARY KEY,
-    user_client_id   VARCHAR(50) NOT NULL,
-    asset_id         INT         NOT NULL, -- Reference to asset
-    type_id          INT         NOT NULL,
-    maintenance_date DATE        NOT NULL,
+    user_client_id      VARCHAR(50) NOT NULL,
+    asset_id            INT         NOT NULL, -- Reference to asset
+    maintenance_type_id INT         NOT NULL,
+    maintenance_date    DATE        NOT NULL,
     maintenance_details TEXT,
-    maintenance_cost DECIMAL(15, 2),       -- Cost of maintenance
-    performed_by     VARCHAR(255),         -- Who performed the maintenance
-    interval_days    INT,                  -- Maintenance interval in days
-    next_due_date    DATE DEFAULT NULL,    -- Scheduled next maintenance
+    maintenance_cost    DECIMAL(15, 2),       -- Cost of maintenance
+    performed_by        VARCHAR(255),         -- Who performed the maintenance
+    interval_days       INT,                  -- Maintenance interval in days
+    next_due_date       DATE DEFAULT NULL,    -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -324,18 +222,20 @@ CREATE TABLE asset_maintenance
     deleted_at          TIMESTAMP,
     deleted_by          VARCHAR(255),
     FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
-    FOREIGN KEY (type_id) REFERENCES asset_maintenance_type (type_id) ON DELETE SET NULL
+    FOREIGN KEY (maintenance_type_id) REFERENCES asset_maintenance_type (maintenance_type_id) ON DELETE SET NULL
 );
 
+CREATE INDEX idx_maintenance_id ON asset_maintenance (id);
 CREATE INDEX idx_maintenance_asset ON asset_maintenance (asset_id);
-CREATE INDEX idx_maintenance_type ON asset_maintenance (type_id);
+CREATE INDEX idx_maintenance_type ON asset_maintenance (maintenance_type_id);
 
 CREATE TABLE asset_maintenance_record
 (
     maintenance_record_id SERIAL PRIMARY KEY,
     user_client_id      VARCHAR(50) NOT NULL,
     asset_id            INT         NOT NULL,   -- Reference to asset
-    type_id             INT         NOT NULL,
+    maintenance_id      INT         NOT NULL,   -- Reference to asset_maintenance
+    maintenance_type_id INT         NOT NULL,
     maintenance_date    DATE        NOT NULL,
     maintenance_details TEXT,
     maintenance_cost    DECIMAL(15, 2),         -- Cost of maintenance
@@ -348,11 +248,17 @@ CREATE TABLE asset_maintenance_record
     updated_by            VARCHAR(255),
     deleted_at            TIMESTAMP,
     deleted_by            VARCHAR(255),
-    FOREIGN KEY (asset_id) REFERENCES asset (asset_id)
+    FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
+    FOREIGN KEY (maintenance_id) REFERENCES asset_maintenance (id),
+    FOREIGN KEY (maintenance_type_id) REFERENCES asset_maintenance_type (maintenance_type_id)
 );
 
+-- Indexes to speed up queries
+CREATE INDEX idx_maintenance_record_id ON asset_maintenance_record (maintenance_record_id);
+CREATE INDEX idx_maintenance_record_user ON asset_maintenance_record (user_client_id);
 CREATE INDEX idx_maintenance_record_asset ON asset_maintenance_record (asset_id);
-CREATE INDEX idx_maintenance_record_type ON asset_maintenance_record (type_id);
+CREATE INDEX idx_maintenance_record_maintenance ON asset_maintenance_record (maintenance_id);
+CREATE INDEX idx_maintenance_record_type ON asset_maintenance_record (maintenance_type_id);
 
 CREATE TABLE asset_group
 (
@@ -363,13 +269,17 @@ CREATE TABLE asset_group
     invitation_token VARCHAR(100) UNIQUE DEFAULT NULL,
     max_uses         INT                 DEFAULT NULL,
     current_uses     INT                 DEFAULT 0,
-    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by       VARCHAR(255),
-    updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_by       VARCHAR(255),
     deleted_at       TIMESTAMP,
     deleted_by       VARCHAR(255)
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_group_id ON asset_group (asset_group_id);
+CREATE INDEX idx_asset_group_owner ON asset_group (owner_user_id);
+
 
 ALTER TABLE asset_group
     ADD CONSTRAINT chk_usage_valid
@@ -388,6 +298,8 @@ CREATE TABLE asset_group_member
     PRIMARY KEY (user_id, asset_group_id),
     FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
 );
+CREATE INDEX idx_asset_group_member_user ON asset_group_member (user_id);
+CREATE INDEX idx_asset_group_member_group ON asset_group_member (asset_group_id);
 
 CREATE TABLE asset_group_asset
 (
@@ -404,6 +316,9 @@ CREATE TABLE asset_group_asset
     FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
     FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
 );
+CREATE INDEX idx_asset_group_asset_user ON asset_group_asset (user_id);
+CREATE INDEX idx_asset_group_asset_group ON asset_group_asset (asset_group_id);
+CREATE INDEX idx_asset_group_asset_asset ON asset_group_asset (asset_id);
 
 
 CREATE TABLE asset_group_permission
@@ -418,6 +333,9 @@ CREATE TABLE asset_group_permission
     deleted_at      TIMESTAMP,
     deleted_by      VARCHAR(255)
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_group_permission_id ON asset_group_permission (permission_id);
+CREATE INDEX idx_asset_group_permission_name ON asset_group_permission (permission_name);
 -- Insert default family_permission
 INSERT INTO asset_group_permission (permission_name, description)
 VALUES ('Admin', 'Full control over family members and assets'),
@@ -438,6 +356,9 @@ CREATE TABLE asset_group_member_permission
     deleted_by     VARCHAR(255),
     PRIMARY KEY (user_id, asset_group_id, permission_id)
 );
+CREATE INDEX idx_asset_group_member_permission_user ON asset_group_member_permission (user_id);
+CREATE INDEX idx_asset_group_member_permission_group ON asset_group_member_permission (asset_group_id);
+CREATE INDEX idx_asset_group_member_permission_permission ON asset_group_member_permission (permission_id);
 
 CREATE TABLE asset_group_invitation
 (
@@ -460,6 +381,11 @@ CREATE TABLE asset_group_invitation
 
     FOREIGN KEY (asset_group_id) REFERENCES asset_group (asset_group_id)
 );
+CREATE INDEX idx_asset_group_invitation_user ON asset_group_invitation (invited_user_id);
+CREATE INDEX idx_asset_group_invitation_group ON asset_group_invitation (asset_group_id);
+CREATE INDEX idx_asset_group_invitation_status ON asset_group_invitation (status);
+CREATE INDEX idx_asset_group_invitation_token ON asset_group_invitation (invited_user_token);
+CREATE INDEX idx_asset_group_invitation_invited_by ON asset_group_invitation (invited_by_user_id);
 
 ALTER TABLE asset_group_invitation
     ADD CONSTRAINT chk_invite_status
@@ -473,6 +399,8 @@ CREATE TABLE asset_tags
     created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by  VARCHAR(255)
 );
+CREATE INDEX idx_asset_tags_id ON asset_tags (tag_id);
+CREATE INDEX idx_asset_tags_name ON asset_tags (tag_name);
 
 CREATE TABLE asset_tag_map
 (
@@ -482,6 +410,8 @@ CREATE TABLE asset_tag_map
     FOREIGN KEY (asset_id) REFERENCES asset (asset_id),
     FOREIGN KEY (tag_id) REFERENCES asset_tags (tag_id)
 );
+CREATE INDEX idx_asset_tag_map_asset ON asset_tag_map (asset_id);
+CREATE INDEX idx_asset_tag_map_tag ON asset_tag_map (tag_id);
 
 CREATE TABLE asset_audit_log
 (
@@ -493,6 +423,7 @@ CREATE TABLE asset_audit_log
     performed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     performed_by VARCHAR(255)
 );
+CREATE INDEX idx_asset_audit_log_table ON asset_audit_log (table_name);
 
 CREATE TABLE cron_jobs
 (
@@ -509,6 +440,8 @@ CREATE TABLE cron_jobs
     deleted_at TIMESTAMP,
     deleted_by VARCHAR(255)
 );
+-- Indexes to speed up queries
+CREATE INDEX idx_cron_jobs_id ON cron_jobs (id);
 
 INSERT INTO cron_jobs (name, schedule, is_active, description, created_by)
 VALUES ('asset_maintenance', '0 5 * * *', true, 'Check and schedule maintenance for assets', 'system'),
@@ -546,119 +479,3 @@ CREATE TRIGGER trigger_update_asset_maintenance
     ON asset_maintenance
     FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
-
---  PostgreSQL Foreign Data Wrapper
-
--- CREATE EXTENSION IF NOT EXISTS postgres_fdw;
-
--- users
--- CREATE SERVER user_server
---     FOREIGN DATA WRAPPER postgres_fdw
---     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
---
--- CREATE USER MAPPING FOR postgres
---     SERVER user_server
---     OPTIONS (user 'replicator', password 'admin');
---
--- CREATE FOREIGN TABLE users (
---     user_id          SERIAL ,
---     client_id        VARCHAR(255) NOT NULL,
---     username         VARCHAR(255) NOT NULL,
---     password         TEXT                NOT NULL,
---     email            VARCHAR(255) NOT NULL,
---     pin_code         TEXT      DEFAULT NULL,
---     pin_attempts     INT       DEFAULT 0 CHECK (pin_attempts >= 0),
---     pin_last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     first_name       VARCHAR(255),
---     last_name        VARCHAR(255),
---     full_name        VARCHAR(255),
---     phone_number     VARCHAR(50),
---     profile_picture  TEXT,
---     role_id          INT                 NOT NULL,
---     device_id        VARCHAR(100),
---     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     created_by       VARCHAR(255),
---     updated_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_by       VARCHAR(255),
---     deleted_at       TIMESTAMP NULL,
---     deleted_by       VARCHAR(255)
---     )
---     SERVER user_server
---     OPTIONS (schema_name 'public', table_name 'users');
---
--- ALTER FOREIGN TABLE users OPTIONS (add updatable 'true');
---
--- -- family permission
--- CREATE SERVER family_permission_server
---     FOREIGN DATA WRAPPER postgres_fdw
---     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
---
--- CREATE USER MAPPING FOR postgres
---     SERVER family_permission_server
---     OPTIONS (user 'replicator', password 'admin');
---
--- CREATE FOREIGN TABLE family_permission (
---     permission_id   SERIAL,
---     permission_name VARCHAR(100) NOT NULL,
---     description     TEXT,
---     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     created_by      VARCHAR(255),
---     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_by      VARCHAR(255),
---     deleted_at      TIMESTAMP NULL,
---     deleted_by      VARCHAR(255)
---     )
---     SERVER family_permission_server
---     OPTIONS (schema_name 'public', table_name 'family_permission');
---
---
--- ALTER FOREIGN TABLE family_permission OPTIONS (add updatable 'true');
---
---
--- -- family member permission
--- CREATE SERVER family_member_permission_server
---     FOREIGN DATA WRAPPER postgres_fdw
---     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
---
--- CREATE USER MAPPING FOR postgres
---     SERVER family_member_permission_server
---     OPTIONS (user 'replicator', password 'admin');
---
--- CREATE FOREIGN TABLE family_member_permission (
---     family_id     INT,
---     user_id       INT,
---     permission_id INT,
---     created_at    TIMESTAMP,
---     created_by    VARCHAR(255)
---     )
---     SERVER family_member_permission_server
---     OPTIONS (schema_name 'public', table_name 'family_member_permission');
---
---
--- ALTER FOREIGN TABLE family_member_permission OPTIONS (add updatable 'true');
---
--- -- family member
--- CREATE SERVER family_member_server
---     FOREIGN DATA WRAPPER postgres_fdw
---     OPTIONS (host 'localhost', dbname 'authentication', port '5432');
---
--- CREATE USER MAPPING FOR postgres
---     SERVER family_member_server
---     OPTIONS (user 'replicator', password 'admin');
---
--- CREATE FOREIGN TABLE family_member (
---     family_id  INT,
---     user_id    INT,
---     joined_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     created_by VARCHAR(255),
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_by VARCHAR(255),
---     deleted_at TIMESTAMP NULL,
---     deleted_by VARCHAR(255)
---     )
---     SERVER family_member_server
---     OPTIONS (schema_name 'public', table_name 'family_member');
---
---
--- ALTER FOREIGN TABLE family_member OPTIONS (add updatable 'true');

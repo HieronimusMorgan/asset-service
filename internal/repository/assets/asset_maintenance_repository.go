@@ -12,7 +12,7 @@ import (
 type AssetMaintenanceRepository interface {
 	AddAssetMaintenance(maintenance *model.AssetMaintenance) error
 	GetMaintenanceByAssetID(assetID uint, clientID string) (*model.AssetMaintenance, error)
-	GetMaintenanceByID(maintenanceID uint, clientID string) (*model.AssetMaintenance, error)
+	GetMaintenanceByMaintenanceIDAndAssetID(maintenanceID uint, assetID uint, clientID string) (*model.AssetMaintenance, error)
 	GetMaintenanceResponseByID(maintenanceID uint, clientID string) (*response.AssetMaintenancesResponse, error)
 	GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error)
 	GetListMaintenance() ([]response.AssetMaintenancesResponse, error)
@@ -41,18 +41,18 @@ func (r assetMaintenanceRepository) GetMaintenanceByAssetID(assetID uint, client
 	return &maintenance, err
 }
 
-func (r assetMaintenanceRepository) GetMaintenanceByID(maintenanceID uint, clientID string) (*model.AssetMaintenance, error) {
+func (r assetMaintenanceRepository) GetMaintenanceByMaintenanceIDAndAssetID(maintenanceID uint, assetID uint, clientID string) (*model.AssetMaintenance, error) {
 	var maintenance model.AssetMaintenance
-	err := r.db.Table(utils.TableAssetMaintenanceName).Where("id = ? AND user_client_id = ?", maintenanceID, clientID).First(&maintenance).Error
+	err := r.db.Table(utils.TableAssetMaintenanceName).Where("maintenance_type_id = ? AND asset_id = ? AND user_client_id = ?", maintenanceID, assetID, clientID).First(&maintenance).Error
 	return &maintenance, err
 }
 
 func (r assetMaintenanceRepository) GetMaintenanceResponseByID(maintenanceID uint, clientID string) (*response.AssetMaintenancesResponse, error) {
 
 	assetMaintenance := `
-		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "asset-service"."asset_maintenance" am 
-		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		SELECT am.id, am.user_client_id, am.asset_id, amt.maintenance_type_id, amt.maintenance_type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "asset_maintenance" am 
+		LEFT JOIN "asset_maintenance_type" amt ON am.maintenance_type_id = amt.maintenance_type_id
 		WHERE am.id = ? AND am.user_client_id = ?
 `
 
@@ -65,8 +65,8 @@ func (r assetMaintenanceRepository) GetMaintenanceResponseByID(maintenanceID uin
 		&maintenance.ID,
 		&maintenance.UserClientID,
 		&maintenance.AssetID,
-		&typeMaintenance.TypeID,
-		&typeMaintenance.TypeName,
+		&typeMaintenance.MaintenanceTypeID,
+		&typeMaintenance.MaintenanceTypeName,
 		&maintenance.MaintenanceDate,
 		&maintenance.MaintenanceDetails,
 		&maintenance.MaintenanceCost,
@@ -86,9 +86,9 @@ func (r assetMaintenanceRepository) GetMaintenanceResponseByID(maintenanceID uin
 
 func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "asset-service"."asset_maintenance" am 
-		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		SELECT am.id, am.user_client_id, am.asset_id, amt.maintenance_type_id, amt.maintenance_type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "asset_maintenance" am 
+		LEFT JOIN "asset_maintenance_type" amt ON am.maintenance_type_id = amt.maintenance_type_id
 		WHERE am.asset_id = ? AND am.user_client_id = ?
 `
 
@@ -106,8 +106,8 @@ func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, cl
 			&maintenance.ID,
 			&maintenance.UserClientID,
 			&maintenance.AssetID,
-			&typeMaintenance.TypeID,
-			&typeMaintenance.TypeName,
+			&typeMaintenance.MaintenanceTypeID,
+			&typeMaintenance.MaintenanceTypeName,
 			&maintenance.MaintenanceDate,
 			&maintenance.MaintenanceDetails,
 			&maintenance.MaintenanceCost,
@@ -128,9 +128,9 @@ func (r assetMaintenanceRepository) GetListMaintenanceByAssetID(assetID uint, cl
 
 func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "asset-service"."asset_maintenance" am 
-		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		SELECT am.id, am.user_client_id, am.asset_id, amt.maintenance_type_id, amt.maintenance_type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "asset_maintenance" am 
+		LEFT JOIN "asset_maintenance_type" amt ON am.maintenance_type_id = amt.maintenance_type_id
 `
 
 	rows, err := r.db.Raw(assetMaintenance).Rows()
@@ -147,8 +147,8 @@ func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMainte
 			&maintenance.ID,
 			&maintenance.UserClientID,
 			&maintenance.AssetID,
-			&typeMaintenance.TypeID,
-			&typeMaintenance.TypeName,
+			&typeMaintenance.MaintenanceTypeID,
+			&typeMaintenance.MaintenanceTypeName,
 			&maintenance.MaintenanceDate,
 			&maintenance.MaintenanceDetails,
 			&maintenance.MaintenanceCost,
@@ -169,9 +169,9 @@ func (r assetMaintenanceRepository) GetListMaintenance() ([]response.AssetMainte
 
 func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string) ([]response.AssetMaintenancesResponse, error) {
 	assetMaintenance := `
-		SELECT am.id, am.user_client_id, am.asset_id, amt.type_id, amt.type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
-		FROM "asset-service"."asset_maintenance" am 
-		LEFT JOIN "asset-service"."asset_maintenance_type" amt ON am.type_id = amt.type_id
+		SELECT am.id, am.user_client_id, am.asset_id, amt.maintenance_type_id, amt.maintenance_type_name, am.maintenance_date, am.maintenance_details, am.maintenance_cost, am.performed_by, am.interval_days, am.next_due_date
+		FROM "asset_maintenance" am 
+		LEFT JOIN "asset_maintenance_type" amt ON am.maintenance_type_id = amt.maintenance_type_id
 		WHERE am.user_client_id = ?
 `
 
@@ -189,8 +189,8 @@ func (r assetMaintenanceRepository) GetListMaintenanceByClientID(clientID string
 			&maintenance.ID,
 			&maintenance.UserClientID,
 			&maintenance.AssetID,
-			&typeMaintenance.TypeID,
-			&typeMaintenance.TypeName,
+			&typeMaintenance.MaintenanceTypeID,
+			&typeMaintenance.MaintenanceTypeName,
 			&maintenance.MaintenanceDate,
 			&maintenance.MaintenanceDetails,
 			&maintenance.MaintenanceCost,
@@ -227,6 +227,6 @@ func (r assetMaintenanceRepository) Delete(assetID uint, fullName string) error 
 
 func (r assetMaintenanceRepository) GetMaintenanceByTypeExist(clientID string, assetID int, typeID int) (model.AssetMaintenance, error) {
 	var maintenance model.AssetMaintenance
-	err := r.db.Table(utils.TableAssetMaintenanceName).Where("user_client_id = ? AND asset_id = ? AND type_id = ?", clientID, assetID, typeID).First(&maintenance).Error
+	err := r.db.Table(utils.TableAssetMaintenanceName).Where("user_client_id = ? AND asset_id = ? AND maintenance_type_id = ?", clientID, assetID, typeID).First(&maintenance).Error
 	return maintenance, err
 }

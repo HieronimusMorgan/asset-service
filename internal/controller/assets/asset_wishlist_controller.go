@@ -75,7 +75,7 @@ func (h assetWishlistController) GetWishlistAssetByID(c *gin.Context) {
 	assetIDStr := c.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(c, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(c, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 
@@ -103,7 +103,7 @@ func (h assetWishlistController) UpdateWishlistAsset(c *gin.Context) {
 	assetIDStr := c.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(c, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(c, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h assetWishlistController) DeleteWishlistAsset(c *gin.Context) {
 	assetIDStr := c.Param("id")
 	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
 	if err != nil {
-		response.SendResponse(c, 400, "Invalid asset ID", nil, err.Error())
+		response.SendResponse(c, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
 

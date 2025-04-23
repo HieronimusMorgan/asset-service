@@ -37,6 +37,7 @@ type Services struct {
 	AssetCategory               services.AssetCategoryService
 	AssetMaintenance            services.AssetMaintenanceService
 	AssetMaintenanceType        services.AssetMaintenanceTypeService
+	AssetMaintenanceRecord      services.AssetMaintenanceRecordService
 	Asset                       services.AssetService
 	AssetStatus                 services.AssetStatusService
 	AssetWishlist               services.AssetWishlistService
@@ -73,6 +74,7 @@ type Controller struct {
 	AssetCategory                  controller.AssetCategoryController
 	AssetMaintenance               controller.AssetMaintenanceController
 	AssetMaintenanceType           controller.AssetMaintenanceTypeController
+	AssetMaintenanceRecord         controller.AssetMaintenanceRecordController
 	Asset                          controller.AssetController
 	AssetStatus                    controller.AssetStatusController
 	AssetWishlist                  controller.AssetWishlistController

@@ -19,7 +19,7 @@ type AssetService interface {
 		Stock  int     `json:"stock" binding:"required"`
 		Reason *string `json:"reason"`
 	}, clientID string) (interface{}, error)
-	GetListAsset(clientID string) (interface{}, error)
+	GetListAsset(clientID string, index int, size int) (interface{}, int64, error)
 	GetAssetByID(clientID string, assetID uint) (interface{}, error)
 	UpdateAssetStatus(assetID uint, statusID uint, clientID string) error
 	UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error
@@ -73,7 +73,7 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
-		return logError("GetUserByClientID", clientID, err, "Failed to get user by client ID")
+		return logError("GetUserByClientID", clientID, err, "Failed to get user by client MaintenanceTypeID")
 	}
 
 	//verifyPinCode := &user.VerifyPinCode{}
@@ -96,11 +96,11 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 	}
 
 	if _, err := s.AssetCategoryRepository.GetAssetCategoryById(uint(assetRequest.CategoryID), clientID); err != nil {
-		return logError("GetAssetCategoryById", clientID, errors.New("category not found"), "Failed to get asset category by ID")
+		return logError("GetAssetCategoryById", clientID, errors.New("category not found"), "Failed to get asset category by MaintenanceTypeID")
 	}
 
 	if _, err := s.AssetStatusRepository.GetAssetStatusByID(uint(assetRequest.StatusID)); err != nil {
-		return logError("GetAssetStatusByID", clientID, errors.New("status not found"), "Failed to get asset status by ID")
+		return logError("GetAssetStatusByID", clientID, errors.New("status not found"), "Failed to get asset status by MaintenanceTypeID")
 	}
 
 	purchaseDate, _ := utils.ParseOptionalDate(assetRequest.PurchaseDate)
@@ -148,17 +148,17 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 
 	assetImage, err := s.AssetImageRepository.GetAssetImageResponseByAssetID(asset.AssetID)
 	if err != nil {
-		return logError("GetAssetImageResponseByAssetID", clientID, err, "Failed to get asset image by ID")
+		return logError("GetAssetImageResponseByAssetID", clientID, err, "Failed to get asset image by MaintenanceTypeID")
 	}
 
 	result, err := s.AssetRepository.GetAssetResponseByID(clientID, asset.AssetID)
 	if err != nil {
-		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by ID")
+		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	result.Images = *assetImage
 
-	log.Info().Str("key", "GetAssetResponseByID").Str("clientID", clientID).Fields(asset).Msg("Success to get asset by ID")
+	log.Info().Str("key", "GetAssetResponseByID").Str("clientID", clientID).Fields(asset).Msg("Success to get asset by MaintenanceTypeID")
 	return result, nil
 }
 
@@ -170,7 +170,7 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
-		return logError("GetAsset", clientID, err, "Failed to get asset by ID")
+		return logError("GetAsset", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	purchaseDate, _ := utils.ParseOptionalDate(assetRequest.PurchaseDate)
@@ -218,12 +218,12 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct 
 	// Step 2: Retrieve asset and stock data
 	asset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
-		return logError("GetAsset", clientID, err, "Failed to get asset by ID")
+		return logError("GetAsset", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	oldAssetStock, err := s.AssetStockRepository.GetAssetStockByAssetID(assetID, clientID)
 	if err != nil {
-		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset ID")
+		return logError("GetAssetStockByAssetID", clientID, err, "Failed to get asset stock by asset MaintenanceTypeID")
 	}
 
 	log.Info().
@@ -287,13 +287,23 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct 
 	}, nil
 }
 
-func (s assetService) GetListAsset(clientID string) (interface{}, error) {
-	result, err := s.AssetRepository.GetListAssets(clientID)
+func (s assetService) GetListAsset(clientID string, index int, size int) (interface{}, int64, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
-		return logError("GetListAssets", clientID, err, "Failed to get list assets")
+		return logListError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
 
-	return result, nil
+	result, err := s.AssetRepository.GetListAssets(data.ClientID, index, size)
+	if err != nil {
+		return logListError("GetListAssets", clientID, err, "Failed to get list assets")
+	}
+
+	assetCount, err := s.AssetRepository.GetCountAsset(data.ClientID)
+	if err != nil {
+		return logListError("GetCountAssets", clientID, err, "Failed to get count assets")
+	}
+
+	return result, assetCount, nil
 }
 
 func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, error) {
@@ -304,7 +314,7 @@ func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, 
 
 	asset, err := s.AssetRepository.GetAssetResponseByID(clientID, assetID)
 	if err != nil {
-		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by ID")
+		return logError("GetAssetResponseByID", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	assetImage, _ := s.AssetImageRepository.GetAssetImageResponseByAssetID(assetID)
@@ -322,7 +332,7 @@ func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID st
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
-		return logErrorWithNoReturn("GetAsset", clientID, err, "Failed to get asset by ID")
+		return logErrorWithNoReturn("GetAsset", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	asset, err := s.AssetRepository.UpdateAssetStatus(assetID, statusID, data.ClientID)
@@ -346,7 +356,7 @@ func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientI
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
 	if err != nil {
-		return logErrorWithNoReturn("GetAsset", clientID, err, "Failed to get asset by ID")
+		return logErrorWithNoReturn("GetAsset", clientID, err, "Failed to get asset by MaintenanceTypeID")
 	}
 
 	asset, err := s.AssetRepository.UpdateAssetCategory(assetID, categoryID, data.ClientID)
@@ -381,6 +391,14 @@ func logError(key, clientID string, err error, msg string) (interface{}, error) 
 		err = errors.New(msg)
 	}
 	return nil, err
+}
+
+func logListError(key, clientID string, err error, msg string) (interface{}, int64, error) {
+	log.Error().Str("key", key).Str("clientID", clientID).Err(err).Msg(msg)
+	if err == nil {
+		err = errors.New(msg)
+	}
+	return nil, 0, err
 }
 
 func logErrorWithNoReturn(key, clientID string, err error, msg string) error {

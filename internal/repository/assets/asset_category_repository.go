@@ -89,7 +89,7 @@ func (r *assetCategoryRepository) GetAssetCategoryByNameAndClientID(name, client
 	return &assetCategory, nil
 }
 
-// GetAssetCategoryById retrieves a category by ID
+// GetAssetCategoryById retrieves a category by MaintenanceTypeID
 func (r *assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint, clientID string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
@@ -104,7 +104,7 @@ func (r *assetCategoryRepository) GetAssetCategoryById(assetCategoryID uint, cli
 	return &assetCategory, nil
 }
 
-// GetAssetCategoryByIdAndNameNotExist checks if category ID and name do not match
+// GetAssetCategoryByIdAndNameNotExist checks if category MaintenanceTypeID and name do not match
 func (r *assetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error) {
 	var assetCategory assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
@@ -121,7 +121,9 @@ func (r *assetCategoryRepository) GetListAssetCategory(clientID string) ([]asset
 	var assetCategories []assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
 		Where("user_client_id = ?", clientID).
-		Find(&assetCategories).Error
+		Order("asset_category_id ASC").
+		Find(&assetCategories).
+		Error
 	if err != nil {
 		log.Error().Err(err).Msg("❌ Failed to retrieve asset categories")
 		return nil, err

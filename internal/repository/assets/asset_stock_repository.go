@@ -45,14 +45,14 @@ func (r *assetStockRepository) DeleteAssetStock(assetID uint, clientID string) e
 		Delete(&assets.AssetStock{}).Error
 }
 
-// GetAssetStockResponseByAssetID retrieves asset stock by asset ID
+// GetAssetStockResponseByAssetID retrieves asset stock by asset MaintenanceTypeID
 func (r *assetStockRepository) GetAssetStockResponseByAssetID(assetID uint, clientID string) (*response.AssetStockResponse, error) {
 	var assetStockResponse response.AssetStockResponse
 	err := r.db.Table(utils.TableAssetStockName).Where("asset_id = ? AND user_client_id = ?", assetID, clientID).Scan(&assetStockResponse).Error
 	return &assetStockResponse, err
 }
 
-// GetAssetStockByAssetID retrieves asset stock by asset ID
+// GetAssetStockByAssetID retrieves asset stock by asset MaintenanceTypeID
 func (r *assetStockRepository) GetAssetStockByAssetID(assetID uint, clientID string) (*assets.AssetStock, error) {
 	var assetStock assets.AssetStock
 	err := r.db.Table(utils.TableAssetStockName).Where("asset_id = ? AND user_client_id = ?", assetID, clientID).First(&assetStock).Error
@@ -66,7 +66,7 @@ func (r *assetStockRepository) GetAssetStock() ([]assets.AssetStock, error) {
 	return assetStocks, err
 }
 
-// GetAssetStockByClientID retrieves all asset stocks by client ID
+// GetAssetStockByClientID retrieves all asset stocks by client MaintenanceTypeID
 func (r *assetStockRepository) GetAssetStockByClientID(clientID string) (*[]assets.AssetStock, error) {
 	var assetStocks []assets.AssetStock
 	err := r.db.Table(utils.TableAssetStockName).Where("user_client_id = ?", clientID).Find(&assetStocks).Error
