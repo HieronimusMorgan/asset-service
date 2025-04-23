@@ -145,11 +145,9 @@ func (r assetRepository) GetListAssets(clientID string, index, size int) ([]resp
 		SELECT 
 			a.asset_id, a.user_client_id, a.serial_number, a.name, a.description, a.barcode,
 			a.purchase_date, a.expiry_date, a.warranty_expiry_date, a.price, a.notes,
-
 			c.asset_category_id, c.category_name, c.description AS category_description,
 			s.asset_status_id, s.status_name, s.description AS status_description,
 			st.stock_id, st.initial_quantity, st.latest_quantity
-
 		FROM asset a
 		JOIN asset_category c ON a.category_id = c.asset_category_id
 		JOIN asset_status s ON a.status_id = s.asset_status_id
@@ -158,48 +156,41 @@ func (r assetRepository) GetListAssets(clientID string, index, size int) ([]resp
 		ORDER BY a.created_at ASC
 		LIMIT ? OFFSET ?
 	`
+
 	type assetRow struct {
-		AssetID           uint
-		UserClientID      string
-		SerialNumber      *string
-		Name              string
-		Description       string
-		Barcode           *string
-		PurchaseDateRaw   *time.Time
-		ExpiryDateRaw     *time.Time
-		WarrantyExpiryRaw *time.Time
-		Price             float64
-		Notes             *string
-
-		// Flattened status fields
-		AssetStatusID     uint
-		StatusName        string
-		StatusDescription string
-
-		// Flattened category fields
+		AssetID             uint
+		UserClientID        string
+		SerialNumber        *string
+		Name                string
+		Description         string
+		Barcode             *string
+		PurchaseDateRaw     *time.Time
+		ExpiryDateRaw       *time.Time
+		WarrantyExpiryRaw   *time.Time
+		Price               float64
+		Notes               *string
+		AssetStatusID       uint
+		StatusName          string
+		StatusDescription   string
 		AssetCategoryID     uint
 		CategoryName        string
 		CategoryDescription string
-
-		// Flattened stock
-		StockID    uint
-		InitialQty int
-		LatestQty  int
+		StockID             uint
+		InitialQty          int
+		LatestQty           int
 	}
 
 	var rows []assetRow
-	err := r.db.Raw(query, clientID, size, index*size).Scan(&rows).Error
-	if err != nil {
+	offset := (index - 1) * size
+	if err := r.db.Raw(query, clientID, size, offset).Scan(&rows).Error; err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset list")
 		return nil, err
 	}
 
-	// Build asset list
-	assetResponses := make([]response.AssetResponse, 0, len(rows))
-	assetIDs := make([]uint, 0, len(rows))
-
-	for _, row := range rows {
-		asset := response.AssetResponse{
+	assetResponses := make([]response.AssetResponse, len(rows))
+	assetIDs := make([]uint, len(rows))
+	for i, row := range rows {
+		assetResponses[i] = response.AssetResponse{
 			AssetID:            row.AssetID,
 			UserClientID:       row.UserClientID,
 			SerialNumber:       row.SerialNumber,
@@ -228,11 +219,9 @@ func (r assetRepository) GetListAssets(clientID string, index, size int) ([]resp
 				LatestQuantity:  row.LatestQty,
 			},
 		}
-		assetResponses = append(assetResponses, asset)
-		assetIDs = append(assetIDs, row.AssetID)
+		assetIDs[i] = row.AssetID
 	}
 
-	// Batch load asset images
 	imageQuery := `
 		SELECT asset_id, image_url
 		FROM asset_image
@@ -247,15 +236,13 @@ func (r assetRepository) GetListAssets(clientID string, index, size int) ([]resp
 		return nil, err
 	}
 
-	// Group images by asset
 	imageMap := make(map[uint][]response.AssetImageResponse)
 	for _, img := range imageRows {
 		imageMap[img.AssetID] = append(imageMap[img.AssetID], response.AssetImageResponse{ImageURL: img.ImageURL})
 	}
 
-	// Assign images to assetResponses
-	for i, asset := range assetResponses {
-		assetResponses[i].Images = imageMap[asset.AssetID]
+	for i := range assetResponses {
+		assetResponses[i].Images = imageMap[assetResponses[i].AssetID]
 	}
 
 	log.Info().Str("clientID", clientID).Int("assets_count", len(assetResponses)).Msg("✅ Successfully fetched asset list")

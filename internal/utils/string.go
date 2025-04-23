@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"regexp"
 	"strconv"
 	"strings"
@@ -98,4 +99,30 @@ func ToDateOnly(t *time.Time) *response.DateOnly {
 		return nil
 	}
 	return (*response.DateOnly)(t)
+}
+
+func GetOptionalString(context *gin.Context, field string) *string {
+	val := context.PostForm(field)
+	if val == "" {
+		return nil
+	}
+	return &val
+}
+
+func ParseFormInt(context *gin.Context, field string) int {
+	val := context.PostForm(field)
+	if val == "" {
+		return 0
+	}
+	intVal, _ := strconv.Atoi(val)
+	return intVal
+}
+
+func ParseFormFloat(context *gin.Context, field string) float64 {
+	val := context.PostForm(field)
+	if val == "" {
+		return 0.0
+	}
+	floatVal, _ := strconv.ParseFloat(val, 64)
+	return floatVal
 }

@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -40,27 +39,25 @@ func NewAssetController(assetService assets.AssetService, jwtService utils.JWTSe
 }
 
 func (h assetController) AddAsset(context *gin.Context) {
-	// Parse multipart form (for images + JSON fields)
-	err := context.Request.ParseMultipartForm(10 << 20) // 10 MB limit
+	err := context.Request.ParseMultipartForm(10 << 20)
 	if err != nil {
 		response.SendResponse(context, 400, "Error parsing form", nil, err.Error())
 		return
 	}
 
-	// Extract form data (JSON fields)
 	req := request.AssetRequest{
-		SerialNumber:   getOptionalString(context, "serial_number"),
+		SerialNumber:   utils.GetOptionalString(context, "serial_number"),
 		Name:           context.PostForm("name"),
-		Description:    getOptionalString(context, "description"),
-		Barcode:        getOptionalString(context, "barcode"),
-		CategoryID:     parseFormInt(context, "category_id"),
-		StatusID:       parseFormInt(context, "status_id"),
-		PurchaseDate:   getOptionalString(context, "purchase_date"),
-		ExpiryDate:     getOptionalString(context, "expiry_date"),
-		WarrantyExpiry: getOptionalString(context, "warranty_expiry_date"),
-		Price:          parseFormFloat(context, "price"),
-		Stock:          parseFormInt(context, "stock"),
-		Notes:          getOptionalString(context, "notes"),
+		Description:    utils.GetOptionalString(context, "description"),
+		Barcode:        utils.GetOptionalString(context, "barcode"),
+		CategoryID:     utils.ParseFormInt(context, "category_id"),
+		StatusID:       utils.ParseFormInt(context, "status_id"),
+		PurchaseDate:   utils.GetOptionalString(context, "purchase_date"),
+		ExpiryDate:     utils.GetOptionalString(context, "expiry_date"),
+		WarrantyExpiry: utils.GetOptionalString(context, "warranty_expiry_date"),
+		Price:          utils.ParseFormFloat(context, "price"),
+		Stock:          utils.ParseFormInt(context, "stock"),
+		Notes:          utils.GetOptionalString(context, "notes"),
 	}
 
 	// Extract token
@@ -304,13 +301,14 @@ func (h assetController) DeleteAsset(context *gin.Context) {
 	response.SendResponse(context, 200, "Asset deleted successfully", nil, nil)
 }
 
-func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID string, authToken string) ([]responses.AssetImageResponse, error) {
-	var _ []responses.AssetImageResponse
+func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID, authToken string) ([]responses.AssetImageResponse, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	log.Info().Msgf("Uploading %d images", len(files))
+
 	// Add clientID field
-	_ = writer.WriteField("client_id", clientID)
+	if err := writer.WriteField("client_id", clientID); err != nil {
+		return nil, err
+	}
 
 	// Add files to form data
 	for _, file := range files {
@@ -319,49 +317,40 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 			return nil, err
 		}
 
-		// Open file
 		src, err := file.Open()
 		if err != nil {
 			return nil, err
 		}
 		defer src.Close()
 
-		// Copy file content to form
-		_, err = io.Copy(part, src)
-		if err != nil {
+		if _, err = io.Copy(part, src); err != nil {
 			return nil, err
 		}
 	}
 
 	// Close writer
-	writer.Close()
-
-	// Send request to `cdn-service`
-	log.Log().Msgf("ipCdn: %s", ipCdn)
-	req, err := http.NewRequest("POST", ipCdn+"/v1/upload", body)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create request")
+	if err := writer.Close(); err != nil {
 		return nil, err
 	}
 
-	// Set headers
+	// Create and send request
+	req, err := http.NewRequest("POST", ipCdn+"/v1/upload", body)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("Authorization", authToken)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := (&http.Client{}).Do(req)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to upload images")
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	// Check response status
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("Failed to upload images: %s", resp.Status)
+		return nil, fmt.Errorf("failed to upload images: %s", resp.Status)
 	}
 
-	// Parse response JSON
 	var res struct {
 		Data []responses.AssetImageResponse `json:"data"`
 	}
@@ -369,43 +358,9 @@ func uploadImagesToCDN(ipCdn string, files []*multipart.FileHeader, clientID str
 		return nil, err
 	}
 
-	var result struct {
-		Data []responses.AssetImageResponse `json:"data"`
-	}
-	for _, img := range res.Data {
-		result.Data = append(result.Data, responses.AssetImageResponse{
-			ImageURL: ipCdn + "/v1" + img.ImageURL,
-		})
+	for i := range res.Data {
+		res.Data[i].ImageURL = ipCdn + "/v1" + res.Data[i].ImageURL
 	}
 
-	return result.Data, nil
-}
-
-// Get an optional string field from the form
-func getOptionalString(context *gin.Context, field string) *string {
-	val := context.PostForm(field)
-	if val == "" {
-		return nil
-	}
-	return &val
-}
-
-// Parse an integer from the form data
-func parseFormInt(context *gin.Context, field string) int {
-	val := context.PostForm(field)
-	if val == "" {
-		return 0
-	}
-	intVal, _ := strconv.Atoi(val)
-	return intVal
-}
-
-// Parse a float from the form data
-func parseFormFloat(context *gin.Context, field string) float64 {
-	val := context.PostForm(field)
-	if val == "" {
-		return 0.0
-	}
-	floatVal, _ := strconv.ParseFloat(val, 64)
-	return floatVal
+	return res.Data, nil
 }

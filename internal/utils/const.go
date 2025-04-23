@@ -17,6 +17,7 @@ const (
 	TableAssetMaintenanceName           = "asset_maintenance"
 	TableAssetMaintenanceTypeName       = "asset_maintenance_type"
 	TableAssetName                      = "asset"
+	TableAssetWishlistName              = "asset_wishlist"
 	TableAssetStatusName                = "asset_status"
 	TableAssetImageName                 = "asset_image"
 	TableAssetStockName                 = "asset_stock"

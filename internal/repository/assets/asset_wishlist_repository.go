@@ -4,274 +4,191 @@ import (
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
-	"database/sql"
 	"fmt"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
 
 type AssetWishlistRepository interface {
-	AddAssetWishlist(asset *assets.Asset) error
-	GetAssetWishlistByID(clientID string, assetID uint) (*response.AssetResponse, error)
-	GetAssetWishlistList(clientID string) ([]response.AssetResponse, error)
-	UpdateAssetWishlist(assetID uint, data map[string]interface{}) error
-	DeleteAssetWishlist(clientID, name string, assetID uint) error
-	GetAssetWishlistByCategory(clientID string, categoryID uint) ([]response.AssetResponse, error)
-	GetAssetWishlistByStatus(clientID string, statusID uint) ([]response.AssetResponse, error)
-	GetAssetWishlistByCategoryAndStatus(clientID string, categoryID, statusID uint) ([]response.AssetResponse, error)
+	AssetWishlistNameExists(assetName string, clientID string) (bool, error)
+	AddAssetWishlist(asset *assets.AssetWishlist) error
+	GetAssetWishlistByID(clientID string, assetWishlistID uint) (*assets.AssetWishlist, error)
+	GetAssetWishlistResponseByID(clientID string, assetWishlistID uint) (*response.AssetWishlistResponse, error)
+	GetListAssetWishlist(clientID string) ([]response.AssetWishlistResponse, error)
+	UpdateAssetWishlist(assetWishlist *assets.AssetWishlist) error
+	DeleteAssetWishlist(id uint, clientID string) error
 }
 
 type assetWishlistRepository struct {
 	db    gorm.DB
 	audit AssetAuditLogRepository
-	asset AssetRepository
 }
 
-func NewAssetWishlistRepository(db gorm.DB, audit AssetAuditLogRepository, asset AssetRepository) AssetWishlistRepository {
-	return assetWishlistRepository{db: db, audit: audit, asset: asset}
+func NewAssetWishlistRepository(db gorm.DB, audit AssetAuditLogRepository) AssetWishlistRepository {
+	return assetWishlistRepository{db: db, audit: audit}
 }
 
-func (r assetWishlistRepository) AddAssetWishlist(asset *assets.Asset) error {
+func (r assetWishlistRepository) AssetWishlistNameExists(assetName string, clientID string) (bool, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetWishlistName).
+		Where("user_client_id = ? AND asset_name = ? AND deleted_at IS NULL", clientID, assetName).
+		Count(&count).Error
+
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to check asset wishlist name existence")
+		return false, err
+	}
+
+	if count > 0 {
+		log.Info().Str("clientID", clientID).Msg("✅ Asset wishlist name already exists")
+		return true, nil
+	}
+
+	log.Info().Str("clientID", clientID).Msg("✅ Asset wishlist name does not exist")
+	return false, nil
+}
+
+func (r assetWishlistRepository) AddAssetWishlist(asset *assets.AssetWishlist) error {
 	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
-	// Insert the assets
-	if err := tx.Table(utils.TableAssetName).Create(&asset).Error; err != nil {
-		tx.Rollback()
+	if err := tx.Table(utils.TableAssetWishlistName).Create(&asset).Error; err != nil {
 		return fmt.Errorf("failed to create assets: %w", err)
 	}
-	log.Printf("Asset created: %v", asset)
 
-	// Commit the transaction
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil
 }
-func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetID uint) (*response.AssetResponse, error) {
+
+func (r assetWishlistRepository) GetAssetWishlistByID(clientID string, assetWishlistID uint) (*assets.AssetWishlist, error) {
+	selectQuery := `
+		SELECT 
+			wishlist_id,
+			user_client_id,
+			asset_name,
+			serial_number,
+			barcode,
+			category_id,
+			status_id,
+			priority_level,
+			price_estimate,
+			notes
+		FROM "asset_wishlist"
+		WHERE user_client_id = ? AND wishlist_id = ? AND deleted_at IS NULL;
+	`
+
+	var asset assets.AssetWishlist
+
+	err := r.db.Raw(selectQuery, clientID, assetWishlistID).Scan(&asset).Error
+	if err != nil {
+		log.Error().Uint("assetWishlistID", assetWishlistID).Str("clientID", clientID).Err(err).Msg("❌ Failed to retrieve asset wishlist")
+		return nil, err
+	}
+
+	log.Info().Uint("assetWishlistID", assetWishlistID).Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
+	return &asset, nil
+}
+
+func (r assetWishlistRepository) GetAssetWishlistResponseByID(clientID string, assetWishlistID uint) (*response.AssetWishlistResponse, error) {
 	selectQuery := `
         SELECT 
-            asset.asset_id,
-            asset.user_client_id,
-            asset.serial_number,
-            asset.name,
-            asset.description,
-            asset.barcode,
-            asset.purchase_date,
-            asset.expiry_date,
-            asset.warranty_expiry_date,
-            asset.price,
-            asset.stock,
-            asset.notes,
-            category.asset_category_id,
-            category.category_name,
-            category.description AS category_description,
-            status.asset_status_id,
-            status.status_name,
-            status.description AS status_description
-        FROM "asset-service"."asset" asset
-        INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-        INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-        WHERE asset.user_client_id = ? AND asset.asset_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-        ORDER BY asset.asset_id ASC;
+            aw.wishlist_id,
+            aw.user_client_id,
+            aw.asset_name,
+            aw.serial_number,
+            aw.barcode,
+            ac.category_name,
+            ass.status_name,
+            aw.priority_level,
+            aw.price_estimate,
+            aw.notes
+        FROM "asset_wishlist" aw
+        INNER JOIN "asset_category" ac ON aw.category_id = ac.asset_category_id
+        INNER JOIN "asset_status" ass ON aw.status_id = ass.asset_status_id
+        WHERE aw.user_client_id = ? AND aw.wishlist_id = ? AND aw.deleted_at IS NULL
+        ORDER BY aw.wishlist_id ASC;
     `
 
-	row := r.db.Raw(selectQuery, clientID, assetID).Row()
+	row := r.db.Raw(selectQuery, clientID, assetWishlistID).Row()
 
-	var asset response.AssetResponse
-	var category response.AssetCategoryResponse
-	var status response.AssetStatusResponse
-
-	// Handling NULL values from SQL
-	var serialNumber sql.NullString
-	var barcode sql.NullString
-	var notes sql.NullString
-	var purchaseDate sql.NullTime
-	var expiryDate sql.NullTime
-	var warrantyExpiryDate sql.NullTime
+	var asset response.AssetWishlistResponse
 
 	err := row.Scan(
-		&asset.AssetID,
+		&asset.WishlistID,
 		&asset.UserClientID,
-		&serialNumber,
-		&asset.Name,
-		&asset.Description,
-		&barcode,
-		&purchaseDate,
-		&expiryDate,
-		&warrantyExpiryDate,
-		&asset.Price,
-		&asset.Stock,
-		&notes,
-		&category.AssetCategoryID,
-		&category.CategoryName,
-		&category.Description,
-		&status.AssetStatusID,
-		&status.StatusName,
-		&status.Description,
+		&asset.AssetName,
+		&asset.SerialNumber,
+		&asset.Barcode,
+		&asset.CategoryName,
+		&asset.StatusName,
+		&asset.PriorityLevel,
+		&asset.PriceEstimate,
+		&asset.Notes,
 	)
 
 	if err != nil {
-		log.Error().Uint("assetID", assetID).Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist")
+		log.Error().Uint("assetWishlistID", assetWishlistID).Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist")
 		return nil, err
 	}
 
-	// Convert NULL SQL values to Go `nil`
-	if serialNumber.Valid {
-		asset.SerialNumber = &serialNumber.String
-	}
-	if barcode.Valid {
-		asset.Barcode = &barcode.String
-	}
-	if notes.Valid {
-		asset.Notes = &notes.String
-	}
-	if purchaseDate.Valid {
-		asset.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
-	}
-	if expiryDate.Valid {
-		asset.ExpiryDate = (*response.DateOnly)(&expiryDate.Time)
-	}
-	if warrantyExpiryDate.Valid {
-		asset.WarrantyExpiryDate = (*response.DateOnly)(&warrantyExpiryDate.Time)
-	}
-
-	asset.Category = category
-	asset.Status = status
-
-	log.Info().Uint("assetID", assetID).Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
+	log.Info().Uint("assetWishlistID", assetWishlistID).Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
 	return &asset, nil
 }
-func (r assetWishlistRepository) GetAssetWishlistList(clientID string) ([]response.AssetResponse, error) {
+
+func (r assetWishlistRepository) GetListAssetWishlist(clientID string) ([]response.AssetWishlistResponse, error) {
 	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.user_client_id,
-			asset.name,
-			asset.description,
-			asset.price,
-			category.asset_category_id,
-			category.category_name,
-			category.description AS category_description,
-			status.asset_status_id,
-			status.status_name,
-			status.description AS status_description,
-			asset.purchase_date
-		FROM "asset-service"."asset" asset
-		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-		WHERE asset.user_client_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-		ORDER BY asset.asset_id ASC;
-	`
+	        SELECT
+	            aw.wishlist_id,
+	            aw.user_client_id,
+	            aw.asset_name,
+	            aw.serial_number,
+	            aw.barcode,
+	            ac.category_name,
+	            ass.status_name,
+	            aw.priority_level,
+	            aw.price_estimate,
+	            aw.notes
+	        FROM "asset_wishlist" aw
+	        INNER JOIN "asset_category" ac ON aw.category_id = ac.asset_category_id
+	        INNER JOIN "asset_status" ass ON aw.status_id = ass.asset_status_id
+	        WHERE aw.user_client_id = ? AND aw.deleted_at IS NULL
+	        ORDER BY aw.wishlist_id ASC;
+	    `
 
-	rows, err := r.db.Raw(selectQuery, clientID).Rows()
+	var assetWishlists []response.AssetWishlistResponse
+
+	err := r.db.Raw(selectQuery, clientID).Scan(&assetWishlists).Error
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to fetch asset wishlist list")
+		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to retrieve asset wishlist")
 		return nil, err
-	} // Ensures rows are closed after execution
-
-	var assetsResult []response.AssetResponse
-	for rows.Next() {
-		var assetResult response.AssetResponse
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
-
-		// Handling NULL values from SQL
-		var description sql.NullString
-		var purchaseDate sql.NullTime
-		var price sql.NullFloat64
-
-		err := rows.Scan(
-			&assetResult.AssetID,
-			&assetResult.UserClientID,
-			&assetResult.Name,
-			&description, // Handling NULL description
-			&price,       // Handling NULL price
-			&categoryResult.AssetCategoryID,
-			&categoryResult.CategoryName,
-			&categoryResult.Description,
-			&statusResult.AssetStatusID,
-			&statusResult.StatusName,
-			&statusResult.Description,
-			&purchaseDate, // Handling NULL purchaseDate
-		)
-
-		if err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist row")
-			return nil, err
-		}
-
-		// Convert NULL SQL values to Go `nil`
-		if description.Valid {
-			assetResult.Description = description.String
-		}
-		if price.Valid {
-			assetResult.Price = price.Float64
-		}
-		if purchaseDate.Valid {
-			assetResult.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
-		}
-
-		// Assign category and status details
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-
-		// Append to result slice
-		assetsResult = append(assetsResult, assetResult)
 	}
 
-	log.Info().Str("clientID", clientID).Int("assets_count", len(assetsResult)).Msg("✅ Successfully fetched asset wishlist list")
-	return assetsResult, nil
+	log.Info().Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
+	return assetWishlists, nil
 }
 
-func (r assetWishlistRepository) UpdateAssetWishlist(assetID uint, data map[string]interface{}) error {
+func (r assetWishlistRepository) UpdateAssetWishlist(assetWishlist *assets.AssetWishlist) error {
 	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
+	defer tx.Rollback()
 
-	if err := tx.Table(utils.TableAssetName).
-		Where("asset_id = ?", assetID).
-		Updates(data).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to update assets: %w", err)
-	}
-
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
-}
-
-func (r assetWishlistRepository) DeleteAssetWishlist(clientID, name string, assetID uint) error {
-	tx := r.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	if err := tx.Table(utils.TableAssetName).Where("asset_id = ? AND user_client_id = ?", assetID, clientID).
-		First(assets.Asset{}).Error; err != nil {
-		return fmt.Errorf("failed to find asset: %w", err)
-	}
-
-	if err := tx.Table(utils.TableAssetName).
-		Where("asset_id = ?", assetID).
+	if err := tx.Table(utils.TableAssetWishlistName).
+		Where("wishlist_id = ? AND user_client_id = ? AND deleted_at IS NULL", assetWishlist.WishlistID, assetWishlist.UserClientID).
 		Updates(map[string]interface{}{
-			"deleted_at": gorm.Expr("NOW()"),
-			"deleted_by": name,
-		}).Delete(&assets.Asset{}).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("failed to delete assets: %w", err)
+			"asset_name":     assetWishlist.AssetName,
+			"serial_number":  assetWishlist.SerialNumber,
+			"barcode":        assetWishlist.Barcode,
+			"category_id":    assetWishlist.CategoryID,
+			"status_id":      assetWishlist.StatusID,
+			"priority_level": assetWishlist.PriorityLevel,
+			"price_estimate": assetWishlist.PriceEstimate,
+			"notes":          assetWishlist.Notes,
+			"updated_by":     assetWishlist.UpdatedBy,
+			"updated_at":     gorm.Expr("NOW()"),
+		}).Error; err != nil {
+		return fmt.Errorf("failed to update asset wishlist: %w", err)
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -281,219 +198,22 @@ func (r assetWishlistRepository) DeleteAssetWishlist(clientID, name string, asse
 	return nil
 }
 
-func (r assetWishlistRepository) GetAssetWishlistByCategory(clientID string, categoryID uint) ([]response.AssetResponse, error) {
-	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.user_client_id,
-			asset.name,
-			asset.description,
-			asset.price,
-			category.asset_category_id,
-			category.category_name,
-			category.description AS category_description,
-			status.asset_status_id,
-			status.status_name,
-			status.description AS status_description,
-			asset.purchase_date,
-			asset.price
-		FROM "asset-service"."asset" asset
-		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-		ORDER BY asset.asset_id ASC;
-	`
-	rows, err := r.db.Raw(selectQuery, clientID, categoryID).Rows()
-	if err != nil {
-		return nil, err
+func (r assetWishlistRepository) DeleteAssetWishlist(id uint, clientID string) error {
+	tx := r.db.Begin()
+	defer tx.Rollback()
+
+	if err := tx.Table(utils.TableAssetWishlistName).
+		Where("wishlist_id = ? AND user_client_id = ? AND deleted_at IS NULL", id, clientID).
+		Updates(map[string]interface{}{
+			"deleted_by": clientID,
+			"deleted_at": gorm.Expr("NOW()"),
+		}).Error; err != nil {
+		return fmt.Errorf("failed to delete asset wishlist: %w", err)
 	}
 
-	var assetsResult []response.AssetResponse
-	for rows.Next() {
-		var assetResult response.AssetResponse
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
-
-		err := rows.Scan(
-			&assetResult.AssetID,
-			&assetResult.UserClientID,
-			assetResult.Name,
-			assetResult.Description,
-			assetResult.Price,
-			categoryResult.AssetCategoryID,
-			categoryResult.CategoryName,
-			categoryResult.Description,
-			statusResult.AssetStatusID,
-			statusResult.StatusName,
-			statusResult.Description,
-			assetResult.PurchaseDate,
-			assetResult.Price,
-		)
-
-		if err != nil {
-			return nil, err
-		}
-
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-
-		assetsResult = append(assetsResult, assetResult)
+	if err := tx.Commit().Error; err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	return assetsResult, nil
-}
-
-func (r assetWishlistRepository) GetAssetWishlistByStatus(clientID string, statusID uint) ([]response.AssetResponse, error) {
-	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.user_client_id,
-			asset.name,
-			asset.description,
-			asset.price,
-			category.asset_category_id,
-			category.category_name,
-			category.description AS category_description,
-			status.asset_status_id,
-			status.status_name,
-			status.description AS status_description,
-			asset.purchase_date
-		FROM "asset-service"."asset" asset
-		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-		WHERE asset.user_client_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-		ORDER BY asset.asset_id ASC;
-	`
-	rows, err := r.db.Raw(selectQuery, clientID, statusID).Rows()
-	if err != nil {
-		return nil, err
-	}
-
-	var assetsResult []response.AssetResponse
-	for rows.Next() {
-		var assetResult response.AssetResponse
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
-
-		// Handling NULL values from SQL
-		var description sql.NullString
-		var purchaseDate sql.NullTime
-		var price sql.NullFloat64
-
-		err := rows.Scan(
-			&assetResult.AssetID,
-			&assetResult.UserClientID,
-			&assetResult.Name,
-			&description, // Handling NULL description
-			&price,       // Handling NULL price
-			&categoryResult.AssetCategoryID,
-			&categoryResult.CategoryName,
-			&categoryResult.Description,
-			&statusResult.AssetStatusID,
-			&statusResult.StatusName,
-			&statusResult.Description,
-			&purchaseDate, // Handling NULL purchaseDate
-		)
-
-		if err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist row")
-			return nil, err
-		}
-
-		// Convert NULL SQL values to Go `nil`
-		if description.Valid {
-			assetResult.Description = description.String
-		}
-		if price.Valid {
-			assetResult.Price = price.Float64
-		}
-		if purchaseDate.Valid {
-			assetResult.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
-		}
-
-		// Assign category and status details
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-		assetsResult = append(assetsResult, assetResult)
-	}
-
-	return assetsResult, nil
-}
-
-func (r assetWishlistRepository) GetAssetWishlistByCategoryAndStatus(clientID string, categoryID, statusID uint) ([]response.AssetResponse, error) {
-	selectQuery := `
-		SELECT 
-			asset.asset_id,
-			asset.user_client_id,
-			asset.name,
-			asset.description,
-			asset.price,
-			category.asset_category_id,
-			category.category_name,
-			category.description AS category_description,
-			status.asset_status_id,
-			status.status_name,
-			status.description AS status_description,
-			asset.purchase_date
-		FROM "asset-service"."asset" asset
-		INNER JOIN "asset-service"."asset_category" category ON asset.category_id = category.asset_category_id
-		INNER JOIN "asset-service"."asset_status" status ON asset.status_id = status.asset_status_id
-		WHERE asset.user_client_id = ? AND asset.category_id = ? AND asset.status_id = ? AND asset.deleted_at IS NULL AND asset.is_wishlist = true
-		ORDER BY asset.asset_id ASC;
-	`
-	rows, err := r.db.Raw(selectQuery, clientID, categoryID, statusID).Rows()
-	if err != nil {
-		return nil, err
-	}
-
-	var assetsResult []response.AssetResponse
-	for rows.Next() {
-		var assetResult response.AssetResponse
-		var categoryResult response.AssetCategoryResponse
-		var statusResult response.AssetStatusResponse
-
-		// Handling NULL values from SQL
-		var description sql.NullString
-		var purchaseDate sql.NullTime
-		var price sql.NullFloat64
-
-		err := rows.Scan(
-			&assetResult.AssetID,
-			&assetResult.UserClientID,
-			&assetResult.Name,
-			&description, // Handling NULL description
-			&price,       // Handling NULL price
-			&categoryResult.AssetCategoryID,
-			&categoryResult.CategoryName,
-			&categoryResult.Description,
-			&statusResult.AssetStatusID,
-			&statusResult.StatusName,
-			&statusResult.Description,
-			&purchaseDate, // Handling NULL purchaseDate
-		)
-
-		if err != nil {
-			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist row")
-			return nil, err
-		}
-
-		// Convert NULL SQL values to Go `nil`
-		if description.Valid {
-			assetResult.Description = description.String
-		}
-		if price.Valid {
-			assetResult.Price = price.Float64
-		}
-		if purchaseDate.Valid {
-			assetResult.PurchaseDate = (*response.DateOnly)(&purchaseDate.Time)
-		}
-
-		// Assign category and status details
-		assetResult.Category = categoryResult
-		assetResult.Status = statusResult
-
-		assetsResult = append(assetsResult, assetResult)
-	}
-
-	return assetsResult, nil
+	return nil
 }

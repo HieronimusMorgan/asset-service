@@ -96,7 +96,6 @@ CREATE TABLE asset
     price                DECIMAL(40, 2) DEFAULT 0,
     stock                INT            DEFAULT 0,
     notes                TEXT         DEFAULT NULL,
-    is_wishlist          BOOLEAN        DEFAULT FALSE,
     created_at           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
     created_by           VARCHAR(255),
     updated_at           TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
@@ -114,6 +113,35 @@ CREATE INDEX idx_asset_name ON asset (name);
 CREATE INDEX idx_asset_barcode ON asset (barcode);
 CREATE INDEX idx_asset_category ON asset (category_id);
 CREATE INDEX idx_asset_status ON asset (status_id);
+
+CREATE TABLE asset_wishlist
+(
+    wishlist_id    SERIAL PRIMARY KEY,
+    user_client_id VARCHAR(50)  NOT NULL,
+    asset_name     VARCHAR(100) NOT NULL,
+    serial_number  VARCHAR(100)   DEFAULT NULL,
+    barcode        VARCHAR(100)   DEFAULT NULL,
+    category_id    INT          NOT NULL,
+    status_id      INT          NOT NULL,
+    priority_level VARCHAR(20)    DEFAULT 'medium' CHECK (priority_level IN ('low', 'medium', 'high')),
+    price_estimate DECIMAL(40, 2) DEFAULT 0,
+    notes          TEXT           DEFAULT NULL,
+    created_at     TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    created_by     VARCHAR(255),
+    updated_at     TIMESTAMP      DEFAULT CURRENT_TIMESTAMP,
+    updated_by     VARCHAR(255),
+    deleted_at     TIMESTAMP,
+    deleted_by     VARCHAR(255),
+    FOREIGN KEY (category_id) REFERENCES asset_category (asset_category_id),
+    FOREIGN KEY (status_id) REFERENCES asset_status (asset_status_id)
+);
+
+-- Indexes to speed up queries
+CREATE INDEX idx_asset_wishlist_id ON asset_wishlist (wishlist_id);
+CREATE INDEX idx_asset_wishlist_user ON asset_wishlist (user_client_id);
+CREATE INDEX idx_asset_wishlist_name ON asset_wishlist (asset_name);
+CREATE INDEX idx_asset_wishlist_serial ON asset_wishlist (serial_number);
+CREATE INDEX idx_asset_wishlist_barcode ON asset_wishlist (barcode);
 
 CREATE TABLE asset_stock
 (
@@ -207,14 +235,14 @@ CREATE TABLE asset_maintenance
 (
     id                  SERIAL PRIMARY KEY,
     user_client_id      VARCHAR(50) NOT NULL,
-    asset_id            INT         NOT NULL, -- Reference to asset
+    asset_id         INT NOT NULL,      -- Reference to asset
     maintenance_type_id INT         NOT NULL,
     maintenance_date    DATE        NOT NULL,
     maintenance_details TEXT,
-    maintenance_cost    DECIMAL(15, 2),       -- Cost of maintenance
-    performed_by        VARCHAR(255),         -- Who performed the maintenance
-    interval_days       INT,                  -- Maintenance interval in days
-    next_due_date       DATE DEFAULT NULL,    -- Scheduled next maintenance
+    maintenance_cost DECIMAL(15, 2),    -- Cost of maintenance
+    performed_by     VARCHAR(255),      -- Who performed the maintenance
+    interval_days    INT,               -- Maintenance interval in days
+    next_due_date    DATE DEFAULT NULL, -- Scheduled next maintenance
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by          VARCHAR(255),
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

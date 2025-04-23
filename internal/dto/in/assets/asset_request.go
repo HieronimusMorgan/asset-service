@@ -50,14 +50,14 @@ type UpdateAssetRequest struct {
 }
 
 type AssetWishlistRequest struct {
-	Name         string  `json:"name" binding:"required"`
-	Description  *string `json:"description"`
-	CategoryID   int     `json:"category_id" binding:"required"`
-	StatusID     int     `json:"status_id" binding:"required"`
-	PurchaseDate *string `json:"purchase_date"`
-	Price        float64 `json:"price" binding:"required"`
-	Notes        *string `json:"notes"`
-	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
+	AssetName     string  `json:"asset_name"`
+	SerialNumber  *string `json:"serial_number,omitempty"`
+	Barcode       *string `json:"barcode,omitempty"`
+	CategoryID    int     `json:"category_id,omitempty"`
+	StatusID      int     `json:"status_id,omitempty"`
+	PriorityLevel string  `json:"priority_level"`
+	PriceEstimate float64 `json:"price_estimate"`
+	Notes         *string `json:"notes,omitempty"`
 }
 
 type UpdateAssetWishlistRequest struct {
@@ -67,7 +67,6 @@ type UpdateAssetWishlistRequest struct {
 	PurchaseDate *string `json:"purchase_date"`
 	Price        float64 `json:"price" binding:"required"`
 	Notes        *string `json:"notes"`
-	IsWishlist   bool    `json:"is_wishlist" binding:"required"`
 }
 
 type UpdateAssetStockRequest struct {

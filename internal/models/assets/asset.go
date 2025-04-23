@@ -20,7 +20,6 @@ type Asset struct {
 	Price              float64        `gorm:"type:decimal(15,2)" json:"price,omitempty"`
 	Stock              int            `gorm:"not null" json:"stock,omitempty"`
 	Notes              *string        `gorm:"type:text" json:"notes,omitempty"`
-	IsWishlist         bool           `gorm:"type:boolean" json:"is_wishlist,omitempty"`
 	CreatedAt          time.Time      `gorm:"autoCreateTime" json:"created_at,omitempty"`
 	CreatedBy          string         `gorm:"type:varchar(255)" json:"created_by,omitempty"`
 	UpdatedAt          time.Time      `gorm:"autoUpdateTime" json:"updated_at,omitempty"`

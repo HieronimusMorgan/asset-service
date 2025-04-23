@@ -12,9 +12,10 @@ func AssetWishlistRoutes(r *gin.Engine, middleware config.Middleware, controller
 	public.Use(middleware.AssetMiddleware.HandlerAsset())
 	{
 		public.POST("/add", controller.AddWishlistAsset)
-		public.POST("/update/:id", controller.UpdateWishlistAsset)
-		public.GET("", controller.GetListWishlistAsset)
-		public.GET("/:id", controller.GetWishlistAssetByID)
-		public.DELETE("/delete/:id", controller.DeleteWishlistAsset)
+		public.GET("", controller.GetListAssetWishlist)
+		public.GET("/:id", controller.GetAssetWishlistByID)
+		public.PUT("/:id", controller.UpdateAssetWishlist)
+		public.DELETE("/:id", controller.DeleteAssetWishlist)
+		public.POST("/add-to-asset/:id", controller.AddAssetWishlistToAsset)
 	}
 }
