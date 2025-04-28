@@ -91,8 +91,8 @@ func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupReques
 		AssetGroupName: assetRequest.AssetGroupName,
 		Description:    assetRequest.Description,
 		OwnerUserID:    user.UserID,
-		CreatedBy:      user.ClientID,
-		UpdatedBy:      user.ClientID,
+		CreatedBy:      &user.ClientID,
+		UpdatedBy:      &user.ClientID,
 	}
 
 	err = s.AssetGroupRepository.AddAssetGroup(assetGroup, clientID, user)
@@ -296,7 +296,7 @@ func (s *assetGroupService) UpdateAssetGroup(assetGroupID uint, req *request.Ass
 	}
 	assetGroup.AssetGroupName = req.AssetGroupName
 	assetGroup.Description = req.Description
-	assetGroup.UpdatedBy = user.ClientID
+	assetGroup.UpdatedBy = &user.ClientID
 	err = s.AssetGroupRepository.UpdateAssetGroup(assetGroup)
 	if err != nil {
 		return nil, logErrorWithNoReturn("UpdateAssetGroup", clientID, err, "Failed to update asset group")
@@ -665,7 +665,7 @@ func (s *assetGroupService) AddPermissionMemberAssetGroup(req *request.ChangeAss
 		UserID:       req.UserID,
 		AssetGroupID: req.AssetGroupID,
 		PermissionID: req.PermissionID,
-		CreatedBy:    user.ClientID,
+		CreatedBy:    &user.ClientID,
 	}
 
 	err = s.memberPermissionRepository.AddAssetGroupMemberPermission(groupMemberPermission)
@@ -860,7 +860,7 @@ func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request
 		Quantity:        req.Stock,
 		ChangeType:      stockType,
 		Reason:          req.Reason,
-		UpdatedBy:       data.ClientID,
+		UpdatedBy:       &data.ClientID,
 	}
 
 	// Step 5: Update stock in a transaction

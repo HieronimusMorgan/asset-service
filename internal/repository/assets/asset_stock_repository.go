@@ -136,7 +136,7 @@ func (r *assetStockRepository) UpdateAssetStock(assetStock *assets.AssetStock, c
 		NewQuantity:      newQuantity,
 		QuantityChanged:  abs(newQuantity - previousQuantity), // Ensure this is always > 0
 		Reason:           assetStock.Reason,
-		CreatedBy:        clientID,
+		CreatedBy:        &clientID,
 		CreatedAt:        time.Now(),
 	}
 
@@ -230,7 +230,7 @@ func (r *assetStockRepository) UpdateAssetStockByAssetGroupID(assetStock *assets
 			NewQuantity:      newQuantity,
 			QuantityChanged:  abs(newQuantity - previousQuantity), // Ensure this is always > 0
 			Reason:           assetStock.Reason,
-			CreatedBy:        clientID,
+			CreatedBy:        &clientID,
 			CreatedAt:        time.Now(),
 		}
 

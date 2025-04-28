@@ -12,7 +12,7 @@ import (
 type AssetMaintenanceTypeService interface {
 	GetMaintenanceTypeByID(maintenanceTypeID uint, clientID string) (interface{}, error)
 	GetListMaintenanceType(clientID string) ([]model.AssetMaintenanceType, error)
-	AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string) (interface{}, error)
+	AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string, credentialKey string) (interface{}, error)
 	UpdateMaintenanceType(id uint, clientID string, maintenanceType *request.AssetMaintenanceTypeRequest) (interface{}, error)
 	DeleteMaintenanceType(maintenanceTypeID uint, clientID string) error
 }
@@ -32,7 +32,7 @@ func NewAssetMaintenanceTypeService(
 		Redis:                          redis}
 }
 
-func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string) (interface{}, error) {
+func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string, credentialKey string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
@@ -43,11 +43,17 @@ func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request
 		return nil, err
 	}
 
+	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		return nil, err
+	}
+
 	maintenanceTypeRecord := &model.AssetMaintenanceType{
 		UserClientID:        clientID,
 		MaintenanceTypeName: maintenanceType.MaintenanceTypeName,
 		Description:         maintenanceType.Description,
-		CreatedBy:           data.ClientID,
+		CreatedBy:           &data.ClientID,
 	}
 
 	if err = s.AssetMaintenanceTypeRepository.AddAssetMaintenanceType(maintenanceTypeRecord, clientID); err != nil {
@@ -108,7 +114,7 @@ func (s assetMaintenanceTypeService) UpdateMaintenanceType(id uint, clientID str
 		MaintenanceTypeID:   id,
 		MaintenanceTypeName: maintenanceType.MaintenanceTypeName,
 		Description:         maintenanceType.Description,
-		UpdatedBy:           data.ClientID,
+		UpdatedBy:           &data.ClientID,
 	}
 
 	err = s.AssetMaintenanceTypeRepository.UpdateAssetMaintenanceType(maintenanceTypeRecord, clientID)

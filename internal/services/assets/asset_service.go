@@ -13,7 +13,7 @@ import (
 )
 
 type AssetService interface {
-	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, requestHeaderID string) (interface{}, error)
+	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID, requestHeaderID string) (interface{}, error)
 	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
 	UpdateStockAsset(isAdded bool, assetID uint, stock struct {
 		Stock  int     `json:"stock" binding:"required"`
@@ -65,7 +65,7 @@ func NewAssetService(userRepository repouser.UserRepository,
 		AssetStockRepository:       assetStockRepository}
 }
 
-func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, requestID string) (interface{}, error) {
+func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID, credentialKey string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
@@ -76,18 +76,11 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		return logError("GetUserByClientID", clientID, err, "Failed to get user by client MaintenanceTypeID")
 	}
 
-	//verifyPinCode := &user.VerifyPinCode{}
-	//
-	//err = s.Redis.GetData(utils.PinVerify, requestID, verifyPinCode)
-	//if err != nil {
-	//	return logError("GetRedisData", clientID, err, "Your pin code is invalid")
-	//}
-	//
-	//if !verifyPinCode.Valid {
-	//	return logError("GetRedisData", clientID, errors.New("pin code expired"), "Your pin code is expired")
-	//}
-	//
-	//_ = s.Redis.DeleteData(utils.PinVerify, requestID)
+	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		return nil, err
+	}
 
 	if exists, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID); err != nil {
 		return logError("AssetNameExists", clientID, err, "Failed to check asset name exists")
@@ -123,8 +116,8 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		Price:              assetRequest.Price,
 		Stock:              assetRequest.Stock,
 		Notes:              assetRequest.Notes,
-		CreatedBy:          data.ClientID,
-		UpdatedBy:          data.ClientID,
+		CreatedBy:          &data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if err := s.AssetRepository.AddAsset(asset, images); err != nil {
@@ -138,7 +131,7 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 			AssetID:      asset.AssetID,
 			AssetGroupID: assetGroupMember.AssetGroupID,
 			UserID:       user.UserID,
-			CreatedBy:    data.ClientID,
+			CreatedBy:    &data.ClientID,
 		}
 
 		if err := s.AssetGroupAssetRepository.AddAssetGroupAsset(assetGroupAsset); err != nil {
@@ -191,7 +184,7 @@ func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAsset
 		WarrantyExpiryDate: warrantyExpiry,
 		Price:              assetRequest.Price,
 		Notes:              assetRequest.Notes,
-		UpdatedBy:          data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if err := s.AssetRepository.UpdateAsset(asset, clientID); err != nil {
@@ -255,7 +248,7 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct 
 		Quantity:        stock.Stock,
 		ChangeType:      stockType,
 		Reason:          stock.Reason,
-		UpdatedBy:       data.ClientID,
+		UpdatedBy:       &data.ClientID,
 	}
 
 	// Step 5: Update stock in a transaction

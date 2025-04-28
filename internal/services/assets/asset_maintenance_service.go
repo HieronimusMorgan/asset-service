@@ -16,7 +16,7 @@ import (
 )
 
 type AssetMaintenanceService interface {
-	AddAssetMaintenance(maintenance request.AssetMaintenanceRequest, clientID string) (*assets.AssetMaintenance, error)
+	AddAssetMaintenance(maintenance request.AssetMaintenanceRequest, clientID string, credentialKey string) (*assets.AssetMaintenance, error)
 	GetMaintenanceByID(maintenanceID uint, clientID string) (interface{}, error)
 	UpdateMaintenance(clientID string, maintenance *request.AssetMaintenanceRequest) error
 	DeleteMaintenance(maintenanceID uint, clientID string) error
@@ -47,7 +47,7 @@ func NewAssetMaintenanceService(
 		Redis:                      RedisService}
 }
 
-func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMaintenanceRequest, clientID string) (*assets.AssetMaintenance, error) {
+func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMaintenanceRequest, clientID string, credentialKey string) (*assets.AssetMaintenance, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
@@ -55,6 +55,12 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 			Str("clientID", clientID).
 			Err(err).
 			Msg("Failed to get user redis")
+		return nil, err
+	}
+
+	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
 		return nil, err
 	}
 
@@ -110,8 +116,8 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
 		PerformedBy:        &data.ClientID,
-		CreatedBy:          data.ClientID,
-		UpdatedBy:          data.ClientID,
+		CreatedBy:          &data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -225,7 +231,7 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
 		PerformedBy:        &data.ClientID,
-		UpdatedBy:          data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -311,7 +317,7 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        nextDueDate,
 		PerformedBy:        &data.ClientID,
-		UpdatedBy:          data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if maintenance.MaintenanceDetails == nil {
@@ -337,8 +343,8 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 		IntervalDays:       maintenance.IntervalDays,
 		NextDueDate:        maintenance.NextDueDate,
 		PerformedBy:        maintenance.PerformedBy,
-		CreatedBy:          data.ClientID,
-		UpdatedBy:          data.ClientID,
+		CreatedBy:          &data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
 	if err = s.AssetMaintenanceRecord.AddAssetMaintenanceRecord(&assetMaintenanceRecord); err != nil {

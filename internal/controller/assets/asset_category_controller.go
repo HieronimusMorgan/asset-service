@@ -7,6 +7,7 @@ import (
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type AssetCategoryController interface {
@@ -35,12 +36,18 @@ func (h assetCategoryController) AddAssetCategory(context *gin.Context) {
 		return
 	}
 
+	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		return
+	}
+
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
 	}
 
-	assetCategory, err := h.AssetCategoryService.AddAssetCategory(&req, token.ClientID)
+	assetCategory, err := h.AssetCategoryService.AddAssetCategory(&req, credentialKey, token.ClientID)
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
@@ -81,18 +88,41 @@ func (h assetCategoryController) GetAssetCategories(*gin.Context) {
 }
 
 func (h assetCategoryController) GetListAssetCategory(context *gin.Context) {
+	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
+	if err != nil || pageSize <= 0 {
+		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
+		return
+	}
+
+	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
+	if err != nil || pageIndex <= 0 {
+		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
+		return
+	}
+
 	token, exist := utils.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	assetCategories, err := h.AssetCategoryService.GetListAssetCategory(token.ClientID)
+	assetCategories, total, err := h.AssetCategoryService.GetListAssetCategory(token.ClientID, pageSize, pageIndex)
 	if err != nil {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
+		response.SendResponseList(context, 500, "Failed to get list assets", response.PagedData{
+			Total:     total,
+			PageIndex: pageIndex,
+			PageSize:  pageSize,
+			Items:     nil,
+		}, err.Error())
 		return
 	}
-	response.SendResponse(context, http.StatusOK, "Asset categories retrieved successfully", assetCategories, nil)
+
+	response.SendResponseList(context, 200, "List of asset categories", response.PagedData{
+		Total:     total,
+		PageIndex: pageIndex,
+		PageSize:  pageSize,
+		Items:     assetCategories,
+	}, nil)
 }
 
 func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {

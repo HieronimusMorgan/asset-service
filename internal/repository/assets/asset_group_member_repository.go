@@ -40,7 +40,7 @@ func (r assetGroupMemberRepository) AddAssetGroupMember(member *assets.AssetGrou
 			permissionRecord := &assets.AssetGroupMemberPermission{
 				AssetGroupID: member.AssetGroupID,
 				UserID:       member.UserID,
-				CreatedBy:    userClientID,
+				CreatedBy:    &userClientID,
 				PermissionID: p.PermissionID,
 			}
 			if err := tx.Table(utils.TableAssetGroupMemberPermissionName).Create(permissionRecord).Error; err != nil {
@@ -64,7 +64,7 @@ func (r assetGroupMemberRepository) AddAssetGroupMember(member *assets.AssetGrou
 				AssetGroupID: member.AssetGroupID,
 				AssetID:      asset.AssetID,
 				UserID:       member.UserID,
-				CreatedBy:    userClientID,
+				CreatedBy:    &userClientID,
 			}).Error; err != nil {
 				return err
 			}

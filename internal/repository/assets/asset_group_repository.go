@@ -48,7 +48,7 @@ func (r assetGroupRepository) AddAssetGroup(assetGroup *assets.AssetGroup, clien
 			permissionRecord := &assets.AssetGroupMemberPermission{
 				AssetGroupID: assetGroup.AssetGroupID,
 				UserID:       user.UserID,
-				CreatedBy:    user.ClientID,
+				CreatedBy:    &user.ClientID,
 				PermissionID: p.PermissionID,
 			}
 			if err := tx.Table(utils.TableAssetGroupMemberPermissionName).Create(permissionRecord).Error; err != nil {
@@ -78,7 +78,7 @@ func (r assetGroupRepository) AddAssetGroup(assetGroup *assets.AssetGroup, clien
 				AssetGroupID: assetGroup.AssetGroupID,
 				AssetID:      asset.AssetID,
 				UserID:       user.UserID,
-				CreatedBy:    user.ClientID,
+				CreatedBy:    &user.ClientID,
 			}).Error; err != nil {
 				return err
 			}
@@ -102,7 +102,7 @@ func (r assetGroupRepository) AddInvitationToken(assetGroupID uint, token string
 		assetGroup.InvitationToken = &invitationToken
 		assetGroup.MaxUses = &maxUses
 		assetGroup.CurrentUses = &currentUses
-		assetGroup.UpdatedBy = clientID
+		assetGroup.UpdatedBy = &clientID
 
 		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
 			return err
@@ -122,7 +122,7 @@ func (r assetGroupRepository) RemoveInvitationToken(assetGroupID uint, clientID 
 		assetGroup.InvitationToken = nil
 		assetGroup.MaxUses = nil
 		assetGroup.CurrentUses = nil
-		assetGroup.UpdatedBy = clientID
+		assetGroup.UpdatedBy = &clientID
 
 		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
 			return err
@@ -141,7 +141,7 @@ func (r assetGroupRepository) UpdateCurrentUsesInvitationToken(assetGroupID uint
 
 		currentUses := *assetGroup.CurrentUses + 1
 		assetGroup.CurrentUses = &currentUses
-		assetGroup.UpdatedBy = clientID
+		assetGroup.UpdatedBy = &clientID
 
 		if err := tx.Table(utils.TableAssetGroupName).Save(&assetGroup).Error; err != nil {
 			return err

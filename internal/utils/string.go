@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -118,6 +119,15 @@ func ParseFormInt(context *gin.Context, field string) int {
 	return intVal
 }
 
+func ParseFormUint(context *gin.Context, field string) uint {
+	val := context.PostForm(field)
+	if val == "" {
+		return 0
+	}
+	uintVal, _ := strconv.ParseUint(val, 10, 32)
+	return uint(uintVal)
+}
+
 func ParseFormFloat(context *gin.Context, field string) float64 {
 	val := context.PostForm(field)
 	if val == "" {
@@ -125,4 +135,26 @@ func ParseFormFloat(context *gin.Context, field string) float64 {
 	}
 	floatVal, _ := strconv.ParseFloat(val, 64)
 	return floatVal
+}
+
+// CheckCredentialKey checks if the provided credential key matches the one stored in Redis for the given client ID.
+func CheckCredentialKey(redis RedisService, credential, clientID string) error {
+	credentialKeyMap := struct {
+		CredentialKey string `json:"credential_key"`
+	}{}
+	err := redis.GetData(CredentialKey, clientID, &credentialKeyMap)
+
+	log.Info().Str("checkCredential", credentialKeyMap.CredentialKey).Msg("Credential key retrieved from Redis")
+	log.Info().Str("credential", credential).Msg("Credential key retrieved from Redis")
+	if err != nil {
+		log.Error().Str("credentialKey", credential).Err(err).Msg("Failed to retrieve credential key from Redis")
+		return err
+	}
+
+	if credentialKeyMap.CredentialKey != credential {
+		return errors.New("credential key not matched")
+	}
+	_ = redis.DeleteData(CredentialKey, clientID)
+
+	return nil
 }

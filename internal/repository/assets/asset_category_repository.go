@@ -10,11 +10,12 @@ import (
 // AssetCategoryRepository defines the interface
 type AssetCategoryRepository interface {
 	AddAssetCategory(assetCategory *assets.AssetCategory) error
+	GetCountAssetCategory(clientID string) (int64, error)
 	UpdateAssetCategory(assetCategory *assets.AssetCategory, clientID string) error
 	GetAssetCategoryByNameAndClientID(name, clientID string) (*assets.AssetCategory, error)
 	GetAssetCategoryById(assetCategoryID uint, clientID string) (*assets.AssetCategory, error)
 	GetAssetCategoryByIdAndNameNotExist(assetCategoryID uint, categoryName string) (*assets.AssetCategory, error)
-	GetListAssetCategory(clientID string) ([]assets.AssetCategory, error)
+	GetListAssetCategory(clientID string, size int, index int) ([]assets.AssetCategory, error)
 	DeleteAssetCategory(assetCategory *assets.AssetCategory) error
 }
 
@@ -43,6 +44,19 @@ func (r *assetCategoryRepository) AddAssetCategory(assetCategory *assets.AssetCa
 		Str("category_name", assetCategory.CategoryName).
 		Msg("✅ Asset category added successfully")
 	return nil
+}
+
+// GetCountAssetCategory retrieves the count of asset categories
+func (r *assetCategoryRepository) GetCountAssetCategory(clientID string) (int64, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetCategoryName).
+		Where("user_client_id = ?", clientID).
+		Count(&count).Error
+	if err != nil {
+		log.Error().Err(err).Msg("❌ Failed to count asset categories")
+		return 0, err
+	}
+	return count, nil
 }
 
 // UpdateAssetCategory modifies an existing asset category and logs changes
@@ -117,11 +131,13 @@ func (r *assetCategoryRepository) GetAssetCategoryByIdAndNameNotExist(assetCateg
 }
 
 // GetListAssetCategory retrieves all categories
-func (r *assetCategoryRepository) GetListAssetCategory(clientID string) ([]assets.AssetCategory, error) {
+func (r *assetCategoryRepository) GetListAssetCategory(clientID string, size int, index int) ([]assets.AssetCategory, error) {
 	var assetCategories []assets.AssetCategory
 	err := r.db.Table(utils.TableAssetCategoryName).
 		Where("user_client_id = ?", clientID).
 		Order("asset_category_id ASC").
+		Limit(size).
+		Offset((index - 1) * size).
 		Find(&assetCategories).
 		Error
 	if err != nil {

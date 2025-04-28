@@ -52,7 +52,7 @@ func (a assetAuditLogRepository) AfterCreateAsset(asset *assets.Asset) (err erro
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &asset.CreatedBy,
+		PerformedBy: asset.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -80,7 +80,7 @@ func (a assetAuditLogRepository) AfterUpdateAsset(old assets.Asset, asset *asset
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &asset.UpdatedBy,
+		PerformedBy: asset.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -122,7 +122,7 @@ func (a assetAuditLogRepository) AfterCreateAssetStock(assetStock *assets.AssetS
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetStock.CreatedBy,
+		PerformedBy: assetStock.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -150,7 +150,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetStock(old assets.AssetStock, as
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetStock.UpdatedBy,
+		PerformedBy: assetStock.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -192,7 +192,7 @@ func (a assetAuditLogRepository) AfterCreateAssetMaintenance(assetMaintenance *a
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetMaintenance.CreatedBy,
+		PerformedBy: assetMaintenance.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -220,7 +220,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetMaintenance(old assets.AssetMai
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetMaintenance.UpdatedBy,
+		PerformedBy: assetMaintenance.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -262,7 +262,7 @@ func (a assetAuditLogRepository) AfterCreateAssetCategory(assetCategory *assets.
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetCategory.CreatedBy,
+		PerformedBy: assetCategory.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -290,7 +290,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetCategory(old *assets.AssetCateg
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetCategory.UpdatedBy,
+		PerformedBy: assetCategory.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -332,7 +332,7 @@ func (a assetAuditLogRepository) AfterCreateAssetStatus(assetStatus *assets.Asse
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetStatus.CreatedBy,
+		PerformedBy: assetStatus.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -361,7 +361,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetStatus(old assets.AssetStatus, 
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetStatus.UpdatedBy,
+		PerformedBy: assetStatus.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -405,7 +405,7 @@ func (a assetAuditLogRepository) AfterCreateAssetMaintenanceRecord(assetMaintena
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetMaintenanceRecord.CreatedBy,
+		PerformedBy: assetMaintenanceRecord.CreatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -434,7 +434,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetMaintenanceRecord(old assets.As
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &assetMaintenanceRecord.UpdatedBy,
+		PerformedBy: assetMaintenanceRecord.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -478,7 +478,7 @@ func (a assetAuditLogRepository) AfterCreateAssetGroupPermission(tx *gorm.DB, as
 		Action:      "CREATE",
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &asset.CreatedBy,
+		PerformedBy: asset.CreatedBy,
 	}
 
 	if err := tx.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {
@@ -507,7 +507,7 @@ func (a assetAuditLogRepository) AfterUpdateAssetGroupPermission(old assets.Asse
 		OldData:     &oldData,
 		NewData:     &newData,
 		PerformedAt: time.Now(),
-		PerformedBy: &asset.UpdatedBy,
+		PerformedBy: asset.UpdatedBy,
 	}
 
 	if err := a.db.Table(utils.TableAssetAuditLogName).Create(&log).Error; err != nil {

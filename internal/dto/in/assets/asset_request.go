@@ -8,8 +8,8 @@ type AssetRequest struct {
 	Description    *string                 `json:"description"`
 	Barcode        *string                 `json:"barcode"`
 	Images         []*multipart.FileHeader `form:"images"` // List of image files
-	CategoryID     int                     `json:"category_id"`
-	StatusID       int                     `json:"status_id"`
+	CategoryID     uint                    `json:"category_id"`
+	StatusID       uint                    `json:"status_id"`
 	PurchaseDate   *string                 `json:"purchase_date"`
 	ExpiryDate     *string                 `json:"expiry_date"`
 	WarrantyExpiry *string                 `json:"warranty_expiry_date,omitempty"`
@@ -39,8 +39,8 @@ type UpdateAssetRequest struct {
 	SerialNumber       *string `json:"serial_number,omitempty"`
 	Description        *string `json:"description,omitempty"`
 	Barcode            *string `json:"barcode,omitempty"`
-	CategoryID         int     `json:"category_id,omitempty"`
-	StatusID           int     `json:"status_id,omitempty"`
+	CategoryID         uint    `json:"category_id,omitempty"`
+	StatusID           uint    `json:"status_id,omitempty"`
 	PurchaseDate       *string `json:"purchase_date,omitempty"`
 	ExpiryDate         *string `json:"expiry_date,omitempty"`
 	WarrantyExpiryDate *string `json:"warranty_expiry_date,omitempty"`
@@ -53,8 +53,8 @@ type AssetWishlistRequest struct {
 	AssetName     string  `json:"asset_name"`
 	SerialNumber  *string `json:"serial_number,omitempty"`
 	Barcode       *string `json:"barcode,omitempty"`
-	CategoryID    int     `json:"category_id,omitempty"`
-	StatusID      int     `json:"status_id,omitempty"`
+	CategoryID    uint    `json:"category_id,omitempty"`
+	StatusID      uint    `json:"status_id,omitempty"`
 	PriorityLevel string  `json:"priority_level"`
 	PriceEstimate float64 `json:"price_estimate"`
 	Notes         *string `json:"notes,omitempty"`

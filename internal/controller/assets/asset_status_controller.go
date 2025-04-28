@@ -7,6 +7,7 @@ import (
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"strconv"
 )
 
 type AssetStatusController interface {
@@ -33,13 +34,19 @@ func (h assetStatusController) AddAssetStatus(context *gin.Context) {
 		return
 	}
 
+	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		return
+	}
+
 	token, exist := utils.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	assetStatus, err := h.AssetStatusService.AddAssetStatus(&req, token.ClientID)
+	assetStatus, err := h.AssetStatusService.AddAssetStatus(&req, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to add assets status", nil, err)
 		return
@@ -48,12 +55,41 @@ func (h assetStatusController) AddAssetStatus(context *gin.Context) {
 }
 
 func (h assetStatusController) GetListAssetStatus(context *gin.Context) {
-	assetStatus, err := h.AssetStatusService.GetAssetStatus()
-	if err != nil {
-		response.SendResponse(context, 500, "Failed to get assets status", nil, err)
+	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
+	if err != nil || pageSize <= 0 {
+		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
 		return
 	}
-	response.SendResponse(context, 200, "Success", assetStatus, nil)
+
+	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
+	if err != nil || pageIndex <= 0 {
+		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
+		return
+	}
+
+	token, exist := utils.ExtractTokenClaims(context)
+	if !exist {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
+		return
+	}
+
+	assetStatus, total, err := h.AssetStatusService.GetAssetStatus(token.ClientID, pageSize, pageIndex)
+	if err != nil {
+		response.SendResponseList(context, 500, "Failed to get list assets status", response.PagedData{
+			Total:     total,
+			PageIndex: pageIndex,
+			PageSize:  pageSize,
+			Items:     nil,
+		}, err.Error())
+		return
+	}
+
+	response.SendResponseList(context, 200, "Success", response.PagedData{
+		Total:     total,
+		PageIndex: pageIndex,
+		PageSize:  pageSize,
+		Items:     assetStatus,
+	}, nil)
 }
 
 func (h assetStatusController) GetAssetStatusByID(context *gin.Context) {

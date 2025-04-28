@@ -13,9 +13,9 @@ import (
 )
 
 type AssetCategoryService interface {
-	AddAssetCategory(assetRequest *request.AssetCategoryRequest, clientID string) (interface{}, error)
+	AddAssetCategory(assetRequest *request.AssetCategoryRequest, credentialKey string, clientID string) (interface{}, error)
 	UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error)
-	GetListAssetCategory(clientID string) (interface{}, error)
+	GetListAssetCategory(clientID string, size int, index int) (interface{}, int64, error)
 	GetAssetCategoryById(categoryID uint, clientID string) (interface{}, error)
 	DeleteAssetCategory(categoryID uint, clientID string) error
 }
@@ -40,10 +40,16 @@ func NewAssetCategoryService(
 	}
 }
 
-func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
+func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCategoryRequest, credentialKey string, clientID string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve data from Redis")
+		return nil, err
+	}
+
+	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
 		return nil, err
 	}
 
@@ -57,8 +63,8 @@ func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCateg
 		UserClientID: clientID,
 		CategoryName: assetRequest.CategoryName,
 		Description:  assetRequest.Description,
-		CreatedBy:    data.ClientID,
-		UpdatedBy:    data.ClientID,
+		CreatedBy:    &data.ClientID,
+		UpdatedBy:    &data.ClientID,
 	}
 
 	err = s.AssetCategoryRepository.AddAssetCategory(assetCategory)
@@ -102,7 +108,7 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 
 	assetCategory.CategoryName = assetCategoryRequest.CategoryName
 	assetCategory.Description = assetCategoryRequest.Description
-	assetCategory.UpdatedBy = data.ClientID
+	assetCategory.UpdatedBy = &data.ClientID
 
 	err = s.AssetCategoryRepository.UpdateAssetCategory(assetCategory, clientID)
 	if err != nil {
@@ -125,17 +131,23 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 	}, nil
 }
 
-func (s *assetCategoryService) GetListAssetCategory(clientID string) (interface{}, error) {
-	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s *assetCategoryService) GetListAssetCategory(clientID string, size int, index int) (interface{}, int64, error) {
+	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
-		return nil, err
+		return nil, 0, err
 	}
 
-	assetCategories, err := s.AssetCategoryRepository.GetListAssetCategory(clientID)
+	total, err := s.AssetCategoryRepository.GetCountAssetCategory(data.ClientID)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to retrieve asset category count")
+		return nil, 0, err
+	}
+
+	assetCategories, err := s.AssetCategoryRepository.GetListAssetCategory(data.ClientID, size, index)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve asset categories")
-		return nil, err
+		return nil, total, err
 	}
 
 	var assetCategoriesResponse []response.AssetCategoryResponse
@@ -147,7 +159,7 @@ func (s *assetCategoryService) GetListAssetCategory(clientID string) (interface{
 		})
 	}
 
-	return assetCategoriesResponse, nil
+	return assetCategoriesResponse, total, nil
 }
 
 func (s *assetCategoryService) GetAssetCategoryById(categoryID uint, clientID string) (interface{}, error) {

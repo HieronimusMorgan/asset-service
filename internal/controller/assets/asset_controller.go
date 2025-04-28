@@ -50,8 +50,8 @@ func (h assetController) AddAsset(context *gin.Context) {
 		Name:           context.PostForm("name"),
 		Description:    utils.GetOptionalString(context, "description"),
 		Barcode:        utils.GetOptionalString(context, "barcode"),
-		CategoryID:     utils.ParseFormInt(context, "category_id"),
-		StatusID:       utils.ParseFormInt(context, "status_id"),
+		CategoryID:     utils.ParseFormUint(context, "category_id"),
+		StatusID:       utils.ParseFormUint(context, "status_id"),
 		PurchaseDate:   utils.GetOptionalString(context, "purchase_date"),
 		ExpiryDate:     utils.GetOptionalString(context, "expiry_date"),
 		WarrantyExpiry: utils.GetOptionalString(context, "warranty_expiry_date"),
@@ -67,8 +67,11 @@ func (h assetController) AddAsset(context *gin.Context) {
 		return
 	}
 
-	requestHeaderID := context.GetHeader("X-REQUEST-MaintenanceTypeID")
-
+	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		return
+	}
 	// Extract files
 	files := context.Request.MultipartForm.File["images"]
 	if len(files) == 0 {
@@ -81,7 +84,7 @@ func (h assetController) AddAsset(context *gin.Context) {
 		imageMetadata, err = uploadImagesToCDN(h.IpCDN, files, token.ClientID, context.GetHeader(utils.Authorization))
 	}
 
-	asset, err := h.AssetService.AddAsset(&req, imageMetadata, token.ClientID, requestHeaderID)
+	asset, err := h.AssetService.AddAsset(&req, imageMetadata, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to add asset", nil, err.Error())
 		return

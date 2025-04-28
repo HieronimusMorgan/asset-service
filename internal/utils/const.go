@@ -1,8 +1,9 @@
 package utils
 
 const (
-	User      = "user"
-	PinVerify = "pin_verify"
+	User          = "user"
+	PinVerify     = "pin_verify"
+	CredentialKey = "credential_key"
 )
 const ClientID = "client_id"
 

@@ -44,7 +44,7 @@ func (s *assetGroupPermissionService) AddAssetGroupPermission(req *request.Asset
 	assetPermission := &assets.AssetGroupPermission{
 		PermissionName: req.PermissionName,
 		Description:    req.Description,
-		CreatedBy:      data.ClientID,
+		CreatedBy:      &data.ClientID,
 	}
 
 	if err := s.AssetGroupPermissionRepository.AddAssetGroupPermission(assetPermission); err != nil {
@@ -67,7 +67,7 @@ func (s *assetGroupPermissionService) UpdateAssetGroupPermission(permissionID ui
 
 	assetPermission.PermissionName = assetCategoryRequest.PermissionName
 	assetPermission.Description = assetCategoryRequest.Description
-	assetPermission.UpdatedBy = data.ClientID
+	assetPermission.UpdatedBy = &data.ClientID
 
 	if err := s.AssetGroupPermissionRepository.UpdateAssetGroupPermission(assetPermission); err != nil {
 		return logErrorWithNoReturn("UpdateAssetGroupPermission", clientID, err, "Failed to update asset group permission")

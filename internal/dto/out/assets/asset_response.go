@@ -46,16 +46,16 @@ type AssetResponse struct {
 }
 
 type AssetWishlistResponse struct {
-	WishlistID    uint    `json:"wishlist_id"`
-	UserClientID  string  `json:"user_client_id"`
-	AssetName     string  `json:"asset_name"`
-	SerialNumber  *string `json:"serial_number,omitempty"`
-	Barcode       *string `json:"barcode,omitempty"`
-	StatusName    string  `json:"status,omitempty"`
-	CategoryName  string  `json:"category,omitempty"`
-	PriorityLevel string  `json:"priority_level"`
-	PriceEstimate float64 `json:"price_estimate"`
-	Notes         *string `json:"notes,omitempty"`
+	WishlistID    uint                  `json:"wishlist_id"`
+	UserClientID  string                `json:"user_client_id"`
+	AssetName     string                `json:"asset_name"`
+	SerialNumber  *string               `json:"serial_number,omitempty"`
+	Barcode       *string               `json:"barcode,omitempty"`
+	Status        AssetStatusResponse   `json:"status,omitempty"`
+	Category      AssetCategoryResponse `json:"category,omitempty"`
+	PriorityLevel string                `json:"priority_level"`
+	PriceEstimate float64               `json:"price_estimate"`
+	Notes         *string               `json:"notes,omitempty"`
 }
 
 type AssetResponseAll struct {

@@ -1,6 +1,7 @@
 package assets
 
 import (
+	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
 	"gorm.io/gorm"
@@ -8,8 +9,9 @@ import (
 
 type AssetStatusRepository interface {
 	GetAssetStatusByName(name string) error
+	GetCountAssetStatus() (int64, error)
 	AddAssetStatus(assetStatus **assets.AssetStatus) error
-	GetAssetStatus() ([]assets.AssetStatus, error)
+	GetAssetStatus(size, index int) ([]response.AssetStatusResponse, error)
 	GetAssetStatusByID(assetStatusID uint) (*assets.AssetStatus, error)
 	UpdateAssetStatus(status *assets.AssetStatus) error
 	DeleteAssetStatus(status *assets.AssetStatus) error
@@ -32,6 +34,15 @@ func (r assetStatusRepository) GetAssetStatusByName(name string) error {
 	return nil
 }
 
+func (r assetStatusRepository) GetCountAssetStatus() (int64, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetStatusName).Where("deleted_at IS NULL").Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func (r assetStatusRepository) AddAssetStatus(assetStatus **assets.AssetStatus) error {
 	err := r.db.Table(utils.TableAssetStatusName).Create(assetStatus).Error
 	if err != nil {
@@ -40,9 +51,14 @@ func (r assetStatusRepository) AddAssetStatus(assetStatus **assets.AssetStatus) 
 	return nil
 }
 
-func (r assetStatusRepository) GetAssetStatus() ([]assets.AssetStatus, error) {
-	var assetStatus []assets.AssetStatus
-	err := r.db.Table(utils.TableAssetStatusName).Find(&assetStatus).Where("deleted_at IS NULL").Error
+func (r assetStatusRepository) GetAssetStatus(size, index int) ([]response.AssetStatusResponse, error) {
+	var assetStatus []response.AssetStatusResponse
+	offset := (index - 1) * size
+	err := r.db.Table(utils.TableAssetStatusName).
+		Where("deleted_at IS NULL").
+		Limit(size).
+		Offset(offset).
+		Find(&assetStatus).Error
 	if err != nil {
 		return nil, err
 	}

@@ -14,9 +14,10 @@ type AssetWishlistRepository interface {
 	AddAssetWishlist(asset *assets.AssetWishlist) error
 	GetAssetWishlistByID(clientID string, assetWishlistID uint) (*assets.AssetWishlist, error)
 	GetAssetWishlistResponseByID(clientID string, assetWishlistID uint) (*response.AssetWishlistResponse, error)
-	GetListAssetWishlist(clientID string) ([]response.AssetWishlistResponse, error)
+	GetListAssetWishlist(clientID string, size, index int) ([]response.AssetWishlistResponse, error)
 	UpdateAssetWishlist(assetWishlist *assets.AssetWishlist) error
 	DeleteAssetWishlist(id uint, clientID string) error
+	GetListAssetWishlistCount(clientID string) (int64, error)
 }
 
 type assetWishlistRepository struct {
@@ -100,8 +101,12 @@ func (r assetWishlistRepository) GetAssetWishlistResponseByID(clientID string, a
             aw.asset_name,
             aw.serial_number,
             aw.barcode,
+            ac.asset_category_id,
             ac.category_name,
+            ac.description AS category_description,
+            ass.asset_status_id,
             ass.status_name,
+            ass.description AS status_description,
             aw.priority_level,
             aw.price_estimate,
             aw.notes
@@ -115,6 +120,8 @@ func (r assetWishlistRepository) GetAssetWishlistResponseByID(clientID string, a
 	row := r.db.Raw(selectQuery, clientID, assetWishlistID).Row()
 
 	var asset response.AssetWishlistResponse
+	var status response.AssetStatusResponse
+	var category response.AssetCategoryResponse
 
 	err := row.Scan(
 		&asset.WishlistID,
@@ -122,8 +129,12 @@ func (r assetWishlistRepository) GetAssetWishlistResponseByID(clientID string, a
 		&asset.AssetName,
 		&asset.SerialNumber,
 		&asset.Barcode,
-		&asset.CategoryName,
-		&asset.StatusName,
+		&category.AssetCategoryID,
+		&category.CategoryName,
+		&category.Description,
+		&status.AssetStatusID,
+		&status.StatusName,
+		&status.Description,
 		&asset.PriorityLevel,
 		&asset.PriceEstimate,
 		&asset.Notes,
@@ -134,36 +145,75 @@ func (r assetWishlistRepository) GetAssetWishlistResponseByID(clientID string, a
 		return nil, err
 	}
 
+	asset.Status = status
+	asset.Category = category
+
 	log.Info().Uint("assetWishlistID", assetWishlistID).Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
 	return &asset, nil
 }
 
-func (r assetWishlistRepository) GetListAssetWishlist(clientID string) ([]response.AssetWishlistResponse, error) {
+func (r assetWishlistRepository) GetListAssetWishlist(clientID string, size, index int) ([]response.AssetWishlistResponse, error) {
 	selectQuery := `
-	        SELECT
-	            aw.wishlist_id,
-	            aw.user_client_id,
-	            aw.asset_name,
-	            aw.serial_number,
-	            aw.barcode,
-	            ac.category_name,
-	            ass.status_name,
-	            aw.priority_level,
-	            aw.price_estimate,
-	            aw.notes
-	        FROM "asset_wishlist" aw
-	        INNER JOIN "asset_category" ac ON aw.category_id = ac.asset_category_id
-	        INNER JOIN "asset_status" ass ON aw.status_id = ass.asset_status_id
-	        WHERE aw.user_client_id = ? AND aw.deleted_at IS NULL
-	        ORDER BY aw.wishlist_id ASC;
-	    `
+		SELECT
+			aw.wishlist_id,
+			aw.user_client_id,
+			aw.asset_name,
+			aw.serial_number,
+			aw.barcode,
+			ac.asset_category_id,
+			ac.category_name,
+			ac.description AS category_description,
+			ass.asset_status_id,
+			ass.status_name,
+			ass.description AS status_description,
+			aw.priority_level,
+			aw.price_estimate,
+			aw.notes
+		FROM "asset_wishlist" aw
+		INNER JOIN "asset_category" ac ON aw.category_id = ac.asset_category_id
+		INNER JOIN "asset_status" ass ON aw.status_id = ass.asset_status_id
+		WHERE aw.user_client_id = ? AND aw.deleted_at IS NULL
+		ORDER BY aw.wishlist_id ASC
+		LIMIT ? OFFSET ?;
+	`
 
 	var assetWishlists []response.AssetWishlistResponse
 
-	err := r.db.Raw(selectQuery, clientID).Scan(&assetWishlists).Error
+	rows, err := r.db.Raw(selectQuery, clientID, size, (index-1)*size).Rows()
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to retrieve asset wishlist")
 		return nil, err
+	}
+
+	for rows.Next() {
+		var asset response.AssetWishlistResponse
+		var status response.AssetStatusResponse
+		var category response.AssetCategoryResponse
+
+		err := rows.Scan(
+			&asset.WishlistID,
+			&asset.UserClientID,
+			&asset.AssetName,
+			&asset.SerialNumber,
+			&asset.Barcode,
+			&category.AssetCategoryID,
+			&category.CategoryName,
+			&category.Description,
+			&status.AssetStatusID,
+			&status.StatusName,
+			&status.Description,
+			&asset.PriorityLevel,
+			&asset.PriceEstimate,
+			&asset.Notes,
+		)
+		if err != nil {
+			log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to scan asset wishlist row")
+			return nil, err
+		}
+
+		asset.Status = status
+		asset.Category = category
+		assetWishlists = append(assetWishlists, asset)
 	}
 
 	log.Info().Str("clientID", clientID).Msg("✅ Successfully retrieved asset wishlist")
@@ -216,4 +266,19 @@ func (r assetWishlistRepository) DeleteAssetWishlist(id uint, clientID string) e
 	}
 
 	return nil
+}
+
+func (r assetWishlistRepository) GetListAssetWishlistCount(clientID string) (int64, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetWishlistName).
+		Where("user_client_id = ? AND deleted_at IS NULL", clientID).
+		Count(&count).Error
+
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("❌ Failed to count asset wishlists")
+		return 0, err
+	}
+
+	log.Info().Str("clientID", clientID).Msg("✅ Successfully counted asset wishlists")
+	return count, nil
 }

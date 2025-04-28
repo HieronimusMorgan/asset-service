@@ -31,13 +31,19 @@ func (c assetMaintenanceTypeController) CreateMaintenanceType(ctx *gin.Context) 
 		return
 	}
 
+	credentialKey := ctx.GetHeader("X-CREDENTIAL-KEY")
+	if credentialKey == "" {
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		return
+	}
+
 	token, exist := utils.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	maintenances, err := c.Service.AddMaintenanceType(maintenance, token.ClientID)
+	maintenances, err := c.Service.AddMaintenanceType(maintenance, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(ctx, http.StatusInternalServerError, "Failed to create maintenance record", nil, err.Error())
 		return

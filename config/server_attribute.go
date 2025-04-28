@@ -226,7 +226,7 @@ func (s *ServerConfig) initController() {
 		AssetMaintenanceRecord:         controller.NewAssetMaintenanceRecordController(s.Services.AssetMaintenanceRecord, s.JWTService),
 		Asset:                          controller.NewAssetController(s.Services.Asset, s.JWTService, s.Config.CdnUrl),
 		AssetStatus:                    controller.NewAssetStatusController(s.Services.AssetStatus, s.JWTService),
-		AssetWishlist:                  controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService),
+		AssetWishlist:                  controller.NewAssetWishlistController(s.Services.AssetWishlist, s.JWTService, s.Config.CdnUrl),
 		AssetGroupController:           controller.NewAssetGroupController(s.Services.AssetGroupService, s.JWTService),
 		AssetGroupMemberController:     controller.NewAssetGroupMemberController(s.Services.AssetGroupMemberService, s.JWTService),
 		AssetGroupPermissionController: controller.NewAssetGroupPermissionController(s.Services.AssetGroupPermissionService, s.JWTService),

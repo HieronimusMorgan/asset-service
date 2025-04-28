@@ -13,11 +13,11 @@ import (
 
 type AssetWishlistService interface {
 	AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error)
-	GetListAssetWishlist(clientID string) (interface{}, error)
+	GetListAssetWishlist(clientID string, size, index int) (interface{}, int64, error)
 	GetAssetWishlistByID(id uint, clientID string) (interface{}, error)
 	UpdateAssetWishlist(id uint, req *request.AssetWishlistRequest, clientID string) (interface{}, error)
 	DeleteAssetWishlist(id uint, clientID string) error
-	AddAssetWishlistToAsset(id uint, clientID string) (interface{}, error)
+	AddAssetWishlistToAsset(id uint, req *request.AssetRequest, metadata []response.AssetImageResponse, clientID string, headerID string) (interface{}, error)
 }
 
 type assetWishlistService struct {
@@ -124,7 +124,7 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 	return assetResult, nil
 }
 
-func (s assetWishlistService) GetListAssetWishlist(clientID string) (interface{}, error) {
+func (s assetWishlistService) GetListAssetWishlist(clientID string, size, index int) (interface{}, int64, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
@@ -132,20 +132,30 @@ func (s assetWishlistService) GetListAssetWishlist(clientID string) (interface{}
 			Str("clientID", clientID).
 			Err(err).
 			Msg("Failed to get user redis")
-		return nil, err
+		return nil, 0, err
 	}
 
-	assetWishlist, err := s.AssetWishlistRepository.GetListAssetWishlist(data.ClientID)
+	total, err := s.AssetWishlistRepository.GetListAssetWishlistCount(data.ClientID)
+	if err != nil {
+		log.Error().
+			Str("key", "GetListAssetWishlistCount").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to get asset wishlist count")
+		return nil, 0, err
+	}
+
+	assetWishlist, err := s.AssetWishlistRepository.GetListAssetWishlist(data.ClientID, size, index)
 	if err != nil {
 		log.Error().
 			Str("key", "GetListAssetWishlist").
 			Str("clientID", clientID).
 			Err(err).
 			Msg("Failed to get asset wishlist")
-		return nil, err
+		return nil, total, err
 	}
 
-	return assetWishlist, nil
+	return assetWishlist, total, nil
 }
 
 func (s assetWishlistService) GetAssetWishlistByID(id uint, clientID string) (interface{}, error) {
@@ -252,7 +262,7 @@ func (s assetWishlistService) DeleteAssetWishlist(id uint, clientID string) erro
 	return nil
 }
 
-func (s assetWishlistService) AddAssetWishlistToAsset(id uint, clientID string) (interface{}, error) {
+func (s assetWishlistService) AddAssetWishlistToAsset(id uint, assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, headerID string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
@@ -263,20 +273,22 @@ func (s assetWishlistService) AddAssetWishlistToAsset(id uint, clientID string) 
 		return nil, err
 	}
 
-	assetWishlist, err := s.AssetWishlistRepository.GetAssetWishlistByID(data.ClientID, id)
-	assetRequest := &request.AssetRequest{
-		Name:         assetWishlist.AssetName,
-		SerialNumber: assetWishlist.SerialNumber,
-		Barcode:      assetWishlist.Barcode,
-		CategoryID:   assetWishlist.CategoryID,
-		StatusID:     assetWishlist.StatusID,
-		Price:        assetWishlist.PriceEstimate,
-		Stock:        1,
-	}
-
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
 		return logError("GetUserByClientID", clientID, err, "Failed to get user by client MaintenanceTypeID")
+	}
+
+	assetWishlist, err := s.AssetWishlistRepository.GetAssetWishlistByID(data.ClientID, id)
+	if err != nil {
+		return logError("GetAssetWishlistByID", clientID, err, "Failed to get asset wishlist by MaintenanceTypeID")
+	}
+	if assetWishlist == nil {
+		log.Error().
+			Str("key", "GetAssetWishlistByID").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Asset wishlist not found")
+		return nil, errors.New("asset wishlist not found")
 	}
 
 	if exists, err := s.AssetRepository.AssetNameExists(assetRequest.Name, clientID); err != nil {
@@ -313,11 +325,11 @@ func (s assetWishlistService) AddAssetWishlistToAsset(id uint, clientID string) 
 		Price:              assetRequest.Price,
 		Stock:              assetRequest.Stock,
 		Notes:              assetRequest.Notes,
-		CreatedBy:          data.ClientID,
-		UpdatedBy:          data.ClientID,
+		CreatedBy:          &data.ClientID,
+		UpdatedBy:          &data.ClientID,
 	}
 
-	if err := s.AssetRepository.AddAsset(asset, make([]response.AssetImageResponse, 0)); err != nil {
+	if err := s.AssetRepository.AddAssetFromWishlist(asset, assetWishlist, images); err != nil {
 		return logError("AddAsset", clientID, err, "Failed to add asset")
 	}
 
@@ -328,7 +340,7 @@ func (s assetWishlistService) AddAssetWishlistToAsset(id uint, clientID string) 
 			AssetID:      asset.AssetID,
 			AssetGroupID: assetGroupMember.AssetGroupID,
 			UserID:       user.UserID,
-			CreatedBy:    data.ClientID,
+			CreatedBy:    &data.ClientID,
 		}
 
 		if err := s.AssetGroupAssetRepository.AddAssetGroupAsset(assetGroupAsset); err != nil {

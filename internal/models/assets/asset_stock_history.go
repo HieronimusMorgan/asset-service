@@ -15,9 +15,8 @@ type AssetStockHistory struct {
 	NewQuantity      int       `gorm:"not null;check:new_quantity >= 0" json:"new_quantity"`
 	QuantityChanged  int       `gorm:"not null;check:quantity_changed > 0" json:"quantity_changed"`
 	Reason           *string   `gorm:"type:text" json:"reason,omitempty"`
-	CreatedAt        time.Time `gorm:"default:CURRENT_TIMESTAMP" json:"created_at"`
-	CreatedBy        string    `gorm:"type:varchar(255)" json:"created_by"`
-
+	CreatedAt        time.Time `gorm:"autoCreateTime" json:"created_at"`
+	CreatedBy        *string   `gorm:"type:varchar(255)" json:"created_by"`
 	// Relationships
 	Asset Asset      `gorm:"foreignKey:AssetID;constraint:OnDelete:CASCADE"`
 	Stock AssetStock `gorm:"foreignKey:StockID;constraint:OnDelete:CASCADE"`

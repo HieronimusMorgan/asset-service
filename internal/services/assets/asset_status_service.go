@@ -11,8 +11,8 @@ import (
 )
 
 type AssetStatusService interface {
-	AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error)
-	GetAssetStatus() (interface{}, error)
+	AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string, credentialKey string) (interface{}, error)
+	GetAssetStatus(clientID string, size, index int) (interface{}, int64, error)
 	GetAssetStatusByID(assetStatusID uint) (interface{}, error)
 	UpdateAssetStatus(assetStatusID uint, assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error)
 	DeleteAssetStatus(assetStatusID uint, clientID string) error
@@ -34,13 +34,19 @@ func NewAssetStatusService(
 		Redis:                   redis}
 }
 
-func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error) {
+func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string, credentialKey string) (interface{}, error) {
 	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+
+	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		return nil, err
+	}
 
 	var assetStatus = &assets.AssetStatus{
 		StatusName:  assetStatusRequest.StatusName,
 		Description: assetStatusRequest.Description,
-		CreatedBy:   data.ClientID,
+		CreatedBy:   &data.ClientID,
 	}
 
 	if err = s.AssetStatusRepository.GetAssetStatusByName(assetStatusRequest.StatusName); err == nil {
@@ -77,24 +83,35 @@ func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStat
 	}, nil
 }
 
-func (s assetStatusService) GetAssetStatus() (interface{}, error) {
-	assetStatus, err := s.AssetStatusRepository.GetAssetStatus()
+func (s assetStatusService) GetAssetStatus(clientID string, size, index int) (interface{}, int64, error) {
+	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		log.Error().
+			Str("key", "GetRedisData").
+			Str("clientID", clientID).
+			Err(err).
+			Msg("Failed to retrieve data from Redis")
+		return nil, 0, err
+	}
+	total, err := s.AssetStatusRepository.GetCountAssetStatus()
+	if err != nil {
+		log.Error().
+			Str("key", "GetCountAssetStatus").
+			Err(err).
+			Msg("Failed to get count of asset status")
+		return nil, 0, err
+	}
+
+	assetStatus, err := s.AssetStatusRepository.GetAssetStatus(size, index)
 	if err != nil {
 		log.Error().
 			Str("key", "GetAssetStatus").
 			Err(err).
 			Msg("Failed to get asset status")
-		return nil, err
+		return nil, total, err
 	}
-	var assetStatusResponse []response.AssetStatusResponse
-	for _, status := range assetStatus {
-		assetStatusResponse = append(assetStatusResponse, response.AssetStatusResponse{
-			AssetStatusID: status.AssetStatusID,
-			StatusName:    status.StatusName,
-			Description:   status.Description,
-		})
-	}
-	return assetStatusResponse, nil
+
+	return assetStatus, total, nil
 }
 
 func (s assetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{}, error) {
@@ -127,7 +144,7 @@ func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 	var oldAsset = assetStatus
 	assetStatus.StatusName = assetStatusRequest.StatusName
 	assetStatus.Description = assetStatusRequest.Description
-	assetStatus.UpdatedBy = data.ClientID
+	assetStatus.UpdatedBy = &data.ClientID
 
 	if err = s.AssetStatusRepository.UpdateAssetStatus(assetStatus); err != nil {
 		log.Error().

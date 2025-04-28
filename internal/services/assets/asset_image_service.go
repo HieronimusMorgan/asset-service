@@ -50,8 +50,8 @@ func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageRespo
 				UserClientID: clientID,
 				AssetID:      assetID,
 				ImageURL:     image.ImageURL,
-				CreatedBy:    data.ClientID,
-				UpdatedBy:    data.ClientID,
+				CreatedBy:    &data.ClientID,
+				UpdatedBy:    &data.ClientID,
 			})
 		}
 		if err := s.AssetImageRepository.AddAssetImage(assetImages); err != nil {

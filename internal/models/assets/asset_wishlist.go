@@ -8,8 +8,8 @@ type AssetWishlist struct {
 	AssetName     string     `gorm:"size:100;not null;column:asset_name" json:"asset_name"`
 	SerialNumber  *string    `gorm:"size:100;column:serial_number" json:"serial_number,omitempty"`
 	Barcode       *string    `gorm:"size:100;column:barcode" json:"barcode,omitempty"`
-	CategoryID    int        `gorm:"column:category_id" json:"category_id,omitempty"`
-	StatusID      int        `gorm:"column:status_id" json:"status_id,omitempty"`
+	CategoryID    uint       `gorm:"column:category_id" json:"category_id,omitempty"`
+	StatusID      uint       `gorm:"column:status_id" json:"status_id,omitempty"`
 	PriorityLevel string     `gorm:"size:20;default:medium;check:priority_level IN ('low','medium','high');column:priority_level" json:"priority_level"`
 	PriceEstimate float64    `gorm:"type:decimal(40,2);default:0;column:price_estimate" json:"price_estimate"`
 	Notes         *string    `gorm:"type:text;column:notes" json:"notes,omitempty"`
