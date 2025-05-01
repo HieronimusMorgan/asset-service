@@ -4,6 +4,7 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	service "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -17,10 +18,10 @@ type AssetMaintenanceTypeController interface {
 
 type assetMaintenanceTypeController struct {
 	Service    service.AssetMaintenanceTypeService
-	JWTService utils.JWTService
+	JWTService jwt.Service
 }
 
-func NewAssetMaintenanceTypeController(Service service.AssetMaintenanceTypeService, JWTService utils.JWTService) AssetMaintenanceTypeController {
+func NewAssetMaintenanceTypeController(Service service.AssetMaintenanceTypeService, JWTService jwt.Service) AssetMaintenanceTypeController {
 	return assetMaintenanceTypeController{Service: Service, JWTService: JWTService}
 }
 
@@ -31,13 +32,13 @@ func (c assetMaintenanceTypeController) CreateMaintenanceType(ctx *gin.Context) 
 		return
 	}
 
-	credentialKey := ctx.GetHeader("X-CREDENTIAL-KEY")
+	credentialKey := ctx.GetHeader(utils.XCredentialKey)
 	if credentialKey == "" {
-		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "credential key not found")
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -88,7 +89,7 @@ func (c assetMaintenanceTypeController) GetMaintenanceByID(context *gin.Context)
 }
 
 func (c assetMaintenanceTypeController) GetListMaintenanceType(context *gin.Context) {
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

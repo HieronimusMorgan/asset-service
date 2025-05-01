@@ -3,6 +3,7 @@ package assets
 import (
 	service "asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -18,10 +19,10 @@ type AssetMaintenanceRecordController interface {
 
 type assetMaintenanceRecordController struct {
 	Service    service.AssetMaintenanceRecordService
-	JWTService utils.JWTService
+	JWTService jwt.Service
 }
 
-func NewAssetMaintenanceRecordController(Service service.AssetMaintenanceRecordService, JWTService utils.JWTService) AssetMaintenanceRecordController {
+func NewAssetMaintenanceRecordController(Service service.AssetMaintenanceRecordService, JWTService jwt.Service) AssetMaintenanceRecordController {
 	return assetMaintenanceRecordController{Service: Service, JWTService: JWTService}
 }
 
@@ -75,7 +76,7 @@ func (h assetMaintenanceRecordController) GetMaintenanceRecordByRecordIDAndAsset
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, 400, "Error", nil, "Token not found")
 		return
@@ -96,7 +97,7 @@ func (h assetMaintenanceRecordController) GetListMaintenancesRecordByAssetID(ctx
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, 400, "Error", nil, "Token not found")
 		return
@@ -123,7 +124,7 @@ func (h assetMaintenanceRecordController) GetMaintenancesRecordByAssetIDAndMaint
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, 400, "Error", nil, "Token not found")
 		return
@@ -144,7 +145,7 @@ func (h assetMaintenanceRecordController) GetMaintenanceRecordByID(ctx *gin.Cont
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, 400, "Error", nil, "Token not found")
 		return

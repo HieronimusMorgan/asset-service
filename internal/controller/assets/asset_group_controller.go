@@ -4,6 +4,7 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -31,10 +32,10 @@ type AssetGroupController interface {
 
 type assetGroupController struct {
 	AssetGroupService assets.AssetGroupService
-	JWTService        utils.JWTService
+	JWTService        jwt.Service
 }
 
-func NewAssetGroupController(AssetGroupService assets.AssetGroupService, JWTService utils.JWTService) AssetGroupController {
+func NewAssetGroupController(AssetGroupService assets.AssetGroupService, JWTService jwt.Service) AssetGroupController {
 	return assetGroupController{AssetGroupService: AssetGroupService, JWTService: JWTService}
 }
 
@@ -45,13 +46,19 @@ func (a assetGroupController) AddAssetGroup(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	credentialKey := context.GetHeader(utils.XCredentialKey)
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
+		return
+	}
+
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	data, err := a.AssetGroupService.AddAssetGroup(&req, token.ClientID)
+	data, err := a.AssetGroupService.AddAssetGroup(&req, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
@@ -62,7 +69,7 @@ func (a assetGroupController) AddAssetGroup(context *gin.Context) {
 
 func (a assetGroupController) AddInvitationTokenAssetGroup(context *gin.Context) {
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -79,7 +86,7 @@ func (a assetGroupController) AddInvitationTokenAssetGroup(context *gin.Context)
 
 func (a assetGroupController) RemoveInvitationTokenAssetGroup(context *gin.Context) {
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -100,19 +107,26 @@ func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
 		context.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	assetGroupID, err := utils.ConvertToUint(context.Param("id"))
 	if err != nil {
 		response.SendResponse(context, 400, "Resource MaintenanceTypeID must be a number", nil, err)
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	credentialKey := context.GetHeader(utils.XCredentialKey)
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
+		return
+	}
+
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	data, err := a.AssetGroupService.UpdateAssetGroup(assetGroupID, &req, token.ClientID)
+	data, err := a.AssetGroupService.UpdateAssetGroup(assetGroupID, &req, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
 		return
@@ -120,8 +134,9 @@ func (a assetGroupController) UpdateAssetGroup(context *gin.Context) {
 
 	response.SendResponse(context, http.StatusOK, "Asset group name updated successfully", data, nil)
 }
+
 func (a assetGroupController) GetAssetGroup(context *gin.Context) {
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -143,13 +158,19 @@ func (a assetGroupController) DeleteAssetGroup(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	credentialKey := context.GetHeader(utils.XCredentialKey)
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
+		return
+	}
+
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	err = a.AssetGroupService.DeleteAssetGroup(assetGroupID, token.ClientID)
+	err = a.AssetGroupService.DeleteAssetGroup(assetGroupID, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
 		return
@@ -165,7 +186,7 @@ func (a assetGroupController) InviteMemberAssetGroup(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -187,7 +208,7 @@ func (a assetGroupController) RemoveMemberAssetGroup(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -209,7 +230,7 @@ func (a assetGroupController) AddPermissionMemberAssetGroup(context *gin.Context
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -231,7 +252,7 @@ func (a assetGroupController) RemovePermissionMemberAssetGroup(context *gin.Cont
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -252,7 +273,7 @@ func (a assetGroupController) GetListAssetGroupAsset(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

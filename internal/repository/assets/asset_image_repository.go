@@ -13,6 +13,7 @@ import (
 type AssetImageRepository interface {
 	AddAssetImage(assetImage []assets.AssetImage) error
 	DeleteAssetImage(assetID uint, clientID string) error
+	UpdateAssetImage(assetID uint, metadata []response.AssetImageResponse, clientID string) error
 	Cleanup() error
 	GetAssetImageResponseByAssetID(assetID uint) (*[]response.AssetImageResponse, error)
 	GetAssetImageByAssetID(assetID uint) (*[]assets.AssetImage, error)
@@ -140,6 +141,42 @@ func (r *assetImageRepository) DeleteAssetImage(assetID uint, clientID string) e
 	log.Info().
 		Uint("asset_id", assetID).
 		Msg("✅ Asset image deleted successfully")
+	return nil
+}
+
+// UpdateAssetImage updates an existing asset image and logs audit
+func (r *assetImageRepository) UpdateAssetImage(assetID uint, metadata []response.AssetImageResponse, clientID string) error {
+	if len(metadata) == 0 {
+		return nil // No images to update
+	}
+	// Delete existing asset images for the given assetID
+	err := r.db.Unscoped().Table(utils.TableAssetImageName).
+		Where("asset_id = ?", assetID).
+		Delete(&assets.AssetImage{}).Error
+	if err != nil {
+		log.Error().Err(err).Uint("asset_id", assetID).Msg("Failed to delete existing asset images")
+		return err
+	}
+
+	// Create new image records
+	var newImages []assets.AssetImage
+	for _, img := range metadata {
+		newImages = append(newImages, assets.AssetImage{
+			AssetID:      assetID,
+			ImageURL:     img.ImageURL,
+			UserClientID: clientID,
+		})
+	}
+
+	// Insert new image metadata
+	if err := r.db.Table(utils.TableAssetImageName).Create(&newImages).Error; err != nil {
+		log.Error().Err(err).Uint("asset_id", assetID).Msg("Failed to create new asset images")
+		return err
+	}
+
+	log.Info().
+		Uint("asset_id", assetID).
+		Msg("✅ Asset image updated successfully")
 	return nil
 }
 

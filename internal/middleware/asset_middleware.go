@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -13,10 +13,10 @@ type AssetMiddleware interface {
 }
 
 type assetMiddleware struct {
-	JWTService utils.JWTService
+	JWTService jwt.Service
 }
 
-func NewAssetMiddleware(jwtService utils.JWTService) AssetMiddleware {
+func NewAssetMiddleware(jwtService jwt.Service) AssetMiddleware {
 	return assetMiddleware{
 		JWTService: jwtService,
 	}
@@ -51,13 +51,13 @@ func (a assetMiddleware) HandlerAsset() gin.HandlerFunc {
 			return
 		}
 
-		if tokenClaims.Exp < utils.GetCurrentTime() {
+		if tokenClaims.Exp < jwt.GetCurrentTime() {
 			response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Token has expired")
 			c.Abort()
 			return
 		}
 
-		if !utils.HasAssetResource(tokenClaims.Resource) {
+		if !jwt.HasAssetResource(tokenClaims.Resource) {
 			response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "You are not authorized to access this resource")
 			c.Abort()
 			return
@@ -97,14 +97,14 @@ func (a assetMiddleware) HandlerAssetGroup() gin.HandlerFunc {
 			return
 		}
 
-		if tokenClaims.Exp < utils.GetCurrentTime() {
+		if tokenClaims.Exp < jwt.GetCurrentTime() {
 			response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Token has expired")
 			c.Abort()
 			return
 		}
 
-		if !utils.HasAssetGroupResource(tokenClaims.Resource) {
-			response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "You are not authorized to access this resource")
+		if !jwt.HasAssetGroupResource(tokenClaims.Resource) {
+			response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "You are not authorized to access asset group resource")
 			c.Abort()
 			return
 		}

@@ -3,6 +3,7 @@ package assets
 import (
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
 	"fmt"
 )
 
@@ -18,7 +19,7 @@ type assetMaintenanceRecordService struct {
 	AssetRepository                  repository.AssetRepository
 	AssetMaintenanceRecordRepository repository.AssetMaintenanceRecordRepository
 	AssetAuditLogRepository          repository.AssetAuditLogRepository
-	Redis                            utils.RedisService
+	Redis                            redis.RedisService
 }
 
 func NewAssetMaintenanceRecordService(
@@ -26,7 +27,7 @@ func NewAssetMaintenanceRecordService(
 	assetRepository repository.AssetRepository,
 	AssetMaintenanceRecordRecord repository.AssetMaintenanceRecordRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	RedisService utils.RedisService) AssetMaintenanceRecordService {
+	RedisService redis.RedisService) AssetMaintenanceRecordService {
 	return assetMaintenanceRecordService{
 		AssetMaintenanceRepository:       AssetMaintenance,
 		AssetRepository:                  assetRepository,
@@ -45,7 +46,7 @@ func (s assetMaintenanceRecordService) GetMaintenanceRecordByID(maintenanceRecor
 }
 
 func (s assetMaintenanceRecordService) GetListMaintenancesRecordByAssetID(assetID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
@@ -70,7 +71,7 @@ func (s assetMaintenanceRecordService) GetListMaintenancesRecordByAssetID(assetI
 }
 
 func (s assetMaintenanceRecordService) GetMaintenancesRecordByAssetIDAndMaintenanceID(assetID, maintenanceID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
@@ -100,7 +101,7 @@ func (s assetMaintenanceRecordService) GetMaintenancesRecordByAssetIDAndMaintena
 }
 
 func (s assetMaintenanceRecordService) GetMaintenanceRecordByRecordIDAndAssetIDAndMaintenanceID(maintenanceRecordID, assetID, maintenanceID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}

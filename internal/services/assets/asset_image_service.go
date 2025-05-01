@@ -6,6 +6,7 @@ import (
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
 	nt "asset-service/internal/utils/nats"
+	"asset-service/internal/utils/redis"
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog/log"
@@ -23,11 +24,11 @@ type AssetImageService interface {
 type assetImageService struct {
 	AssetImageRepository repository.AssetImageRepository
 	AssetRepository      repository.AssetRepository
-	Redis                utils.RedisService
-	NatsService          nt.NatsService
+	Redis                redis.RedisService
+	NatsService          nt.Service
 }
 
-func NewAssetImageService(assetImageRepository repository.AssetImageRepository, assetRepository repository.AssetRepository, redis utils.RedisService, natsService nt.NatsService) AssetImageService {
+func NewAssetImageService(assetImageRepository repository.AssetImageRepository, assetRepository repository.AssetRepository, redis redis.RedisService, natsService nt.Service) AssetImageService {
 	return &assetImageService{
 		AssetImageRepository: assetImageRepository,
 		AssetRepository:      assetRepository,
@@ -37,7 +38,7 @@ func NewAssetImageService(assetImageRepository repository.AssetImageRepository, 
 }
 
 func (s assetImageService) AddAssetImage(assetRequest []response.AssetImageResponse, assetID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve data from Redis")
 		return err

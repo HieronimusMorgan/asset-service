@@ -13,6 +13,7 @@ func AssetRoutes(r *gin.Engine, middleware config.Middleware, controller assets.
 	{
 		routerGroup.POST("/add", controller.AddAsset)
 		routerGroup.POST("/update/:id", controller.UpdateAsset)
+		routerGroup.POST("/update-image/:id", controller.UpdateImageAsset)
 		routerGroup.POST("/update-status/:id", controller.UpdateAssetStatus)
 		routerGroup.POST("/update-category/:id", controller.UpdateAssetCategory)
 		routerGroup.POST("/add-stock/:id", controller.AddStockAsset)

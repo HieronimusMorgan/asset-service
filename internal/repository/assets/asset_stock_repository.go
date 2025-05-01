@@ -4,6 +4,7 @@ import (
 	response "asset-service/internal/dto/out/assets"
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/text"
 	"errors"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
@@ -212,7 +213,7 @@ func (r *assetStockRepository) UpdateAssetStockByAssetGroupID(assetStock *assets
 				"latest_quantity": newQuantity,
 				"quantity":        newQuantity,
 				"change_type":     assetStock.ChangeType,
-				"reason":          utils.NilIfEmpty(*assetStock.Reason),
+				"reason":          text.NilIfEmpty(*assetStock.Reason),
 				"updated_by":      clientID,
 				"updated_at":      time.Now(),
 			}).Error; err != nil {

@@ -4,10 +4,10 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type AssetCategoryController interface {
@@ -21,24 +21,24 @@ type AssetCategoryController interface {
 
 type assetCategoryController struct {
 	AssetCategoryService assets.AssetCategoryService
-	JWTService           utils.JWTService
+	JWTService           jwt.Service
 }
 
-func NewAssetCategoryController(assetCategoryService assets.AssetCategoryService, jwtService utils.JWTService) AssetCategoryController {
+func NewAssetCategoryController(assetCategoryService assets.AssetCategoryService, jwtService jwt.Service) AssetCategoryController {
 	return assetCategoryController{AssetCategoryService: assetCategoryService, JWTService: jwtService}
 }
 
 func (h assetCategoryController) AddAssetCategory(context *gin.Context) {
 	var req request.AssetCategoryRequest
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
 	}
 
-	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	credentialKey := context.GetHeader(utils.XCredentialKey)
 	if credentialKey == "" {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
 		return
 	}
 
@@ -63,7 +63,13 @@ func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	credentialKey := context.GetHeader(utils.XCredentialKey)
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
+		return
+	}
+
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -74,7 +80,7 @@ func (h assetCategoryController) UpdateAssetCategory(context *gin.Context) {
 		return
 	}
 
-	assetCategory, err := h.AssetCategoryService.UpdateAssetCategory(assetCategoryID, &req, token.ClientID)
+	assetCategory, err := h.AssetCategoryService.UpdateAssetCategory(assetCategoryID, &req, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, err.Error())
 		return
@@ -88,19 +94,13 @@ func (h assetCategoryController) GetAssetCategories(*gin.Context) {
 }
 
 func (h assetCategoryController) GetListAssetCategory(context *gin.Context) {
-	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
-	if err != nil || pageSize <= 0 {
-		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
+	pageIndex, pageSize, err := utils.GetPageIndexPageSize(context)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid page index or page size", nil, err.Error())
 		return
 	}
 
-	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
-	if err != nil || pageIndex <= 0 {
-		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
-		return
-	}
-
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -132,7 +132,7 @@ func (h assetCategoryController) GetAssetCategoryById(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

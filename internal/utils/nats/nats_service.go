@@ -7,7 +7,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-type NatsService interface {
+type Service interface {
 	RequestImageDeletion(clientID string, images []string) error
 	RequestImageUsage(images []assets.ImageDeleteRequest) error
 }
@@ -16,7 +16,7 @@ type natsService struct {
 	nats string
 }
 
-func NewNatsService(nats string) NatsService {
+func NewNatsService(nats string) Service {
 	return &natsService{
 		nats: nats,
 	}

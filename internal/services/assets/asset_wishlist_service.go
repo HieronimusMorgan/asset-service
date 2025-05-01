@@ -7,6 +7,7 @@ import (
 	repo "asset-service/internal/repository/assets"
 	repouser "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
 	"errors"
 	"github.com/rs/zerolog/log"
 )
@@ -30,7 +31,7 @@ type assetWishlistService struct {
 	AuditLogRepository         repo.AssetAuditLogRepository
 	AssetGroupMemberRepository repo.AssetGroupMemberRepository
 	AssetGroupAssetRepository  repo.AssetGroupAssetRepository
-	Redis                      utils.RedisService
+	Redis                      redis.RedisService
 }
 
 func NewAssetWishlistService(
@@ -43,7 +44,7 @@ func NewAssetWishlistService(
 	AuditLogRepository repo.AssetAuditLogRepository,
 	AssetGroupMemberRepository repo.AssetGroupMemberRepository,
 	AssetGroupAssetRepository repo.AssetGroupAssetRepository,
-	redis utils.RedisService) AssetWishlistService {
+	redis redis.RedisService) AssetWishlistService {
 	return assetWishlistService{
 		UserRepository:             UserRepository,
 		AssetWishlistRepository:    assetWishlistRepository,
@@ -59,7 +60,7 @@ func NewAssetWishlistService(
 }
 
 func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishlistRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -125,7 +126,7 @@ func (s assetWishlistService) AddAssetWishlist(assetRequest *request.AssetWishli
 }
 
 func (s assetWishlistService) GetListAssetWishlist(clientID string, size, index int) (interface{}, int64, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -159,7 +160,7 @@ func (s assetWishlistService) GetListAssetWishlist(clientID string, size, index 
 }
 
 func (s assetWishlistService) GetAssetWishlistByID(id uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -183,7 +184,7 @@ func (s assetWishlistService) GetAssetWishlistByID(id uint, clientID string) (in
 }
 
 func (s assetWishlistService) UpdateAssetWishlist(id uint, req *request.AssetWishlistRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -239,7 +240,7 @@ func (s assetWishlistService) UpdateAssetWishlist(id uint, req *request.AssetWis
 }
 
 func (s assetWishlistService) DeleteAssetWishlist(id uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -263,7 +264,7 @@ func (s assetWishlistService) DeleteAssetWishlist(id uint, clientID string) erro
 }
 
 func (s assetWishlistService) AddAssetWishlistToAsset(id uint, assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID string, headerID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").

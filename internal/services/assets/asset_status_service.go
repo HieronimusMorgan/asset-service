@@ -6,6 +6,8 @@ import (
 	"asset-service/internal/models/assets"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"errors"
 	"github.com/rs/zerolog/log"
 )
@@ -21,13 +23,13 @@ type AssetStatusService interface {
 type assetStatusService struct {
 	AssetStatusRepository   repository.AssetStatusRepository
 	AssetAuditLogRepository repository.AssetAuditLogRepository
-	Redis                   utils.RedisService
+	Redis                   redis.RedisService
 }
 
 func NewAssetStatusService(
 	assetStatusRepository repository.AssetStatusRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	redis utils.RedisService) AssetStatusService {
+	redis redis.RedisService) AssetStatusService {
 	return assetStatusService{
 		AssetStatusRepository:   assetStatusRepository,
 		AssetAuditLogRepository: AssetAuditLogRepository,
@@ -35,11 +37,11 @@ func NewAssetStatusService(
 }
 
 func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStatusRequest, clientID string, credentialKey string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 
-	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -84,7 +86,7 @@ func (s assetStatusService) AddAssetStatus(assetStatusRequest *request.AssetStat
 }
 
 func (s assetStatusService) GetAssetStatus(clientID string, size, index int) (interface{}, int64, error) {
-	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	_, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetRedisData").
@@ -131,7 +133,7 @@ func (s assetStatusService) GetAssetStatusByID(assetStatusID uint) (interface{},
 }
 
 func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusRequest *request.AssetStatusRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 
 	assetStatus, err := s.AssetStatusRepository.GetAssetStatusByID(assetStatusID)
 	if err != nil {
@@ -171,7 +173,7 @@ func (s assetStatusService) UpdateAssetStatus(assetStatusID uint, assetStatusReq
 }
 
 func (s assetStatusService) DeleteAssetStatus(assetStatusID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	assetStatus, err := s.AssetStatusRepository.GetAssetStatusByID(assetStatusID)
 	if err != nil {
 		log.Error().

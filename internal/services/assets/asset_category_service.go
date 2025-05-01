@@ -1,6 +1,8 @@
 package assets
 
 import (
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"errors"
 
 	request "asset-service/internal/dto/in/assets"
@@ -14,7 +16,7 @@ import (
 
 type AssetCategoryService interface {
 	AddAssetCategory(assetRequest *request.AssetCategoryRequest, credentialKey string, clientID string) (interface{}, error)
-	UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error)
+	UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string, credentialKey string) (interface{}, error)
 	GetListAssetCategory(clientID string, size int, index int) (interface{}, int64, error)
 	GetAssetCategoryById(categoryID uint, clientID string) (interface{}, error)
 	DeleteAssetCategory(categoryID uint, clientID string) error
@@ -24,14 +26,14 @@ type assetCategoryService struct {
 	AssetCategoryRepository repository.AssetCategoryRepository
 	AssetRepository         repository.AssetRepository
 	AssetAuditLogRepository repository.AssetAuditLogRepository
-	Redis                   utils.RedisService
+	Redis                   redis.RedisService
 }
 
 func NewAssetCategoryService(
 	assetCategoryRepository repository.AssetCategoryRepository,
 	AssetRepository repository.AssetRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	redis utils.RedisService) AssetCategoryService {
+	redis redis.RedisService) AssetCategoryService {
 	return &assetCategoryService{
 		AssetCategoryRepository: assetCategoryRepository,
 		AssetRepository:         AssetRepository,
@@ -41,15 +43,15 @@ func NewAssetCategoryService(
 }
 
 func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCategoryRequest, credentialKey string, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve data from Redis")
 		return nil, err
 	}
 
-	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -88,10 +90,16 @@ func (s *assetCategoryService) AddAssetCategory(assetRequest *request.AssetCateg
 	}, nil
 }
 
-func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCategoryRequest *request.AssetCategoryRequest, clientID string, credentialKey string) (interface{}, error) {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
+		return nil, err
+	}
+
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -132,7 +140,7 @@ func (s *assetCategoryService) UpdateAssetCategory(assetCategoryID uint, assetCa
 }
 
 func (s *assetCategoryService) GetListAssetCategory(clientID string, size int, index int) (interface{}, int64, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
 		return nil, 0, err
@@ -177,7 +185,7 @@ func (s *assetCategoryService) GetAssetCategoryById(categoryID uint, clientID st
 }
 
 func (s *assetCategoryService) DeleteAssetCategory(categoryID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().Str("clientID", clientID).Err(err).Msg("Failed to retrieve user from Redis")
 		return err

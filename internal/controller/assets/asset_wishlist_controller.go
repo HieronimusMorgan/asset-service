@@ -5,10 +5,11 @@ import (
 	responses "asset-service/internal/dto/out/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
+	"asset-service/internal/utils/text"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type AssetWishlistController interface {
@@ -22,11 +23,11 @@ type AssetWishlistController interface {
 
 type assetWishlistController struct {
 	AssetWishlistService assets.AssetWishlistService
-	JWTService           utils.JWTService
+	JWTService           jwt.Service
 	IpCDN                string
 }
 
-func NewAssetWishlistController(AssetWishlistService assets.AssetWishlistService, JWTService utils.JWTService, IpCDN string) AssetWishlistController {
+func NewAssetWishlistController(AssetWishlistService assets.AssetWishlistService, JWTService jwt.Service, IpCDN string) AssetWishlistController {
 	return assetWishlistController{AssetWishlistService: AssetWishlistService, JWTService: JWTService, IpCDN: IpCDN}
 }
 
@@ -37,7 +38,7 @@ func (h assetWishlistController) AddWishlistAsset(c *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(c)
+	token, exist := jwt.ExtractTokenClaims(c)
 	if !exist {
 		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -52,7 +53,7 @@ func (h assetWishlistController) AddWishlistAsset(c *gin.Context) {
 }
 
 func (h assetWishlistController) GetListAssetWishlist(c *gin.Context) {
-	token, exist := utils.ExtractTokenClaims(c)
+	token, exist := jwt.ExtractTokenClaims(c)
 	if !exist {
 		response.SendResponseList(c, 400, "Error", response.PagedData{
 			Total:     0,
@@ -63,25 +64,9 @@ func (h assetWishlistController) GetListAssetWishlist(c *gin.Context) {
 		return
 	}
 
-	pageSize, err := strconv.Atoi(c.DefaultQuery("page_size", "10"))
-	if err != nil || pageSize <= 0 {
-		response.SendResponseList(c, 400, "Invalid page_size", response.PagedData{
-			Total:     0,
-			PageSize:  0,
-			PageIndex: 0,
-			Items:     nil,
-		}, "page_size must be a positive integer")
-		return
-	}
-
-	pageIndex, err := strconv.Atoi(c.DefaultQuery("page_index", "1"))
-	if err != nil || pageIndex <= 0 {
-		response.SendResponseList(c, 400, "Invalid page_index", response.PagedData{
-			Total:     0,
-			PageSize:  0,
-			PageIndex: 0,
-			Items:     nil,
-		}, "page_index must be a positive integer")
+	pageIndex, pageSize, err := utils.GetPageIndexPageSize(c)
+	if err != nil {
+		response.SendResponse(c, 400, "Invalid page index or page size", nil, err.Error())
 		return
 	}
 
@@ -111,7 +96,7 @@ func (h assetWishlistController) GetAssetWishlistByID(c *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(c)
+	token, exist := jwt.ExtractTokenClaims(c)
 	if !exist {
 		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -138,7 +123,7 @@ func (h assetWishlistController) UpdateAssetWishlist(c *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(c)
+	token, exist := jwt.ExtractTokenClaims(c)
 	if !exist {
 		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -159,7 +144,7 @@ func (h assetWishlistController) DeleteAssetWishlist(c *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(c)
+	token, exist := jwt.ExtractTokenClaims(c)
 	if !exist {
 		response.SendResponse(c, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -187,18 +172,18 @@ func (h assetWishlistController) AddAssetWishlistToAsset(context *gin.Context) {
 	}
 
 	req := request.AssetRequest{
-		SerialNumber:   utils.GetOptionalString(context, "serial_number"),
+		SerialNumber:   text.GetOptionalString(context, "serial_number"),
 		Name:           context.PostForm("name"),
-		Description:    utils.GetOptionalString(context, "description"),
-		Barcode:        utils.GetOptionalString(context, "barcode"),
+		Description:    text.GetOptionalString(context, "description"),
+		Barcode:        text.GetOptionalString(context, "barcode"),
 		CategoryID:     utils.ParseFormUint(context, "category_id"),
 		StatusID:       utils.ParseFormUint(context, "status_id"),
-		PurchaseDate:   utils.GetOptionalString(context, "purchase_date"),
-		ExpiryDate:     utils.GetOptionalString(context, "expiry_date"),
-		WarrantyExpiry: utils.GetOptionalString(context, "warranty_expiry_date"),
+		PurchaseDate:   text.GetOptionalString(context, "purchase_date"),
+		ExpiryDate:     text.GetOptionalString(context, "expiry_date"),
+		WarrantyExpiry: text.GetOptionalString(context, "warranty_expiry_date"),
 		Price:          utils.ParseFormFloat(context, "price"),
 		Stock:          utils.ParseFormInt(context, "stock"),
-		Notes:          utils.GetOptionalString(context, "notes"),
+		Notes:          text.GetOptionalString(context, "notes"),
 	}
 
 	// Extract token
@@ -222,7 +207,7 @@ func (h assetWishlistController) AddAssetWishlistToAsset(context *gin.Context) {
 		imageMetadata, err = uploadImagesToCDN(h.IpCDN, files, token.ClientID, context.GetHeader(utils.Authorization))
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

@@ -5,6 +5,7 @@ import (
 	"asset-service/internal/models/assets"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
 )
 
 type AssetGroupPermissionService interface {
@@ -19,14 +20,14 @@ type assetGroupPermissionService struct {
 	AssetGroupPermissionRepository repository.AssetGroupPermissionRepository
 	AssetRepository                repository.AssetRepository
 	AssetAuditLogRepository        repository.AssetAuditLogRepository
-	Redis                          utils.RedisService
+	Redis                          redis.RedisService
 }
 
 func NewAssetGroupPermissionService(
 	assetCategoryRepository repository.AssetGroupPermissionRepository,
 	AssetRepository repository.AssetRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	redis utils.RedisService) AssetGroupPermissionService {
+	redis redis.RedisService) AssetGroupPermissionService {
 	return &assetGroupPermissionService{
 		AssetGroupPermissionRepository: assetCategoryRepository,
 		AssetRepository:                AssetRepository,
@@ -36,7 +37,7 @@ func NewAssetGroupPermissionService(
 }
 
 func (s *assetGroupPermissionService) AddAssetGroupPermission(req *request.AssetGroupPermissionRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -55,7 +56,7 @@ func (s *assetGroupPermissionService) AddAssetGroupPermission(req *request.Asset
 }
 
 func (s *assetGroupPermissionService) UpdateAssetGroupPermission(permissionID uint, assetCategoryRequest *request.AssetGroupPermissionRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -77,7 +78,7 @@ func (s *assetGroupPermissionService) UpdateAssetGroupPermission(permissionID ui
 }
 
 func (s *assetGroupPermissionService) GetListAssetGroupPermission(clientID string) (interface{}, error) {
-	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	_, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -91,7 +92,7 @@ func (s *assetGroupPermissionService) GetListAssetGroupPermission(clientID strin
 }
 
 func (s *assetGroupPermissionService) GetAssetGroupPermissionById(permissionID uint, clientID string) (interface{}, error) {
-	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	_, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -105,7 +106,7 @@ func (s *assetGroupPermissionService) GetAssetGroupPermissionById(permissionID u
 }
 
 func (s *assetGroupPermissionService) DeleteAssetGroupPermission(permissionID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}

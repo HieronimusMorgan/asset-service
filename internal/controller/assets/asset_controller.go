@@ -5,6 +5,8 @@ import (
 	responses "asset-service/internal/dto/out/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
+	"asset-service/internal/utils/text"
 	"asset-service/package/response"
 	"bytes"
 	"encoding/json"
@@ -21,6 +23,7 @@ type AssetController interface {
 	UpdateAsset(context *gin.Context)
 	UpdateAssetStatus(context *gin.Context)
 	UpdateAssetCategory(context *gin.Context)
+	UpdateImageAsset(context *gin.Context)
 	AddStockAsset(context *gin.Context)
 	ReduceStockAsset(context *gin.Context)
 	GetListAsset(context *gin.Context)
@@ -30,11 +33,11 @@ type AssetController interface {
 
 type assetController struct {
 	AssetService assets.AssetService
-	JWTService   utils.JWTService
+	JWTService   jwt.Service
 	IpCDN        string
 }
 
-func NewAssetController(assetService assets.AssetService, jwtService utils.JWTService, IpCDN string) AssetController {
+func NewAssetController(assetService assets.AssetService, jwtService jwt.Service, IpCDN string) AssetController {
 	return assetController{AssetService: assetService, JWTService: jwtService, IpCDN: IpCDN}
 }
 
@@ -46,18 +49,18 @@ func (h assetController) AddAsset(context *gin.Context) {
 	}
 
 	req := request.AssetRequest{
-		SerialNumber:   utils.GetOptionalString(context, "serial_number"),
+		SerialNumber:   text.GetOptionalString(context, "serial_number"),
 		Name:           context.PostForm("name"),
-		Description:    utils.GetOptionalString(context, "description"),
-		Barcode:        utils.GetOptionalString(context, "barcode"),
+		Description:    text.GetOptionalString(context, "description"),
+		Barcode:        text.GetOptionalString(context, "barcode"),
 		CategoryID:     utils.ParseFormUint(context, "category_id"),
 		StatusID:       utils.ParseFormUint(context, "status_id"),
-		PurchaseDate:   utils.GetOptionalString(context, "purchase_date"),
-		ExpiryDate:     utils.GetOptionalString(context, "expiry_date"),
-		WarrantyExpiry: utils.GetOptionalString(context, "warranty_expiry_date"),
+		PurchaseDate:   text.GetOptionalString(context, "purchase_date"),
+		ExpiryDate:     text.GetOptionalString(context, "expiry_date"),
+		WarrantyExpiry: text.GetOptionalString(context, "warranty_expiry_date"),
 		Price:          utils.ParseFormFloat(context, "price"),
 		Stock:          utils.ParseFormInt(context, "stock"),
-		Notes:          utils.GetOptionalString(context, "notes"),
+		Notes:          text.GetOptionalString(context, "notes"),
 	}
 
 	// Extract token
@@ -67,9 +70,9 @@ func (h assetController) AddAsset(context *gin.Context) {
 		return
 	}
 
-	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	credentialKey := context.GetHeader(utils.XCredentialKey)
 	if credentialKey == "" {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
 		return
 	}
 	// Extract files
@@ -102,6 +105,13 @@ func (h assetController) UpdateAsset(context *gin.Context) {
 		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
 		return
 	}
+
+	credentialKey := context.GetHeader(utils.XCredentialKey)
+	if credentialKey == "" {
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
+		return
+	}
+
 	if err := context.ShouldBindJSON(&req); err != nil {
 		response.SendResponse(context, 400, "Error", nil, err.Error())
 		return
@@ -111,7 +121,7 @@ func (h assetController) UpdateAsset(context *gin.Context) {
 		return
 	}
 
-	asset, err := h.AssetService.UpdateAsset(uint(assetID), req, token.ClientID)
+	asset, err := h.AssetService.UpdateAsset(uint(assetID), req, token.ClientID, credentialKey)
 	if err != nil {
 		response.SendResponse(context, 500, "Failed to update assets", nil, err.Error())
 		return
@@ -173,6 +183,45 @@ func (h assetController) UpdateAssetCategory(context *gin.Context) {
 	}
 
 	response.SendResponse(context, 200, "Asset category updated successfully", nil, nil)
+}
+
+func (h assetController) UpdateImageAsset(context *gin.Context) {
+	assetIDStr := context.Param("id")
+	assetID, err := strconv.ParseUint(assetIDStr, 10, 32)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid asset MaintenanceTypeID", nil, err.Error())
+		return
+	}
+
+	err = context.Request.ParseMultipartForm(10 << 20)
+	if err != nil {
+		response.SendResponse(context, 400, "Error parsing form", nil, err.Error())
+		return
+	}
+
+	files := context.Request.MultipartForm.File["images"]
+	if len(files) == 0 {
+		response.SendResponse(context, 400, "No images uploaded", nil, "At least one image is required")
+		return
+	}
+
+	token, err := h.JWTService.ExtractClaims(context.GetHeader(utils.Authorization))
+	if err != nil {
+		return
+	}
+
+	var imageMetadata []responses.AssetImageResponse
+	if len(files) != 0 {
+		imageMetadata, err = uploadImagesToCDN(h.IpCDN, files, token.ClientID, context.GetHeader(utils.Authorization))
+	}
+
+	err = h.AssetService.UpdateImageAsset(uint(assetID), token.ClientID, imageMetadata)
+	if err != nil {
+		response.SendResponse(context, 500, "Failed to update asset images", nil, err.Error())
+		return
+	}
+
+	response.SendResponse(context, 200, "Asset images updated successfully", nil, nil)
 }
 
 func (h assetController) AddStockAsset(context *gin.Context) {
@@ -240,16 +289,9 @@ func (h assetController) GetListAsset(context *gin.Context) {
 		return
 	}
 
-	// Get pagination parameters
-	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
-	if err != nil || pageSize <= 0 {
-		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
-		return
-	}
-
-	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
-	if err != nil || pageIndex <= 0 {
-		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
+	pageIndex, pageSize, err := utils.GetPageIndexPageSize(context)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid page index or page size", nil, err.Error())
 		return
 	}
 

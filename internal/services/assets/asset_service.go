@@ -8,17 +8,20 @@ import (
 	"asset-service/internal/repository/transaction"
 	repouser "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"errors"
 	"github.com/rs/zerolog/log"
 )
 
 type AssetService interface {
 	AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID, requestHeaderID string) (interface{}, error)
-	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error)
+	UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string, credentialKey string) (interface{}, error)
 	UpdateStockAsset(isAdded bool, assetID uint, stock struct {
 		Stock  int     `json:"stock" binding:"required"`
 		Reason *string `json:"reason"`
 	}, clientID string) (interface{}, error)
+	UpdateImageAsset(assetID uint, clientID string, metadata []response.AssetImageResponse) error
 	GetListAsset(clientID string, index int, size int) (interface{}, int64, error)
 	GetAssetByID(clientID string, assetID uint) (interface{}, error)
 	UpdateAssetStatus(assetID uint, statusID uint, clientID string) error
@@ -32,7 +35,7 @@ type assetService struct {
 	AssetCategoryRepository    repo.AssetCategoryRepository
 	AssetStatusRepository      repo.AssetStatusRepository
 	AssetImageRepository       repo.AssetImageRepository
-	Redis                      utils.RedisService
+	Redis                      redis.RedisService
 	AuditLogRepository         repo.AssetAuditLogRepository
 	AssetGroupMemberRepository repo.AssetGroupMemberRepository
 	AssetGroupAssetRepository  repo.AssetGroupAssetRepository
@@ -48,7 +51,7 @@ func NewAssetService(userRepository repouser.UserRepository,
 	log repo.AssetAuditLogRepository,
 	assetGroupMemberRepository repo.AssetGroupMemberRepository,
 	assetGroupAssetRepository repo.AssetGroupAssetRepository,
-	redis utils.RedisService,
+	redis redis.RedisService,
 	assetTransaction transaction.AssetTransactionRepository,
 	assetStockRepository repo.AssetStockRepository) AssetService {
 	return assetService{
@@ -66,7 +69,7 @@ func NewAssetService(userRepository repouser.UserRepository,
 }
 
 func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []response.AssetImageResponse, clientID, credentialKey string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -76,9 +79,9 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 		return logError("GetUserByClientID", clientID, err, "Failed to get user by client MaintenanceTypeID")
 	}
 
-	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -155,10 +158,16 @@ func (s assetService) AddAsset(assetRequest *request.AssetRequest, images []resp
 	return result, nil
 }
 
-func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s assetService) UpdateAsset(assetID uint, assetRequest request.UpdateAssetRequest, clientID string, credentialKey string) (interface{}, error) {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user redis")
+	}
+
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
+		return nil, err
 	}
 
 	oldAsset, err := s.AssetRepository.GetAsset(assetID, clientID)
@@ -203,7 +212,7 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct 
 	Reason *string `json:"reason"`
 }, clientID string) (interface{}, error) {
 	// Step 1: Fetch user data from Redis
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
@@ -280,8 +289,22 @@ func (s assetService) UpdateStockAsset(isAdded bool, assetID uint, stock struct 
 	}, nil
 }
 
+func (s assetService) UpdateImageAsset(assetID uint, clientID string, metadata []response.AssetImageResponse) error {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
+	if err != nil {
+		return logErrorWithNoReturn("GetUserRedis", clientID, err, "Failed to get user redis")
+	}
+
+	err = s.AssetImageRepository.UpdateAssetImage(assetID, metadata, data.ClientID)
+	if err != nil {
+		return logErrorWithNoReturn("UpdateAssetImage", clientID, err, "Failed to update asset image")
+	}
+
+	return nil
+}
+
 func (s assetService) GetListAsset(clientID string, index int, size int) (interface{}, int64, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logListError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}
@@ -300,7 +323,7 @@ func (s assetService) GetListAsset(clientID string, index int, size int) (interf
 }
 
 func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, error) {
-	_, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	_, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user redis")
 	}
@@ -318,7 +341,7 @@ func (s assetService) GetAssetByID(clientID string, assetID uint) (interface{}, 
 }
 
 func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetUserRedis", clientID, err, "Failed to get user redis")
 	}
@@ -342,7 +365,7 @@ func (s assetService) UpdateAssetStatus(assetID uint, statusID uint, clientID st
 }
 
 func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetUserRedis", clientID, err, "Failed to get user redis")
 	}
@@ -365,7 +388,7 @@ func (s assetService) UpdateAssetCategory(assetID uint, categoryID uint, clientI
 }
 
 func (s assetService) DeleteAsset(assetID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetUserRedis", clientID, err, "Failed to get user redis")
 	}

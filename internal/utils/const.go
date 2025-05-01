@@ -4,11 +4,14 @@ const (
 	User          = "user"
 	PinVerify     = "pin_verify"
 	CredentialKey = "credential_key"
+	PageIndex     = "page_index"
+	PageSize      = "page_size"
 )
 const ClientID = "client_id"
 
 const (
-	Authorization = "Authorization"
+	Authorization  = "Authorization"
+	XCredentialKey = "X-CREDENTIAL-KEY"
 )
 
 const (

@@ -5,6 +5,8 @@ import (
 	model "asset-service/internal/models/assets"
 	repo "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 )
@@ -19,13 +21,13 @@ type AssetMaintenanceTypeService interface {
 type assetMaintenanceTypeService struct {
 	AssetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository
 	AssetMaintenanceRepository     repo.AssetMaintenanceRepository
-	Redis                          utils.RedisService
+	Redis                          redis.RedisService
 }
 
 func NewAssetMaintenanceTypeService(
 	assetMaintenanceTypeRepository repo.AssetMaintenanceTypeRepository,
 	assetMaintenanceRepository repo.AssetMaintenanceRepository,
-	redis utils.RedisService) AssetMaintenanceTypeService {
+	redis redis.RedisService) AssetMaintenanceTypeService {
 	return assetMaintenanceTypeService{
 		AssetMaintenanceTypeRepository: assetMaintenanceTypeRepository,
 		AssetMaintenanceRepository:     assetMaintenanceRepository,
@@ -33,7 +35,7 @@ func NewAssetMaintenanceTypeService(
 }
 
 func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request.AssetMaintenanceTypeRequest, clientID string, credentialKey string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -43,9 +45,9 @@ func (s assetMaintenanceTypeService) AddMaintenanceType(maintenanceType *request
 		return nil, err
 	}
 
-	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -91,7 +93,7 @@ func (s assetMaintenanceTypeService) GetListMaintenanceType(clientID string) ([]
 }
 
 func (s assetMaintenanceTypeService) UpdateMaintenanceType(id uint, clientID string, maintenanceType *request.AssetMaintenanceTypeRequest) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").

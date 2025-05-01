@@ -4,10 +4,10 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"strconv"
 )
 
 type AssetStatusController interface {
@@ -20,10 +20,10 @@ type AssetStatusController interface {
 
 type assetStatusController struct {
 	AssetStatusService assets.AssetStatusService
-	JWTService         utils.JWTService
+	JWTService         jwt.Service
 }
 
-func NewAssetStatusController(AssetStatusService assets.AssetStatusService, JWTService utils.JWTService) AssetStatusController {
+func NewAssetStatusController(AssetStatusService assets.AssetStatusService, JWTService jwt.Service) AssetStatusController {
 	return assetStatusController{AssetStatusService: AssetStatusService, JWTService: JWTService}
 }
 
@@ -34,13 +34,13 @@ func (h assetStatusController) AddAssetStatus(context *gin.Context) {
 		return
 	}
 
-	credentialKey := context.GetHeader("X-CREDENTIAL-KEY")
+	credentialKey := context.GetHeader(utils.XCredentialKey)
 	if credentialKey == "" {
-		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "credential key not found")
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -55,19 +55,13 @@ func (h assetStatusController) AddAssetStatus(context *gin.Context) {
 }
 
 func (h assetStatusController) GetListAssetStatus(context *gin.Context) {
-	pageSize, err := strconv.Atoi(context.DefaultQuery("page_size", "10"))
-	if err != nil || pageSize <= 0 {
-		response.SendResponse(context, 400, "Invalid page_size", nil, "page_size must be a positive integer")
+	pageIndex, pageSize, err := utils.GetPageIndexPageSize(context)
+	if err != nil {
+		response.SendResponse(context, 400, "Invalid page index or page size", nil, err.Error())
 		return
 	}
 
-	pageIndex, err := strconv.Atoi(context.DefaultQuery("page_index", "1"))
-	if err != nil || pageIndex <= 0 {
-		response.SendResponse(context, 400, "Invalid page_index", nil, "page_index must be a positive integer")
-		return
-	}
-
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -120,7 +114,7 @@ func (h assetStatusController) UpdateAssetStatus(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -141,7 +135,7 @@ func (h assetStatusController) DeleteAssetStatus(context *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

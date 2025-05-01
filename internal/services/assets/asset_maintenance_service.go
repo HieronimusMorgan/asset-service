@@ -6,6 +6,8 @@ import (
 	"asset-service/internal/models/assets"
 	repository "asset-service/internal/repository/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -30,7 +32,7 @@ type assetMaintenanceService struct {
 	AssetRepository            repository.AssetRepository
 	AssetMaintenanceRecord     repository.AssetMaintenanceRecordRepository
 	AssetAuditLogRepository    repository.AssetAuditLogRepository
-	Redis                      utils.RedisService
+	Redis                      redis.RedisService
 }
 
 func NewAssetMaintenanceService(
@@ -38,7 +40,7 @@ func NewAssetMaintenanceService(
 	assetRepository repository.AssetRepository,
 	AssetMaintenanceRecord repository.AssetMaintenanceRecordRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	RedisService utils.RedisService) AssetMaintenanceService {
+	RedisService redis.RedisService) AssetMaintenanceService {
 	return assetMaintenanceService{
 		AssetMaintenanceRepository: AssetMaintenance,
 		AssetRepository:            assetRepository,
@@ -48,7 +50,7 @@ func NewAssetMaintenanceService(
 }
 
 func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMaintenanceRequest, clientID string, credentialKey string) (*assets.AssetMaintenance, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -58,9 +60,9 @@ func (s assetMaintenanceService) AddAssetMaintenance(maintenance request.AssetMa
 		return nil, err
 	}
 
-	err = utils.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
 	if err != nil {
-		log.Error().Str("clientID", clientID).Err(err).Msg("Credential key check failed")
+		log.Error().Str("clientID", clientID).Err(err).Msg("credential key check failed")
 		return nil, err
 	}
 
@@ -169,7 +171,7 @@ func (s assetMaintenanceService) GetMaintenanceByID(maintenanceID uint, clientID
 }
 
 func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance *request.AssetMaintenanceRequest) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -259,7 +261,7 @@ func (s assetMaintenanceService) UpdateMaintenance(clientID string, maintenance 
 }
 
 func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMaintenancePerformRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -390,7 +392,7 @@ func (s assetMaintenanceService) PerformMaintenance(assetPerform request.AssetMa
 }
 
 func (s assetMaintenanceService) DeleteMaintenance(maintenanceID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").
@@ -404,7 +406,7 @@ func (s assetMaintenanceService) DeleteMaintenance(maintenanceID uint, clientID 
 }
 
 func (s assetMaintenanceService) GetMaintenancesByAssetID(assetID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		log.Error().
 			Str("key", "GetUserRedis").

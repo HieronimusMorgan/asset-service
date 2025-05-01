@@ -3,6 +3,7 @@ package assets
 import (
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 
@@ -20,10 +21,10 @@ type AssetGroupPermissionController interface {
 
 type assetGroupPermissionController struct {
 	AssetGroupPermissionService assets.AssetGroupPermissionService
-	JWTService                  utils.JWTService
+	JWTService                  jwt.Service
 }
 
-func NewAssetGroupPermissionController(AssetGroupPermissionService assets.AssetGroupPermissionService, JWTService utils.JWTService) AssetGroupPermissionController {
+func NewAssetGroupPermissionController(AssetGroupPermissionService assets.AssetGroupPermissionService, JWTService jwt.Service) AssetGroupPermissionController {
 	return assetGroupPermissionController{AssetGroupPermissionService: AssetGroupPermissionService, JWTService: JWTService}
 }
 
@@ -34,7 +35,7 @@ func (a assetGroupPermissionController) AddAssetGroupPermission(context *gin.Con
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -61,7 +62,7 @@ func (a assetGroupPermissionController) UpdateAssetGroupPermission(context *gin.
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -83,7 +84,7 @@ func (a assetGroupPermissionController) GetAssetGroupPermissionByID(context *gin
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -99,7 +100,7 @@ func (a assetGroupPermissionController) GetAssetGroupPermissionByID(context *gin
 }
 
 func (a assetGroupPermissionController) GetListAssetGroupPermission(context *gin.Context) {
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -121,7 +122,7 @@ func (a assetGroupPermissionController) DeleteAssetGroupPermission(context *gin.
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(context)
+	token, exist := jwt.ExtractTokenClaims(context)
 	if !exist {
 		response.SendResponse(context, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

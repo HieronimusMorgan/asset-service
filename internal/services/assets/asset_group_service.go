@@ -7,18 +7,20 @@ import (
 	repository "asset-service/internal/repository/assets"
 	users "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"errors"
 	"github.com/rs/zerolog/log"
 )
 
 type AssetGroupService interface {
-	AddAssetGroup(assetRequest *request.AssetGroupRequest, clientID string) (interface{}, error)
+	AddAssetGroup(assetRequest *request.AssetGroupRequest, clientID string, credentialKey string) (interface{}, error)
 	AddInvitationAssetGroup(assetGroupID uint, clientID string) (interface{}, error)
 	RemoveInvitationAssetGroup(assetGroupID uint, clientID string) error
-	UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string) (interface{}, error)
+	UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string, credentialKey string) (interface{}, error)
 	GetAssetGroupDetail(clientID string) (interface{}, error)
 	GetAssetGroupAssetByAssetGroupID(assetGroupID uint, clientID string) (interface{}, error)
-	DeleteAssetGroup(assetGroupID uint, clientID string) error
+	DeleteAssetGroup(assetGroupID uint, clientID string, credentialKey string) error
 	InviteMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error
 	RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error
 	AddPermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
@@ -37,10 +39,10 @@ type assetGroupService struct {
 	AssetRepository            repository.AssetRepository
 	AssetStockRepository       repository.AssetStockRepository
 	AssetAuditLogRepository    repository.AssetAuditLogRepository
-	Redis                      utils.RedisService
+	Redis                      redis.RedisService
 }
 
-func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupRepository repository.AssetGroupRepository, permissionRepository repository.AssetGroupPermissionRepository, memberPermissionRepository repository.AssetGroupMemberPermissionRepository, memberRepository repository.AssetGroupMemberRepository, assetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetStockRepository repository.AssetStockRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis utils.RedisService) AssetGroupService {
+func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupRepository repository.AssetGroupRepository, permissionRepository repository.AssetGroupPermissionRepository, memberPermissionRepository repository.AssetGroupMemberPermissionRepository, memberRepository repository.AssetGroupMemberRepository, assetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetStockRepository repository.AssetStockRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis redis.RedisService) AssetGroupService {
 	return &assetGroupService{
 		UserRepository:             UserRepository,
 		AssetGroupRepository:       AssetGroupRepository,
@@ -55,10 +57,15 @@ func NewAssetGroupService(UserRepository users.UserRepository, AssetGroupReposit
 	}
 }
 
-func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupRequest, clientID string, credentialKey string) (interface{}, error) {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
+	}
+
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("CheckCredentialKey", clientID, err, "credential key check failed")
 	}
 
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
@@ -111,7 +118,7 @@ func (s *assetGroupService) AddAssetGroup(assetRequest *request.AssetGroupReques
 }
 
 func (s *assetGroupService) AddInvitationAssetGroup(assetGroupID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -163,7 +170,7 @@ func (s *assetGroupService) AddInvitationAssetGroup(assetGroupID uint, clientID 
 		return logError("GetAssetGroupPermissionByUserID", clientID, nil, "User does not have permission to add invitation token")
 	}
 
-	invitationToken, err := utils.GenerateInviteToken()
+	invitationToken, err := text.GenerateInviteToken()
 	if err != nil {
 		return logError("GenerateInviteToken", clientID, err, "Failed to generate invitation token")
 	}
@@ -180,7 +187,7 @@ func (s *assetGroupService) AddInvitationAssetGroup(assetGroupID uint, clientID 
 }
 
 func (s *assetGroupService) RemoveInvitationAssetGroup(assetGroupID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -240,11 +247,17 @@ func (s *assetGroupService) RemoveInvitationAssetGroup(assetGroupID uint, client
 	return nil
 }
 
-func (s *assetGroupService) UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s *assetGroupService) UpdateAssetGroup(assetGroupID uint, req *request.AssetGroupRequest, clientID string, credentialKey string) (interface{}, error) {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
+
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		return nil, logErrorWithNoReturn("CheckCredentialKey", clientID, err, "credential key check failed")
+	}
+
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
 		return nil, logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
@@ -314,7 +327,7 @@ func (s *assetGroupService) UpdateAssetGroup(assetGroupID uint, req *request.Ass
 }
 
 func (s *assetGroupService) GetAssetGroupDetail(clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -349,7 +362,7 @@ func (s *assetGroupService) GetAssetGroupDetail(clientID string) (interface{}, e
 }
 
 func (s *assetGroupService) GetAssetGroupAssetByAssetGroupID(assetGroupID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -388,11 +401,17 @@ func (s *assetGroupService) GetAssetGroupAssetByAssetGroupID(assetGroupID uint, 
 	return assetsList, nil
 }
 
-func (s *assetGroupService) DeleteAssetGroup(assetGroupID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+func (s *assetGroupService) DeleteAssetGroup(assetGroupID uint, clientID string, credentialKey string) error {
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
+
+	err = text.CheckCredentialKey(s.Redis, credentialKey, data.ClientID)
+	if err != nil {
+		return logErrorWithNoReturn("CheckCredentialKey", clientID, err, "credential key check failed")
+	}
+
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
@@ -450,7 +469,7 @@ func (s *assetGroupService) DeleteAssetGroup(assetGroupID uint, clientID string)
 }
 
 func (s *assetGroupService) InviteMemberAssetGroup(req *request.AssetGroupMemberRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -522,7 +541,7 @@ func (s *assetGroupService) InviteMemberAssetGroup(req *request.AssetGroupMember
 }
 
 func (s *assetGroupService) RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -589,7 +608,7 @@ func (s *assetGroupService) RemoveMemberAssetGroup(memberRequest request.AssetGr
 }
 
 func (s *assetGroupService) AddPermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -677,7 +696,7 @@ func (s *assetGroupService) AddPermissionMemberAssetGroup(req *request.ChangeAss
 }
 
 func (s *assetGroupService) RemovePermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -762,7 +781,7 @@ func (s *assetGroupService) RemovePermissionMemberAssetGroup(req *request.Change
 }
 
 func (s *assetGroupService) GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -799,7 +818,7 @@ func (s *assetGroupService) GetListAssetGroupAsset(assetGroupID uint, clientID s
 
 func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error) {
 	// Step 1: Fetch user data from Redis
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetUserRedis", clientID, err, "Failed to get user from Redis")
 	}

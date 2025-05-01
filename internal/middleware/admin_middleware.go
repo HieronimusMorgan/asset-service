@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -14,11 +14,11 @@ type AdminMiddleware interface {
 
 // adminMiddleware is the struct that implements AdminMiddleware
 type adminMiddleware struct {
-	JWTService utils.JWTService
+	JWTService jwt.Service
 }
 
 // NewAdminMiddleware initializes authentication middleware
-func NewAdminMiddleware(jwtService utils.JWTService) AdminMiddleware {
+func NewAdminMiddleware(jwtService jwt.Service) AdminMiddleware {
 	return adminMiddleware{
 		JWTService: jwtService,
 	}

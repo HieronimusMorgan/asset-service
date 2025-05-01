@@ -1,17 +1,15 @@
-package utils
+package jwt
 
 import (
-	"asset-service/package/response"
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
-	"net/http"
 	"strings"
 	"time"
 )
 
-type JWTService interface {
+type Service interface {
 	ValidateToken(tokenString string) (*jwt.MapClaims, error)
 	ValidateTokenAdmin(tokenString string) (*jwt.MapClaims, error)
 	ExtractClaims(tokenString string) (*TokenClaims, error)
@@ -25,7 +23,7 @@ type jwtService struct {
 }
 
 // NewJWTService initializes the JWT service
-func NewJWTService(jwtSecret string) JWTService {
+func NewJWTService(jwtSecret string) Service {
 	return jwtService{
 		SecretKey:         []byte(jwtSecret),
 		InternalSecretKey: []byte(jwtSecret),
@@ -176,16 +174,13 @@ type InternalClaims struct {
 func ExtractTokenClaims(c *gin.Context) (*TokenClaims, bool) {
 	tokenData, exists := c.Get("token")
 	if !exists {
-		response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Token not found")
 		return nil, false
 	}
 
 	tokenClaims, ok := tokenData.(*TokenClaims)
 	if !ok || tokenClaims == nil {
-		response.SendResponse(c, http.StatusUnauthorized, "Unauthorized", nil, "Invalid token format")
 		return nil, false
 	}
-
 	return tokenClaims, true
 }
 

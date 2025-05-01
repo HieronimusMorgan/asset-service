@@ -7,11 +7,12 @@ import (
 	"asset-service/internal/repository/transaction"
 	users "asset-service/internal/repository/users"
 	services "asset-service/internal/services/assets"
-	"asset-service/internal/utils"
 	controllercron "asset-service/internal/utils/cron/controller"
 	repositorycron "asset-service/internal/utils/cron/repository"
 	"asset-service/internal/utils/cron/service"
+	"asset-service/internal/utils/jwt"
 	nt "asset-service/internal/utils/nats"
+	"asset-service/internal/utils/redis"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/sirupsen/logrus"
@@ -24,7 +25,7 @@ import (
 func NewServerConfig() (*ServerConfig, error) {
 	cfg := LoadConfig()
 	redisClient := InitRedis(cfg)
-	redisService := utils.NewRedisService(*redisClient)
+	redisService := redis.NewRedisService(*redisClient)
 	db := InitDatabase(cfg)
 	engine := InitGin()
 
@@ -48,7 +49,7 @@ func NewServerConfig() (*ServerConfig, error) {
 		Config:     cfg,
 		DB:         db,
 		Redis:      redisService,
-		JWTService: utils.NewJWTService(cfg.JWTSecret),
+		JWTService: jwt.NewJWTService(cfg.JWTSecret),
 	}
 
 	server.initNats()

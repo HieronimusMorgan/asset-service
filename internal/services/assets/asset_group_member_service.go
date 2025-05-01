@@ -6,6 +6,8 @@ import (
 	repository "asset-service/internal/repository/assets"
 	repousers "asset-service/internal/repository/users"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
+	"asset-service/internal/utils/text"
 	"errors"
 )
 
@@ -25,7 +27,7 @@ type assetGroupMemberService struct {
 	AssetRepository                      repository.AssetRepository
 	AssetGroupInvitation                 repository.AssetGroupInvitationRepository
 	AssetAuditLogRepository              repository.AssetAuditLogRepository
-	Redis                                utils.RedisService
+	Redis                                redis.RedisService
 }
 
 func NewAssetGroupMemberService(
@@ -37,7 +39,7 @@ func NewAssetGroupMemberService(
 	AssetRepository repository.AssetRepository,
 	AssetGroupInvitation repository.AssetGroupInvitationRepository,
 	AssetAuditLogRepository repository.AssetAuditLogRepository,
-	redis utils.RedisService) AssetGroupMemberService {
+	redis redis.RedisService) AssetGroupMemberService {
 	return &assetGroupMemberService{
 		UserRepository:                       userRepository,
 		UserSettingRepository:                UserSettingRepository,
@@ -52,7 +54,7 @@ func NewAssetGroupMemberService(
 }
 
 func (s *assetGroupMemberService) AddAssetGroupMember(req *request.AssetGroupMemberRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -125,7 +127,7 @@ func (s *assetGroupMemberService) AddAssetGroupMember(req *request.AssetGroupMem
 			return logErrorWithNoReturn("GetUserByID", clientID, errors.New("user not found"), "User not found")
 		}
 
-		inviteToken, err := utils.GenerateInviteToken()
+		inviteToken, err := text.GenerateInviteToken()
 		if err != nil {
 			return logErrorWithNoReturn("GenerateInviteToken", clientID, err, "Failed to generate invite token")
 		}
@@ -179,7 +181,7 @@ func (s *assetGroupMemberService) AddAssetGroupMember(req *request.AssetGroupMem
 }
 
 func (s *assetGroupMemberService) RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -247,7 +249,7 @@ func (s *assetGroupMemberService) RemoveMemberAssetGroup(memberRequest request.A
 }
 
 func (s *assetGroupMemberService) LeaveMemberAssetGroup(assetGroupID uint, clientID string) error {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
@@ -274,7 +276,7 @@ func (s *assetGroupMemberService) LeaveMemberAssetGroup(assetGroupID uint, clien
 }
 
 func (s *assetGroupMemberService) GetListAssetGroupMember(assetGroupID uint, clientID string) (interface{}, error) {
-	data, err := utils.GetUserRedis(s.Redis, utils.User, clientID)
+	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
 		return logError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}

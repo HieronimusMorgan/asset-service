@@ -3,6 +3,7 @@ package assets
 import (
 	"asset-service/internal/models/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"gorm.io/gorm"
 )
 
@@ -103,7 +104,7 @@ func (r assetGroupInvitationRepository) UpdateAssetGroupInvitationByInvitationTo
 
 func (r assetGroupInvitationRepository) DeleteAssetGroupInvitationExpired() error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Table(utils.TableAssetGroupInvitationName).Where("expired_at < ?", utils.GetCurrentTime()).Delete(&assets.AssetGroupInvitation{}).Error; err != nil {
+		if err := tx.Table(utils.TableAssetGroupInvitationName).Where("expired_at < ?", jwt.GetCurrentTime()).Delete(&assets.AssetGroupInvitation{}).Error; err != nil {
 			return err
 		}
 		return nil

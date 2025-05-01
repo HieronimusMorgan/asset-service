@@ -4,6 +4,7 @@ import (
 	request "asset-service/internal/dto/in/assets"
 	"asset-service/internal/services/assets"
 	"asset-service/internal/utils"
+	"asset-service/internal/utils/jwt"
 	"asset-service/package/response"
 	"net/http"
 	"strconv"
@@ -22,10 +23,10 @@ type AssetMaintenanceController interface {
 
 type assetMaintenanceController struct {
 	Service    assets.AssetMaintenanceService
-	JWTService utils.JWTService
+	JWTService jwt.Service
 }
 
-func NewAssetMaintenanceController(Service assets.AssetMaintenanceService, JWTService utils.JWTService) AssetMaintenanceController {
+func NewAssetMaintenanceController(Service assets.AssetMaintenanceService, JWTService jwt.Service) AssetMaintenanceController {
 	return assetMaintenanceController{Service: Service, JWTService: JWTService}
 }
 
@@ -36,13 +37,13 @@ func (c assetMaintenanceController) AddAssetMaintenance(ctx *gin.Context) {
 		return
 	}
 
-	credentialKey := ctx.GetHeader("X-CREDENTIAL-KEY")
+	credentialKey := ctx.GetHeader(utils.XCredentialKey)
 	if credentialKey == "" {
-		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "CredentialKey not found")
+		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "credential key not found")
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -64,7 +65,7 @@ func (c assetMaintenanceController) GetMaintenanceByID(ctx *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -91,7 +92,7 @@ func (c assetMaintenanceController) GetMaintenancesByAssetID(ctx *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return
@@ -117,7 +118,7 @@ func (c assetMaintenanceController) PerformMaintenance(ctx *gin.Context) {
 		return
 	}
 
-	token, exist := utils.ExtractTokenClaims(ctx)
+	token, exist := jwt.ExtractTokenClaims(ctx)
 	if !exist {
 		response.SendResponse(ctx, http.StatusBadRequest, "Error", nil, "Token not found")
 		return

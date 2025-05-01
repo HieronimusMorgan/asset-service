@@ -3,7 +3,7 @@ package assets
 import (
 	request "asset-service/internal/dto/in/assets"
 	repository "asset-service/internal/repository/assets"
-	"asset-service/internal/utils"
+	"asset-service/internal/utils/redis"
 )
 
 type AssetGroupAssetService interface {
@@ -18,10 +18,10 @@ type assetGroupAssetService struct {
 	AssetGroupAssetRepository repository.AssetGroupAssetRepository
 	AssetRepository           repository.AssetRepository
 	AssetAuditLogRepository   repository.AssetAuditLogRepository
-	Redis                     utils.RedisService
+	Redis                     redis.RedisService
 }
 
-func NewAssetGroupAssetService(AssetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis utils.RedisService) AssetGroupAssetService {
+func NewAssetGroupAssetService(AssetGroupAssetRepository repository.AssetGroupAssetRepository, AssetRepository repository.AssetRepository, AssetAuditLogRepository repository.AssetAuditLogRepository, redis redis.RedisService) AssetGroupAssetService {
 	return &assetGroupAssetService{
 		AssetGroupAssetRepository: AssetGroupAssetRepository,
 		AssetRepository:           AssetRepository,
