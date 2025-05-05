@@ -7,11 +7,11 @@ const (
 	PageIndex     = "page_index"
 	PageSize      = "page_size"
 )
-const ClientID = "client_id"
 
 const (
 	Authorization  = "Authorization"
 	XCredentialKey = "X-CREDENTIAL-KEY"
+	ClientID       = "client_id"
 )
 
 const (
