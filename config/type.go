@@ -94,6 +94,7 @@ type Cron struct {
 	CronRepository repositorycron.CronRepository
 	CronController controllercron.CronJobController
 }
+
 type Nats struct {
 	NatsService nt.Service
 }

@@ -279,13 +279,28 @@ func (a assetGroupController) GetListAssetGroupAsset(context *gin.Context) {
 		return
 	}
 
-	data, err := a.AssetGroupService.GetListAssetGroupAsset(assetGroupID, token.ClientID)
+	pageIndex, pageSize, err := utils.GetPageIndexPageSize(context)
 	if err != nil {
-		response.SendResponse(context, http.StatusInternalServerError, "Error", err.Error(), err)
+		response.SendResponse(context, 400, "Invalid page index or page size", nil, err.Error())
 		return
 	}
 
-	response.SendResponse(context, http.StatusOK, "Success", data, nil)
+	data, total, err := a.AssetGroupService.GetListAssetGroupAsset(assetGroupID, pageIndex, pageSize, token.ClientID)
+	if err != nil {
+		response.SendResponseList(context, 500, "Failed to get list assets", response.PagedData{
+			Total:     total,
+			PageIndex: pageIndex,
+			PageSize:  pageSize,
+			Items:     nil,
+		}, err.Error())
+		return
+	}
+	response.SendResponseList(context, 200, "Get list assets group asset successfully", response.PagedData{
+		Total:     total,
+		PageIndex: pageIndex,
+		PageSize:  pageSize,
+		Items:     data,
+	}, nil)
 }
 
 func (a assetGroupController) AddStockAssetGroupAsset(context *gin.Context) {

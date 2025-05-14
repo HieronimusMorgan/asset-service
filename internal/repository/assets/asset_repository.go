@@ -20,7 +20,8 @@ type AssetRepository interface {
 	GetAssetByAssetGroupID(assetID, assetGroupID uint) (*assets.Asset, error)
 	GetCountAsset(clientID string) (int64, error)
 	GetListAssets(clientID string, index int, size int) ([]response.AssetResponse, error)
-	GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error)
+	GetListAssetsByAssetGroup(clientID string, assetGroupID uint, pageIndex, pageSize int) ([]response.AssetResponse, error)
+	GetCountListAssetsByAssetGroup(clientID string, assetGroupID uint) (int64, error)
 	GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error)
 	GetAssetByID(clientID string, id uint) (*assets.Asset, error)
 	UpdateAsset(asset *assets.Asset, clientID string) error
@@ -301,7 +302,7 @@ func (r assetRepository) GetListAssets(clientID string, index, size int) ([]resp
 	return assetResponses, nil
 }
 
-func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID uint) ([]response.AssetResponse, error) {
+func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID uint, pageIndex, pageSize int) ([]response.AssetResponse, error) {
 	selectQuery := `
        SELECT 
            asset.asset_id,
@@ -330,10 +331,11 @@ func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID
        INNER JOIN "asset_status" status ON asset.status_id = status.asset_status_id
        INNER JOIN "asset_stock" stock ON asset.asset_id = stock.asset_id
        WHERE aga.asset_group_id = ? AND asset.deleted_at IS NULL
-       ORDER BY asset.created_at ASC;
+       ORDER BY asset.created_at ASC 
+       LIMIT ? OFFSET ?;
    `
 
-	rows, err := r.db.Raw(selectQuery, assetGroupID).Rows()
+	rows, err := r.db.Raw(selectQuery, assetGroupID, pageSize, (pageIndex-1)*pageSize).Rows()
 	if err != nil {
 		log.Error().Str("assetGroupID", fmt.Sprintf("%d", assetGroupID)).Err(err).Msg("❌ Failed to fetch asset list by asset group")
 		return nil, err
@@ -445,6 +447,18 @@ func (r assetRepository) GetListAssetsByAssetGroup(clientID string, assetGroupID
 
 	log.Info().Str("clientID", clientID).Int("assets_count", len(assetsList)).Msg("✅ Successfully fetched asset list")
 	return assetsList, nil
+}
+
+func (r assetRepository) GetCountListAssetsByAssetGroup(clientID string, assetGroupID uint) (int64, error) {
+	var count int64
+	err := r.db.Table(utils.TableAssetName).
+		Joins("JOIN asset_group_asset aga ON asset.asset_id = aga.asset_id").
+		Where("user_client_id = ? AND deleted_at IS NULL AND asset_group_id = ?", clientID, assetGroupID).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func (r assetRepository) GetAssetResponseByID(clientID string, id uint) (*response.AssetResponse, error) {

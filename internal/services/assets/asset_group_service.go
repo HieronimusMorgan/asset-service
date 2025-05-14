@@ -25,7 +25,7 @@ type AssetGroupService interface {
 	RemoveMemberAssetGroup(memberRequest request.AssetGroupMemberRequest, clientID string) error
 	AddPermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
 	RemovePermissionMemberAssetGroup(req *request.ChangeAssetGroupPermissionRequest, clientID string) error
-	GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error)
+	GetListAssetGroupAsset(assetGroupID uint, pageIndex, pageSize int, clientID string) (interface{}, int64, error)
 	UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error)
 }
 
@@ -780,40 +780,41 @@ func (s *assetGroupService) RemovePermissionMemberAssetGroup(req *request.Change
 	return nil
 }
 
-func (s *assetGroupService) GetListAssetGroupAsset(assetGroupID uint, clientID string) ([]response.AssetResponse, error) {
+func (s *assetGroupService) GetListAssetGroupAsset(assetGroupID uint, pageIndex, pageSize int, clientID string) (interface{}, int64, error) {
 	data, err := redis.GetUserRedis(s.Redis, utils.User, clientID)
 	if err != nil {
-		return nil, logErrorWithNoReturn("GetRedisData", clientID, err, "Failed to get data from redis")
+		return logListError("GetRedisData", clientID, err, "Failed to get data from redis")
 	}
 
 	user, err := s.UserRepository.GetUserByClientID(data.ClientID)
 	if err != nil {
-		return nil, logErrorWithNoReturn("GetUserByClientID", clientID, err, "Failed to get user data")
+		return logListError("GetUserByClientID", clientID, err, "Failed to get user data")
 	}
 
 	// Check if the asset group exists
 	assetGroup, err := s.AssetGroupRepository.GetAssetGroupByID(assetGroupID)
 	if err != nil {
-		return nil, logErrorWithNoReturn("GetAssetGroupDetail", clientID, err, "Failed to get asset group")
+		return logListError("GetAssetGroupDetail", clientID, err, "Failed to get asset group")
 	}
 
 	if assetGroup == nil {
-		return nil, logErrorWithNoReturn("GetAssetGroupDetail", clientID, nil, "Asset group not found")
+		return logListError("GetAssetGroupDetail", clientID, nil, "Asset group not found")
 	}
 
 	// Check if the user is a member of the asset group
 	member, err := s.memberRepository.GetAssetGroupMemberByUserIDAndGroupID(user.UserID, assetGroupID)
 	if err != nil {
-		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group member")
+		return logListError("GetAssetGroupMemberByUserIDAndGroupID", clientID, err, "Failed to get asset group member")
 	}
 
 	if member.AssetGroupID == 0 {
-		return nil, logErrorWithNoReturn("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
+		return logListError("GetAssetGroupMemberByUserIDAndGroupID", clientID, nil, "User is not a member of this asset group")
 	}
+	count, err := s.AssetRepository.GetCountListAssetsByAssetGroup(user.ClientID, assetGroupID)
 
-	asset, err := s.AssetRepository.GetListAssetsByAssetGroup(user.ClientID, assetGroupID)
+	asset, err := s.AssetRepository.GetListAssetsByAssetGroup(user.ClientID, assetGroupID, pageIndex, pageSize)
 
-	return asset, nil
+	return asset, count, nil
 }
 
 func (s *assetGroupService) UpdateStockAssetGroupAsset(isAdded bool, req request.ChangeAssetStockRequest, clientID string) (interface{}, error) {
